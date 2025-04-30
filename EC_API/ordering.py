@@ -104,7 +104,7 @@ class Order(object):
     
         self._connect.client.send_client_message(client_msg)
         
-    def modify_order_request(client, request_id, account_id, order_id, 
+    def modify_order_request(self, client, request_id, account_id, order_id, 
                             orig_cl_order_id, cl_order_id, **kwargs): # WIP
         default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
                           'qty': None, 
@@ -143,12 +143,12 @@ class Order(object):
             order_request.modify_order.good_thru_utc_timestamp = kwargs['good_thru_utc_timestamp']
         if kwargs['extra_attributes'] != None:
             order_request.modify_order.extra_attributes.append(kwargs['extra_attributes'])
-        
-        client.send_client_message(client_msg)
+            
+        self._connect.client.send_client_message(client_msg)
         print('===============order complete=======================')
 
         while True:
-            server_msg = client.receive_server_message()
+            server_msg = self._connect.receive_server_message()
             if server_msg.trade_snapshot_completions is not None:
                 server_msg = client.receive_server_message()
                 
@@ -178,6 +178,32 @@ class Order(object):
                 
         return server_msg
     
+    def goflat_order_request(client, request_id, account_id, **kwargs):
+        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
+                          'execution_source_code': None, 
+                          'speculation_type': None}
+        kwargs = dict(default_kwargs, **kwargs)
+
+        client_msg = ClientMsg()
+        order_request = client_msg.order_requests.add()
+        order_request.request_id = request_id
+        order_request.go_flat.account_ids.append(account_id)
+        order_request.go_flat.when_utc_timestamp = kwargs['when_utc_timestamp']
+        #order_request.go_flat.execution_source_code = kwargs['execution_source_code']
+        #order_request.go_flat.speculation_type = kwargs['speculation_type']
+        client.send_client_message(client_msg)
+        
+        print('===============Go Flat on all orders=======================')
+
+        while True:
+            server_msg = client.receive_server_message()
+            if server_msg.trade_snapshot_completions is not None:
+                server_msg = client.receive_server_message()
+                break
+                
+        return server_msg
+
+
 
 
 class AutoOder(Order):

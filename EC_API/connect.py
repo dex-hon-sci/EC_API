@@ -17,7 +17,6 @@ from WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
 # A function that can take in live-data in a while loop and update orders based 
 # on some predetermined rules.
 
-
 class ConnectCQG(object):
     # This class control all the functions related to connecting to CQG and 
     # subscriptions related functions
@@ -102,6 +101,8 @@ class ConnectCQG(object):
         
         if 'instrument_group_request' in kwargs:
             information_request.instrument_group_request = kwargs['instrument_group_request']    
+        if 'preferred_types' in kwargs:
+            information_request.preferred_types = kwargs['preferred_types']
         
         self._client.send_client_message(client_msg)
 
