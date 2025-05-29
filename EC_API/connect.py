@@ -5,9 +5,9 @@ Created on Wed Mar 19 13:01:54 2025
 
 @author: dexter
 """
-from WebAPI.webapi_2_pb2 import ClientMsg
-from WebAPI import webapi_client
-from WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
+from .WebAPI.webapi_2_pb2 import ClientMsg
+from .WebAPI import webapi_client
+from .WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
                                       RestoreOrJoinSession, RestoreOrJoinSessionResult
 
 # input payload (ordering)
@@ -16,6 +16,7 @@ from WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
 # send order function
 # A function that can take in live-data in a while loop and update orders based 
 # on some predetermined rules.
+
 
 class ConnectCQG(object):
     # This class control all the functions related to connecting to CQG and 
@@ -101,8 +102,6 @@ class ConnectCQG(object):
         
         if 'instrument_group_request' in kwargs:
             information_request.instrument_group_request = kwargs['instrument_group_request']    
-        if 'preferred_types' in kwargs:
-            information_request.preferred_types = kwargs['preferred_types']
         
         self._client.send_client_message(client_msg)
 
@@ -110,13 +109,10 @@ class ConnectCQG(object):
         return server_msg.information_reports[0].symbol_resolution_report.contract_metadata
     
 if __name__ == "__main__":
-    import load_dotenv
-    import os
-    load_dotenv()
-    host_name = os.environ.get("CQG_API_host_name_demo")
-    user_name = os.environ.get("CQG_API_trade_demo_usrname")
-    password = os.environ.get("CQG_API_trade_demo_pw")
-
+    
+    host_name = 'wss://demoapi.cqg.com:443'
+    user_name = 'EulerWAPI'
+    password = 'WAPI'
     resolveSymbolName = 'ZUC'
 
     C = ConnectCQG(host_name, user_name, password)
