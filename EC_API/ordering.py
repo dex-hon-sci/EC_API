@@ -6,6 +6,30 @@ Created on Wed Mar 19 16:06:10 2025
 @author: dexter
 """
 from .WebAPI.webapi_2_pb2 import ClientMsg
+
+from .WebAPI.trade_routing_2_pb2.TradeSubscription import SubscriptionScope
+from .WebAPI.order_2_pb2.Order import Side, OrderType, Duration
+
+from .WebAPI.trade_routing_2_pb2.TradeSubscription.SubscriptionScope\
+                                         import SUBSCRIPTION_SCOPE_ORDERS,\
+                                                SUBSCRIPTION_SCOPE_POSITIONS,\
+                                                SUBSCRIPTION_SCOPE_COLLATERAL,\
+                                                SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,\
+                                                SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS,\
+                                                SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES 
+
+
+from .WebAPI.order_2_pb2.Order.Side import SIDE_BUY, SIDE_SELL
+from .WebAPI.order_2_pb2.Order.OrderType import ORDER_TYPE_MKT, ORDER_TYPE_LMT,\
+                                                ORDER_TYPE_STP, ORDER_TYPE_STL,\
+                                                ORDER_TYPE_CROSS
+from .WebAPI.order_2_pb2.Order.Duration import DURATION_DAY, DURATION_GTC,\
+                                               DURATION_GTD, DURATION_GTT,\
+                                               DURATION_FOK, DURATION_FAK,\
+                                               DURATION_FOK,DURATION_ATO,\
+                                               DURATION_ATC,DURATION_GFA
+
+
 from EC_API.connect import ConnectCQG
 import datetime
 
@@ -15,7 +39,10 @@ class TradeSubscription(object):
     def __init__(self, connect: ConnectCQG):
         self._connect = connect
 
-    def request_trade_subscription(self, msg_id: int, sub_scope:int = 1):
+    def request_trade_subscription(self, 
+                                   msg_id: int, 
+                                   sub_scope: SubscriptionScope = \
+                                              SUBSCRIPTION_SCOPE_ORDERS):
         client_msg = ClientMsg()
         trade_sub_request = client_msg.trade_subscriptions.add()
         # user-defined ID of a request that should be unique to match with possible OrderRequestReject.
@@ -33,6 +60,11 @@ class TradeSubscription(object):
         ##account_summary_parameters = trade_sub_request.account_summary_parameters
         # 8 means purchasing_power, 15 means urrent_balance, 16 means profit_loss
         ##account_summary_parameters.requested_fields.extend([8,15,16])
+        if sub_scope == SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY: # SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+            account_summary_parameters = trade_sub_request.account_summary_parameters
+            # 8 means purchasing_power, 15 means current_balance, 16 means profit_loss
+            account_summary_parameters.requested_fields.extend([8,15,16])
+
         self._connect.client.send_client_message(client_msg)
         print('==============request trade sub complete==============')
     
@@ -45,20 +77,31 @@ class TradeSubscription(object):
         return server_msg
     
     
-class Order(object):
+class LiveOrder(object):
     # a class that control the ordering action to the exchange
 
-    def __init__(self, connect: ConnectCQG, 
-                 symbol, request_id, account_id):
+    def __init__(self, 
+                 connect: ConnectCQG, 
+                 symbol: str, 
+                 request_id: int, 
+                 account_id: int):
         self._connect = connect
         self._symbol = symbol
         self.request_id = request_id
         self.account_id = account_id
+        
+    
 
 
-    def new_order_request(self, request_id, account_id, contract_id,
-                          cl_order_id, order_type, duration, side,
-                          qty_significant, qty_exponent, is_manual,
+    def new_order_request(self, 
+                          contract_id: int, # Get this from trade_sub
+                          cl_order_id: str, 
+                          order_type: OrderType, 
+                          duration: Duration, 
+                          side: Side,
+                          qty_significant:int, # make sure qty are in Decimal not float
+                          qty_exponent: int, 
+                          is_manual: bool = False,
                           **kwargs):
         
         default_kwargs = {'exec_instructions':None,
@@ -104,10 +147,15 @@ class Order(object):
     
         self._connect.client.send_client_message(client_msg)
         
-    def modify_order_request(client, request_id, account_id, order_id, 
-                            orig_cl_order_id, cl_order_id, **kwargs): # WIP
+        # Listen for order confirmation
+        
+    def modify_order_request(self,  
+                             order_id: int, # Get this from the previous Order 
+                             orig_cl_order_id: str, 
+                             cl_order_id: str, 
+                             **kwargs): # WIP
         default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
-                          'qty': None, 
+                          'qty': 0, 
                           'scaled_limit_price': None,
                           'scaled_stop_price': None,
                           'remove_activation_time': None,
@@ -119,9 +167,9 @@ class Order(object):
 
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
-        order_request.request_id = request_id
+        order_request.request_id = self.request_id
         order_request.modify_order.order_id = order_id
-        order_request.modify_order.account_id = account_id
+        order_request.modify_order.account_id = self.account_id
         order_request.modify_order.orig_cl_order_id = orig_cl_order_id
         order_request.modify_order.cl_order_id = cl_order_id
         
@@ -144,17 +192,17 @@ class Order(object):
         if kwargs['extra_attributes'] != None:
             order_request.modify_order.extra_attributes.append(kwargs['extra_attributes'])
         
-        client.send_client_message(client_msg)
+        self._connect.client.send_client_message(client_msg)
         print('===============order complete=======================')
 
         while True:
-            server_msg = client.receive_server_message()
+            server_msg = self._connect.client.receive_server_message()
             if server_msg.trade_snapshot_completions is not None:
-                server_msg = client.receive_server_message()
+                server_msg = self._connect.client.receive_server_message()
                 
         return server_msg
 
-    def cancel_order_request(client, request_id, account_id, order_id, 
+    def cancel_order_request(self, client, request_id, account_id, order_id, 
                             orig_cl_order_id, cl_order_id,  **kwargs):
         default_kwargs = {'when_utc_timestamp': datetime.datetime.now()}
         kwargs = dict(default_kwargs, **kwargs)
