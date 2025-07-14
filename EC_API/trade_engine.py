@@ -22,7 +22,10 @@ import numpy as np
 from connect import ConnectCQG
 from ordering import LiveOrder
 from payload import Payload
-# 
+
+import datetime
+# Trade engine is incharge of scanning the operational database and
+# figure out the time to send the orders
 
 class TradeEngine():
     #Trade eingine manage connection and status of the orders a
@@ -31,13 +34,34 @@ class TradeEngine():
         self._connection.logon()
 
     def connection(self):
-        return 
+        return self._connection
         
-    def start():
+    async def run():
+        while True:
+            # Clock ticking
+            # Very important metrics
+            dt = datetime.datetime.now()
+            
+            # Scan Chamber DB, load the entries in memory
+            # try Sending Order via ordering
+            # Check if the order is received 
+            # If Yes, move payload from chamber to shellpile 
+            # (Copy to shellpile )
+            
+            # Check the status of the old filled orders
+            # change the status in Chamber to filled ShellPile
+
+            if dt > 0 and dt < 1:
+                # await send_order()
+                pass
+            
+        
+        
         return 
     
-    def intake(payload:Payload):
-        return 
+    
+    #def intake(payload:Payload):
+    #    return 
 
 # =============================================================================
 #     def goflat():
