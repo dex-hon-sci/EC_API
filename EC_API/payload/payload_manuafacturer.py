@@ -10,4 +10,17 @@ generate order payload and store them in storage.
 
 It also moves the ready payload to chamber routinely (based on time)
 
+Signal-> Payload
 """
+import datetime
+
+async def main_loop():
+    while True:
+        dt = datetime.datetime.now()
+        
+        # Check the time of the Storage
+        # Move from Storage to Chamber based on time
+
+        
+        
+    return

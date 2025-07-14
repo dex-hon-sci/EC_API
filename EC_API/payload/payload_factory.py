@@ -10,23 +10,41 @@ A script that make payload based on existing Strategies.
 It also manage the logisitc of the payloads. 
 """
 import datetime
+from EC_API.payload import Payload
 
 class PayloadFactory(object):
-    # Sole responsiplility is to make payload given a method ( Strategy)
+    # Sole responsiplility is to make payload given a method (Strategy)
+    # Order(from Signal) to Payload
+    
     def __init__(self):
         self.gen_method = None
+        self.signal = None
         return 
-    def create_payload():
+    
+    def make(self):
+        # Unpack Signal, put start_time, end_time into the Payload
+        
+        # Assign cl_order
+        
+        # Payload
         return
+    
     
 class PayloadLogisitc():
     # Storage: Inactive payload Storage.
     # Chamber: Load the chamber on the day of planned executions.
-    # Shellpile: Discarded Payloads, either sent or canceled.
-    def __init__():
+    # ShellPile: Discarded Payloads, either sent or canceled.
+    
+    # Chamber is loaded with payload that is going to be active on that day
+    
+    def __init__(self):
+        # Connect to DB
+        self.from_DB = None
+        self.to_DB = None
         return 
     
     def move():
+        # Simple copy and delete function
         return 
     
 # one example
