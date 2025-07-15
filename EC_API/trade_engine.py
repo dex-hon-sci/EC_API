@@ -36,7 +36,16 @@ class TradeEngine():
     def connection(self):
         return self._connection
         
+    def start():
+        try:
+            #Connect to the server, 
+            # Then run the event loop
+            pass
+        finally:
+            pass
+        
     async def run():
+        
         while True:
             # Clock ticking
             # Very important metrics

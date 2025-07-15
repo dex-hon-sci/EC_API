@@ -38,6 +38,15 @@ class TradeSubscription(object):
     
     def __init__(self, connect: ConnectCQG):
         self._connect = connect
+        self.status_check = False
+        self.trade_snapshot_check = False
+        self.checkcheck = False
+        
+    def valid_msg_check(self):
+        # Check for status_code
+        # check for trade_snapshot
+        # Check for message type
+        return
 
     def request_trade_subscription(self, 
                                    msg_id: int, 
