@@ -8,14 +8,8 @@ Created on Wed Mar 19 13:01:54 2025
 from .WebAPI.webapi_2_pb2 import ClientMsg
 from .WebAPI import webapi_client
 from .WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
-                                      RestoreOrJoinSession, RestoreOrJoinSessionResult
-
-# input payload (ordering)
-# input logon informations
-
-# send order function
-# A function that can take in live-data in a while loop and update orders based 
-# on some predetermined rules.
+                                       RestoreOrJoinSession, \
+                                       RestoreOrJoinSessionResult
 
 
 class ConnectCQG(object):
@@ -65,7 +59,6 @@ class ConnectCQG(object):
             # in the time_and_sales_request sample and the time_bar_request sample.
             print("Logon Successful")
             return server_msg.logon_result.base_time
-            #return server_msg.logon_result.result_code #, LogonResult.ResultCode.__dict__['_enum_type'].__dict__['values_by_name']['RESULT_CODE_FAILURE'].__dict__
         else:
             # the text_message contains the reason why user cannot login.
             raise Exception("Can't login: " + server_msg.logon_result.text_message)
