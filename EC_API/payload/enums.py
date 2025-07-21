@@ -9,9 +9,11 @@ Created on Mon Jul 14 19:27:33 2025
 from enum import Enum
 
 class PayloadStatus(Enum):
-    PENDING = "Pending"
-    SENT = "Sent"
-    VOID = "Cancelled" # When the Payload is cancelled
+    PENDING = "Pending" # Starting, in Storage and Chamber
+    SENT = "Sent" # Transition state, move from Chamber to ShellPile
+    FILLED = "Filled" # Confirm Filled, change state in ShellPile
+    VOID = "Cancelled" # Confirm Cancelled, change state in ShellPile
+    ARCHIVED = "Archived" # Order was not sent and reach its time limit, move from Chamber to Archieve
     
 class OrderRequestType(Enum):
     # Order types in the CQG ordering format

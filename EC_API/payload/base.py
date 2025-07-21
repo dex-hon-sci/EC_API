@@ -6,7 +6,7 @@ Created on Mon Jul 14 19:37:54 2025
 @author: dexter
 """
 
-from ordering import LiveOrder
+from EC_API.ordering import LiveOrder
 from .enums import PayloadStatus, OrderRequestType
 from dataclasses import dataclass, field
 
@@ -28,26 +28,38 @@ class Payload(object):
     order_request_type: OrderRequestType = OrderRequestType.NEW_ORDER_REQUEST
     start_time: str = 0 # In long text format
     end_time: str = 0 # In long text format
+    order_info: dict = field(default_factory=dict)
 
-    def __post_id__():
+    
+    def __post_id__(self):
         # Check the order instructions
+        
+        match self.order_request_type:
+            case OrderRequestType.NEW_ORDER_REQUEST:
+                # For new_order_request, check for necessary inputs
+                pass
+            case OrderRequestType.MODIFY_ORDER_REQUEST:
+                pass
+            case OrderRequestType.CANCEL_ORDER_REQUEST:
+                pass
+            case OrderRequestType.GOFLAT_ORDER_REQUEST:
+                pass
         return
+
     
-    
-    
-class ExecutePayload:
-    def __init__():
-        pass 
+class ExecutePayload():
+    def __init__(self, payload: Payload):
+        self.payload =  payload
     
     def unload(self):
         match self.order_request_type:
-            case NEW_ORDER_REQUEST:
+            case OrderRequestType.NEW_ORDER_REQUEST:
                 LiveOrder().new_order_request()
-            case MODIFY_ORDER_REQUEST:
+            case OrderRequestType.MODIFY_ORDER_REQUEST:
                 LiveOrder().modify_order_request()
-            case CANCEL_ORDER_REQUEST:
-                pass
-            case GOFLAT_ORDER_REQUEST:
+            case OrderRequestType.CANCEL_ORDER_REQUEST:
+                LiveOrder().cancel_order_request()
+            case OrderRequestType.GOFLAT_ORDER_REQUEST:
                 pass
         
         # Sending order request base on the payload type
