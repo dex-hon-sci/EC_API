@@ -5,71 +5,146 @@ Created on Wed Mar 19 16:06:10 2025
 
 @author: dexter
 """
-from .WebAPI.webapi_2_pb2 import ClientMsg
+from WebAPI.webapi_2_pb2 import ClientMsg
 
-from .WebAPI.trade_routing_2_pb2.TradeSubscription import SubscriptionScope
-from .WebAPI.order_2_pb2.Order import Side, OrderType, Duration
+from WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
+from WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
 
-from .WebAPI.trade_routing_2_pb2.TradeSubscription.SubscriptionScope\
-                                         import SUBSCRIPTION_SCOPE_ORDERS,\
-                                                SUBSCRIPTION_SCOPE_POSITIONS,\
-                                                SUBSCRIPTION_SCOPE_COLLATERAL,\
-                                                SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,\
-                                                SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS,\
-                                                SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES 
+SUBSCRIPTION_SCOPE_ORDERS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
+SUBSCRIPTION_SCOPE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
+SUBSCRIPTION_SCOPE_COLLATERAL = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL
+SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS
+SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES
 
+SIDE_BUY = Ord.Side.SIDE_BUY
+SIDE_SELL = Ord.Side.SIDE_SELL
 
-from .WebAPI.order_2_pb2.Order.Side import SIDE_BUY, SIDE_SELL
-from .WebAPI.order_2_pb2.Order.OrderType import ORDER_TYPE_MKT, ORDER_TYPE_LMT,\
-                                                ORDER_TYPE_STP, ORDER_TYPE_STL,\
-                                                ORDER_TYPE_CROSS
-from .WebAPI.order_2_pb2.Order.Duration import DURATION_DAY, DURATION_GTC,\
-                                               DURATION_GTD, DURATION_GTT,\
-                                               DURATION_FOK, DURATION_FAK,\
-                                               DURATION_FOK,DURATION_ATO,\
-                                               DURATION_ATC,DURATION_GFA
+ORDER_TYPE_MKT = Ord.OrderType.ORDER_TYPE_MKT
+ORDER_TYPE_LMT = Ord.OrderType.ORDER_TYPE_LMT
+ORDER_TYPE_STP = Ord.OrderType.ORDER_TYPE_STP
+ORDER_TYPE_STL = Ord.OrderType.ORDER_TYPE_STL
+ORDER_TYPE_CROSS = Ord.OrderType.ORDER_TYPE_CROSS
 
+DURATION_DAY = Ord.Duration.DURATION_DAY
+DURATION_GTC = Ord.Duration.DURATION_GTC
+DURATION_GTD = Ord.Duration.DURATION_GTD
+DURATION_GTT = Ord.Duration.DURATION_GTT
+DURATION_FOK = Ord.Duration.DURATION_FOK
+DURATION_FAK = Ord.Duration.DURATION_FAK
+DURATION_FOK = Ord.Duration.DURATION_FOK
+DURATION_ATO = Ord.Duration.DURATION_ATO
+DURATION_ATC = Ord.Duration.DURATION_ATC
+DURATION_GFA = Ord.Duration.DURATION_GFA
 
 from EC_API.connect import ConnectCQG
 import datetime
+
+
+class ValidMsgCheck(object):
+    # This class is incharge of valid message check AFTER sending a request to 
+    # the server. It contains a set of checks that is required to resolve if 
+    # we receive the correct set of responses from the server.
+    
+    # check existence, check right types, check desired response 
+
+    def __init__(self):
+        # Check parameters
+        self.msg_type = "TradeSubscription"
+        self.status_check = False
+        self.trade_snapshot_check = False
+        self.result_check = False
+        
+        # build a list for check parameters
+        # TradeSubscription
+        # new_order_request
+        
+    def check(self):
+        return 
 
 
 class TradeSubscription(object):
     
     def __init__(self, connect: ConnectCQG):
         self._connect = connect
+        
+        # Parameters
+        self.subscribe = True
+        self.sub_scope = SUBSCRIPTION_SCOPE_ORDERS
+        self.skip_orders_snapshot = False
+        
+        # Defacto messages
+        self.status_msg = None
+        self.result_msg = None
+        
+        # Check parameters
         self.status_check = False
         self.trade_snapshot_check = False
-        self.checkcheck = False
+        self.result_check = False
         
-    def valid_msg_check(self):
+    def valid_msg_check(self, server_msg):
         # Check for status_code
         # check for trade_snapshot
         # Check for message type
+        
+        result_types = {"1": server_msg.order_statuses, 
+                        "2": server_msg.position_statuses, 
+                        "3": server_msg.collateral_statuses, 
+                        "4": server_msg.account_summary_statuses}
+        
+        print("ts_msg:", server_msg)
+
+        if len(server_msg.trade_subscription_statuses)>0:
+            print("If trade_subscription_statuses>0")
+            print(len(server_msg.trade_subscription_statuses))
+            print(server_msg.trade_subscription_statuses)
+            self.status_msg = server_msg
+            self.status_check = True
+            
+            if self.subscribe == False: # break if this is a unsubscribe msg
+                print("Break for unsub")
+                return self.status_msg, server_msg
+
+        if server_msg.trade_snapshot_completions is not None:
+            print("IF snapshot is not None")
+            print("snap", server_msg.trade_snapshot_completions,)
+            self.trade_snapshot_check = True
+
+            #server_msg = client.receive_server_message()
+            
+        if result_types[str(self.sub_scope)] is not None:
+            result_msg = server_msg
+            self.result_check = True
+            print("result", result_msg, server_msg.account_summary_statuses)
         return
 
     def request_trade_subscription(self, 
                                    msg_id: int, 
-                                   sub_scope: SubscriptionScope = \
-                                              SUBSCRIPTION_SCOPE_ORDERS):
+                                   ):
+                                   #subscribe = True,
+                                   #skip_orders_snapshot = False,
+                                   #sub_scope: TS.SubscriptionScope = \
+                                   #          SUBSCRIPTION_SCOPE_ORDERS):
         client_msg = ClientMsg()
         trade_sub_request = client_msg.trade_subscriptions.add()
         # user-defined ID of a request that should be unique to match with possible OrderRequestReject.
         trade_sub_request.id = msg_id
-        trade_sub_request.subscribe = True
+        trade_sub_request.subscribe = self.subscribe
+        trade_sub_request.skip_orders_snapshot = self.skip_orders_snapshot
+
         # the client can specify the accounts in the request:
         #trade_sub_request.publication_type=1
         #trade_sub_request.account_ids.append(16883045)
         # subscription_scope is an array, we use "extend" to add subscription_scope
         # 1 means order_status, 2 means positions_status, 3 means colleteral_status, deprecated, use 4 instead
         # 4 means account_summary_status, 5 means exchange_positions, 6 means exchange_balances
-        trade_sub_request.subscription_scopes.extend([sub_scope])#,2,4,5,6]) 
+        trade_sub_request.subscription_scopes.extend([self.sub_scope])#,2,4,5,6]) 
         
         ## user needs account_summary_parameters when scopes contain 4
         ##account_summary_parameters = trade_sub_request.account_summary_parameters
         # 8 means purchasing_power, 15 means urrent_balance, 16 means profit_loss
         ##account_summary_parameters.requested_fields.extend([8,15,16])
-        if sub_scope == SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY: # SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+        if self.sub_scope == SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY: # SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
             account_summary_parameters = trade_sub_request.account_summary_parameters
             # 8 means purchasing_power, 15 means current_balance, 16 means profit_loss
             account_summary_parameters.requested_fields.extend([8,15,16])
@@ -79,13 +154,43 @@ class TradeSubscription(object):
     
         while True: 
             server_msg = self._connect.client.receive_server_message()
-            if server_msg.trade_snapshot_completions is not None:
-                server_msg = self._connect.client.receive_server_message()
-                break
             
-        return server_msg
+            result_types = {"1": server_msg.order_statuses, 
+                            "2": server_msg.position_statuses, 
+                            "3": server_msg.collateral_statuses, 
+                            "4": server_msg.account_summary_statuses}
+            print("ts_msg:", server_msg)
+
+            if len(server_msg.trade_subscription_statuses)>0:
+                print("If trade_subscription_statuses>0")
+                print(len(server_msg.trade_subscription_statuses))
+                print(server_msg.trade_subscription_statuses)
+                self.status_msg = server_msg
+                status_check = True
+                
+                if self.subscribe == False: # break if this is a unsubscribe msg
+                    print("Break for unsub")
+                    return trade_sub_request, self.status_msg, self.result_msg
+
+            if server_msg.trade_snapshot_completions is not None:
+                print("IF snapshot is not None")
+                print("snap", server_msg.trade_snapshot_completions,)
+                trade_snapshot_check = True
+
+                #server_msg = client.receive_server_message()
+                
+            if result_types[str(self.sub_scope)] is not None:
+                self.result_msg = server_msg
+                result_check = True
+                print("result", self.result_msg, server_msg.account_summary_statuses)
+
+                
+            if status_check and trade_snapshot_check and result_check:
+                return trade_sub_request, self.status_msg, self.result_msg
     
-    
+# Order type requirement checks (LMT, scaled_price) (STP, scaled_stop_price)
+# Order duration reauirement checks () ()
+
 class LiveOrder(object):
     # a class that control the ordering action to the exchange
 
@@ -99,21 +204,19 @@ class LiveOrder(object):
         self.request_id = request_id
         self.account_id = account_id
         
-    
-
-
     def new_order_request(self, 
                           contract_id: int, # Get this from trade_sub
                           cl_order_id: str, 
-                          order_type: OrderType, 
-                          duration: Duration, 
-                          side: Side,
+                          order_type: Ord.OrderType, 
+                          duration: Ord.Duration, 
+                          side: Ord.Side,
                           qty_significant:int, # make sure qty are in Decimal not float
                           qty_exponent: int, 
                           is_manual: bool = False,
                           **kwargs):
         
-        default_kwargs = {'exec_instructions':None,
+        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
+                          'exec_instructions':None,
                           'good_thru_date': None,
                           'scaled_limit_price': None, 
                           'scaled_stop_price': None}
@@ -124,7 +227,6 @@ class LiveOrder(object):
         order_request = client_msg.order_requests.add()
         order_request.request_id = self.request_id
         order_request.new_order.order.account_id = self.account_id
-        order_request.new_order.order.when_utc_time = 0
         order_request.new_order.order.contract_id = contract_id
         order_request.new_order.order.cl_order_id = cl_order_id
         order_request.new_order.order.order_type = order_type
@@ -146,8 +248,9 @@ class LiveOrder(object):
             
         if kwargs['scaled_stop_price'] is not None:
             order_request.new_order.order.scaled_stop_price = kwargs['scaled_stop_price']
-            
-            
+        if kwargs['when_utc_time'] is not None:
+            order_request.new_order.order.when_utc_time = kwargs['when_utc_timestamp']
+
         order_request.new_order.order.algo_strategy = "CQG ARRIVALPRICE"
         extra_attributes = order_request.new_order.order.extra_attributes.add()
         extra_attributes.name = "ALGO_CQG_cost_model"
@@ -155,7 +258,11 @@ class LiveOrder(object):
     
     
         self._connect.client.send_client_message(client_msg)
-        
+        while True:
+            server_msg = self._connect.client.receive_server_message()
+            if server_msg.trade_snapshot_completions is not None:
+                server_msg = self._connect.client.receive_server_message()
+        return server_msg
         # Listen for order confirmation
         
     def modify_order_request(self,  
@@ -211,59 +318,33 @@ class LiveOrder(object):
                 
         return server_msg
 
-    def cancel_order_request(self, client, request_id, account_id, order_id, 
-                            orig_cl_order_id, cl_order_id,  **kwargs):
+    def cancel_order_request(self, 
+                             order_id: int, 
+                             orig_cl_order_id: str, 
+                             cl_order_id: str,  
+                             **kwargs):
         default_kwargs = {'when_utc_timestamp': datetime.datetime.now()}
         kwargs = dict(default_kwargs, **kwargs)
 
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
-        order_request.request_id = request_id
+        order_request.request_id = self.request_id
         order_request.cancel_order.order_id = order_id
-        order_request.cancel_order.account_id = account_id
+        order_request.cancel_order.account_id = self.account_id
         order_request.cancel_order.orig_cl_order_id = orig_cl_order_id
         order_request.cancel_order.cl_order_id = cl_order_id
         order_request.cancel_order.when_utc_timestamp = kwargs['when_utc_timestamp']
 
-        client.send_client_message(client_msg)
+        self._connect.client.send_client_message(client_msg)
         print('===============order complete=======================')
 
         while True:
-            server_msg = client.receive_server_message()
+            server_msg = self._connect.client.receive_server_message()
             if server_msg.trade_snapshot_completions is not None:
-                server_msg = client.receive_server_message()
+                server_msg = self._connect.client.receive_server_message()
                 
         return server_msg
     
-
-
-class AutoOder(Order):
-    
-    def __init__():
-        pass
-    
-    def send_new_order():
-        
-# =============================================================================
-#         new_order_request(client, 
-#                           request_id: int, account_id, order_id, 
-#                                 orig_cl_order_id, cl_order_id)
-# =============================================================================
-        return
-    
-class OrderPayload():
-    # Input Stragtegy Info dict.
-    # Output 
-    def __init__():
-        pass 
-    
-
-    
-# Strategy calculation and produce order payload
-# Order payload table (id, types, time, etc.) for logging and query (DB connections)
-# Order function takes in the payload, fire up a thread and send out orders.
-# Dynamic intake, read real-life data to make adjustment to to the orders
-
 
 if __name__ == "__main__":
     # logon
