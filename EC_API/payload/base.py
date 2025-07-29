@@ -47,7 +47,7 @@ class Payload(object):
         return
 
     
-class ExecutePayload():
+class ExecutePayload_CQG():
     def __init__(self, payload: Payload):
         self.payload =  payload
     

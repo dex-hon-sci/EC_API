@@ -204,13 +204,16 @@ class LiveOrder(object):
         self.request_id = request_id
         self.account_id = account_id
         
+    def _resolve_symbols():
+        return
+        
     def new_order_request(self, 
                           contract_id: int, # Get this from trade_sub
                           cl_order_id: str, 
                           order_type: Ord.OrderType, 
                           duration: Ord.Duration, 
                           side: Ord.Side,
-                          qty_significant:int, # make sure qty are in Decimal not float
+                          qty_significant:int, # make sure qty are in Decimal (int) not float
                           qty_exponent: int, 
                           is_manual: bool = False,
                           **kwargs):
@@ -219,7 +222,8 @@ class LiveOrder(object):
                           'exec_instructions':None,
                           'good_thru_date': None,
                           'scaled_limit_price': None, 
-                          'scaled_stop_price': None}
+                          'scaled_stop_price': None,
+                          'sub_scope':1}
         
         kwargs = dict(default_kwargs, **kwargs)
         
@@ -248,6 +252,7 @@ class LiveOrder(object):
             
         if kwargs['scaled_stop_price'] is not None:
             order_request.new_order.order.scaled_stop_price = kwargs['scaled_stop_price']
+            
         if kwargs['when_utc_time'] is not None:
             order_request.new_order.order.when_utc_time = kwargs['when_utc_timestamp']
 
@@ -256,13 +261,56 @@ class LiveOrder(object):
         extra_attributes.name = "ALGO_CQG_cost_model"
         extra_attributes.value = "1"
     
+        sub_scope = kwargs['sub_scope']
+    
+# =============================================================================
+#         self._connect.client.send_client_message(client_msg)
+#         while True:
+#             server_msg = self._connect.client.receive_server_message()
+#             if server_msg.trade_snapshot_completions is not None:
+#                 server_msg = self._connect.client.receive_server_message()
+#         return server_msg
+# =============================================================================
     
         self._connect.client.send_client_message(client_msg)
         while True:
             server_msg = self._connect.client.receive_server_message()
+            print(server_msg)
+                    
+            result_types = {"1": server_msg.order_statuses, 
+                            "2": server_msg.position_statuses, 
+                            "3": server_msg.collateral_statuses, 
+                            "4": server_msg.account_summary_statuses}
+    
             if server_msg.trade_snapshot_completions is not None:
-                server_msg = self._connect.client.receive_server_message()
-        return server_msg
+                trade_snapshot_check = True
+                    
+            if len(result_types[str(sub_scope)]) >0: 
+                if sub_scope in [1]:
+                    LIS_status = [result_types[str(sub_scope)][i].status 
+                                       for i in range(len(result_types[str(sub_scope)]))]
+                    LIS_clorderid = [result_types[str(sub_scope)][i].order.cl_order_id 
+                                       for i in range(len(result_types[str(sub_scope)]))]
+        
+                    print("LIS_status, LIS_clorderid", LIS_status, LIS_clorderid)
+                    try:
+                        # If we find the index we return
+                        index = LIS_clorderid.index(cl_order_id)
+        
+                        print('index', index)
+                        print("======Result =============")
+                        result_check = True
+                        result_msg = server_msg
+                        print("result", result_msg, result_types[str(sub_scope)])
+                    except:
+                        pass
+                elif sub_scope in [2,3,4]:
+                    result_check = True
+                    result_msg = server_msg
+    
+                    
+            if result_check and trade_snapshot_check:
+                return result_msg
         # Listen for order confirmation
         
     def modify_order_request(self,  
@@ -278,7 +326,7 @@ class LiveOrder(object):
                           'remove_suspension_utc_time': None,
                           'duration': None, 'good_thru_date': None,
                           'good_thru_utc_timestamp': None, 
-                          'extra_attributes': None}
+                          'extra_attributes': None,'sub_scope':1}
         kwargs = dict(default_kwargs, **kwargs)
 
         client_msg = ClientMsg()
@@ -310,13 +358,32 @@ class LiveOrder(object):
         
         self._connect.client.send_client_message(client_msg)
         print('===============order complete=======================')
+        sub_scope = kwargs['sub_scope']
 
         while True:
             server_msg = self._connect.client.receive_server_message()
+            print("S_MSG", server_msg)
+                    
+            result_types = {"1": server_msg.order_statuses, 
+                            "2": server_msg.position_statuses, 
+                            "3": server_msg.collateral_statuses, 
+                            "4": server_msg.account_summary_statuses}
+    
             if server_msg.trade_snapshot_completions is not None:
-                server_msg = self._connect.client.receive_server_message()
-                
-        return server_msg
+                trade_snapshot_check = True
+                                            
+            if len(result_types[str(sub_scope)]) >0: 
+                print("======Result =============",)
+                result_msg = server_msg
+                result_check = True
+                print("result", result_msg, result_types[str(sub_scope)])
+    
+                    
+            if result_check and trade_snapshot_check:
+                #server_msg = client.receive_server_message()
+    
+                return result_msg
+
 
     def cancel_order_request(self, 
                              order_id: int, 
@@ -347,6 +414,7 @@ class LiveOrder(object):
     
 
 if __name__ == "__main__":
+    ## Usage example
     # logon
     # Resolve symbol
     # Trade Subscrition
