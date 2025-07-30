@@ -6,6 +6,7 @@ Created on Tue Jul 29 13:19:48 2025
 @author: dexter
 """
 from dataclasses import dataclass, field
+from collections import Protocol
 
 from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
@@ -27,7 +28,6 @@ class LiveOrder(Protocol):
     def send():
         return 
     
-
 
 if __name__ == "__main__":
     ## Usage example
