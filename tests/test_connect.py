@@ -26,7 +26,7 @@ invalid_pw = "fakepassword"
 client_app_id='WebApiTest', 
 client_version='python-client-test-2-230',
 protocol_version_major = 2
-protocol_version_minor = 230
+protocol_version_minor = 240
 
 # Define logger object
 logger = logging.getLogger(__name__)
@@ -106,12 +106,11 @@ def test_logonlogoff() -> None:
     
     logger.info('========(End test_logonlogoff)========')
 
-    # 
     # 7.  (Note: the session_token in the LogonResult is a key information 
     # to provide in trouble shootings.)
     
     
-def test_invalid_logon():
+def test_invalid_logon() -> None:
     # Invalid Logon
 
     # 1.  Send Logon message with invalid credentials - 
@@ -134,9 +133,9 @@ def test_invalid_logon():
     CONNECT.disconnect()
 
 
-def test_concurrent_sessions():
+def test_concurrent_sessions() -> None:
     # Concurrent Session
-    CONNECT = ConnectCQG(host_name,user_name, invalid_pw)
+    CONNECT = ConnectCQG(host_name,user_name, password)
 
     logger.info('========(Start test_concurrent_sessions)========')
 
@@ -155,12 +154,12 @@ def test_concurrent_sessions():
 
     # 3.  Send a Logon message with the same credentials and 
     # drop_concurrent_session=true.
-    client2 = webapi_client.WebApiClient()
-    client2.connect(host_name)
+    #client2 = webapi_client.WebApiClient()
+    #client2.connect(host_name)
+    CONNECT2 = ConnectCQG(host_name, user_name, password)
 
     # Logon but with the option to drop concurrent session
-    client_msg2, logon_obj2, logon_server_msg2 = logon(client2, user_name, password,
-                                                       drop_concurrent_session= True)
+    client_msg2, logon_obj2, logon_server_msg2 = CONNECT2.logon(drop_concurrent_session= True)
     
     logger.info('3.Send a Logon message with the same credentials and drop_concurrent_session=true ')
 
@@ -177,27 +176,26 @@ def test_concurrent_sessions():
     logger.info('5. Concurrent session to be disconnected')
 
     # 6.  Send Logoff message.
-    logoff_obj, logoff_server_msg = logoff(client)
+    logoff_obj, logoff_server_msg = CONNECT2.logoff()
     
     logger.info('6. Send Logoff message.')
-    client.disconnect()
+    CONNECT2.disconnect()
     logger.info('========(End test_concurrent_sessions)========')
 
 
 
-def test_restore_session():
+def test_restore_session() -> None:
     # Test restore session message
     #1.  Send Logon message with valid credentials - user_name, password, 
     # client_app_id, private_label, client_version, session_settings =1
     # (SESSION_SETTING_ALLOW_SESSION_RESTORE), protocol_version_minor, protocol_version_major.
-    client = webapi_client.WebApiClient()
-    client.connect(host_name)
+    CONNECT = ConnectCQG(host_name, user_name, password)
+
     logger.info('========(Start test_restore_session)========')
 
     # Allow session restore
     ALLOW_RESTORE = Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE
-    client_msg, logon_obj1, logon_server_msg1 = logon(client, user_name, password,
-                                                      session_settings = ALLOW_RESTORE)
+    client_msg, logon_obj1, logon_server_msg1 = CONNECT.logon(session_settings = ALLOW_RESTORE)
     
     assert Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE in logon_obj1.session_settings
     logger.info('1. Send Logon message with valid credentials.')
@@ -206,7 +204,6 @@ def test_restore_session():
     #2.  Disconnect the user ungracefully.
     #disconnect the wifi
     #client.websocket_client._close()
-    print('socket', client.websocket_client.socket)
     print("Disconnect the user ungracefully")
     import os
     os.system("nmcli radio wifi off")
@@ -218,29 +215,12 @@ def test_restore_session():
     
     #3.  Send RestoreOrJoinSession message with a valid session token 
     # and client_app_id, protocol_version_minor, protocol_version_major within 60 seconds.
-    client = webapi_client.WebApiClient()
-    client.connect(host_name)
+    server_msg_restore = CONNECT.restore_request()
 
-    client_app_id='WebApiTest'
-    client_version='python-client-test-2-230'
-    protocol_version_major = 2
-    protocol_version_minor = 240
-    
-    restore_msg = ClientMsg()
-    restore_request = restore_msg.restore_or_join_session 
-    restore_request.session_token = session_token
-    restore_request.client_app_id = client_app_id
-    restore_request.protocol_version_minor = protocol_version_major
-    restore_request.protocol_version_major = protocol_version_minor
-    
-    print('Q',restore_msg)
-
-    client.send_client_message(restore_msg)
     logger.info('3. Send RestoreOrJoinSession message with a valid session token')
     
     #4.Receive RestoreOrJoinSessionResult with result_code='RESULT_CODE_SUCCESS'.
-    server_msg_restore = client.receive_server_message()
-    assert server_msg_restore.restore_or_join_session_result.result_code ==RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_SUCCESS
+    assert server_msg_restore.restore_or_join_session_result.result_code == RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_SUCCESS
     logger.info('4. Receive RestoreOrJoinSessionResult: RESULT_CODE_SUCCESS')
     logger.info(f'4. RestoreOrJoinSessionResult: {server_msg_restore}')
     print('server_msg_restore', server_msg_restore,
@@ -248,19 +228,18 @@ def test_restore_session():
     
     logger.info('========(End test_restore_session)========')
     
-def test_restore_session_invalid_token(): 
+def test_restore_session_invalid_token() -> None: 
     #Restore Session with Invalid Session Token
 
     # 1. Send Logon message with valid credentials - user_name, password, 
     # client_app_id, private_label, client_version, session_settings=1 
     # (SESSION_SETTING_ALLOW_SESSION_RESTORE) , protocol_version_minor, 
     # protocol_version_major.
-    client = webapi_client.WebApiClient()
-    client.connect(host_name)
+    CONNECT = ConnectCQG(host_name, user_name, password)
     logger.info('========(Start test_restore_session_invalid_token)========')
 
-    client_msg, logon_obj1, logon_server_msg1 = logon(client, user_name, password,
-                                                      session_settings = Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE)
+    client_msg, logon_obj1, logon_server_msg1 = CONNECT.logon(session_settings = 
+                     Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE)
     
     assert Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE in logon_obj1.session_settings
     logger.info('1. Send Logon message with valid credentials - user_name, password, \
@@ -269,11 +248,8 @@ def test_restore_session_invalid_token():
                 protocol_version_major.')
 
     # Invalid token
-    session_token = logon_server_msg1.logon_result.session_token+"XXXXXX"
-    client_app_id='WebApiTest'
-    client_version='python-client-test-2-230'
-    protocol_version_major=2
-    protocol_version_minor = 240
+    invalid_session_token = logon_server_msg1.logon_result.session_token+"XXXXXX"
+
 
     # 2. Disconnect the user ungracefully.
     #client.disconnect()
@@ -290,26 +266,14 @@ def test_restore_session_invalid_token():
 
     # 3. Send RestoreOrJoinSession message with an invalid session token and 
     # client_app_id, protocol_version_minor, protocol_version_major within 60 seconds.
-    client = webapi_client.WebApiClient()
-    client.connect(host_name)
+    
+    server_msg_restore = CONNECT.restore_request(session_token= invalid_session_token)
 
-    restore_msg = ClientMsg()
-    restrore_request = restore_msg.restore_or_join_session 
-    restrore_request.session_token = session_token
-    restrore_request.client_app_id = client_app_id
-    restrore_request.protocol_version_minor = protocol_version_major
-    restrore_request.protocol_version_major = protocol_version_minor
-    
-    print('Q',restore_msg)
-    
-    client.send_client_message(restore_msg)
     logger.info('3. Send RestoreOrJoinSession message with a valid session token')
 
     # 4. Receive RestoreOrJoinSessionResult with 
     # result_code='RESULT_CODE_UNKNOWN_SESSION'.
-
-    server_msg_restore = client.receive_server_message()
-    assert server_msg_restore.restore_or_join_session_result.result_code ==RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_UNKNOWN_SESSION
+    assert server_msg_restore.restore_or_join_session_result.result_code == RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_UNKNOWN_SESSION
 
     print('server_msg_special_2', server_msg_restore,
           RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_SUCCESS)
@@ -323,12 +287,11 @@ def test_restore_session_invalid_token():
     
 def test_pingpong_msg():
     # Test Ping Pong messages
-    client = webapi_client.WebApiClient()
-    client.connect(host_name)
+    CONNECT = ConnectCQG(host_name,user_name, password)
     logger.info('========(Start test_pingpong_msg)========')
 
     # Logon
-    client_msg, logon_obj, logon_server_msg = logon(client, user_name, password)
+    client_msg, logon_obj, logon_server_msg = CONNECT.logon()
     print("logon_server_msg", logon_server_msg)
     # Check if the logon is successful
     assert logon_server_msg.logon_result.result_code == LogonResult.ResultCode.RESULT_CODE_SUCCESS
@@ -337,7 +300,7 @@ def test_pingpong_msg():
         logger.info('LogonResult result_code: SUCCESS')
 
     # Receive Ping message
-    server_msg = client.receive_server_message()
+    server_msg = CONNECT.client.receive_server_message()
 
     # Check Ping message 
     assert server_msg.ping.token == "WebAPI Server Heartbeat"
@@ -351,7 +314,8 @@ def test_pingpong_msg():
     client_msg2.pong.pong_utc_time = int(time.time())
     
     client.send_client_message(client_msg2)
-    server_msg2 = client.receive_server_message()
+    
+    server_msg2 = CONNECT.client.receive_server_message()
     
     logger.info('Ping Token: "WebAPI Server Heartbeat"')
 
