@@ -109,7 +109,7 @@ def test_success_order_requests() -> None:
     # 1.Send Logon message with valid credentials.
     logger.info('1.Send Logon message with valid credentials.')
 
-    client_msg, logon_obj, logon_server_msg = logon(client, user_name, password)
+    client_msg, logon_obj, logon_server_msg = CONNECT.logon()
 
     print('logon_server_msg', logon_server_msg)
     # 2.Receive LogonResult with result_code='SUCCESS'.
