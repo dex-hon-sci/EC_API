@@ -11,29 +11,28 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
 @dataclass
 class MsgCheckPara:
-    status_check = False # For checking status_code existence
-    succes_status_check = False # For checking succe state in status_code
-    reject_status_check = False # For checking reject state in status_code
-    trade_snapshot_check = False
-    result_check = False # Check for result msg existence
+    recv_status = False # For checking status_code existence
+    recv_succes_status = False # For checking succe state in status_code
+    recv_reject_status = False # For checking reject state in status_code
+    recv_trade_snapshot = False
+    recv_result = False # Check for result msg existence
     
     
 class ValidMsgCheck(Protocol):
     # Interface for Valid msg checking in case we switch to a different
     # Market data service provider
-    def __init__(self):
-        self.para = MsgCheckPara()
     
-    def status_check():
+    def status_check(self):
         pass
     
-    def success_status_check():
+    def success_status_check(self):
         pass
     
-    def reject_status_check():
+    def reject_status_check(self):
         pass
     
-    def result_check():
+    def result_check(self):
+        # Existence check for the correct message
         pass
     
     
