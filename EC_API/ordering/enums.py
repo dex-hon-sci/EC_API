@@ -4,11 +4,14 @@
 Created on Mon Jul 21 17:55:13 2025
 
 @author: dexter
+
+This Enum file contain the most relevant enums for ordering.
 """
 
-from ..WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
-from ..WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
-from ..common.shared_1_pb2 import OrderStatus
+from EC_API.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
+from EC_API.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
+from EC_API.common.shared_1_pb2 import OrderStatus
+
 SUBSCRIPTION_SCOPE_ORDERS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
 SUBSCRIPTION_SCOPE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
 SUBSCRIPTION_SCOPE_COLLATERAL = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL

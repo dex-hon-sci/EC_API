@@ -6,7 +6,8 @@ Created on Wed Jul 30 09:34:29 2025
 @author: dexter
 """
 from dataclasses import dataclass
-from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
+from typing import Protocol
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
 @dataclass
 class MsgCheckPara:
@@ -15,32 +16,24 @@ class MsgCheckPara:
     reject_status_check = False # For checking reject state in status_code
     trade_snapshot_check = False
     result_check = False # Check for result msg existence
-
-class CQGValidMsgCheck(MsgCheckPara):
-    # This class is in charge of validating serverresponse message 
-    # AFTER sending a request is sent. 
-    # It contains a set of checks that is required to resolve if 
-    # we receive the correct set of responses from the server.
     
-    # check existence, check right types, check desired response 
-
+    
+class ValidMsgCheck(Protocol):
+    # Interface for Valid msg checking in case we switch to a different
+    # Market data service provider
     def __init__(self):
-        pass
-        # Check parameters
-        
-        # build a list for check parameters
-        # TradeSubscription
-        # new_order_request
-        
-    def status_check(self, server_msg: ServerMsg):   
-        if len(server_msg.trade_subscription_statuses)>0:
-            self.status_check = True
-            return server_msg
-        
+        self.para = MsgCheckPara()
     
-    def result_check(self, server_msg: ServerMsg):
-        return
-
-
-    def check(self, server_msg: ServerMsg):
-        return 
+    def status_check():
+        pass
+    
+    def success_status_check():
+        pass
+    
+    def reject_status_check():
+        pass
+    
+    def result_check():
+        pass
+    
+    

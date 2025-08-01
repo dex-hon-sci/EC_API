@@ -6,7 +6,8 @@ Created on Wed Jul 30 09:39:58 2025
 @author: dexter
 """
 
-from EC_API.msg_validation.base import MsgCheckPara, CQGValidMsgCheck
+from EC_API.msg_validation.base import MsgCheckPara
+from EC_API.msg_validation.CQG_valid_msg_check import CQGValidMsgCheck
 
 __all__ = ["MsgCheckPara", 
            "CQGValidMsgCheck"
