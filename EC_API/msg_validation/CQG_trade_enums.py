@@ -70,6 +70,11 @@ GOFLAT_ORDERSTATUS_ENUMS_BOOL = {
                GFS.StatusCode.STATUS_CODE_FAILED]
     }
 
+ORDER_REJECT_CODE_ENUMS_BOOL = {
+    "Accept": [i for i in range(1001, 1257)] + [99]
+    }
+# Refer back to https://help.cqg.com/apihelp/#!Documents/rejectcodesfixconnectorderrouting.htm
+
 TRANSACTION_STATUS_ENUMS_BOOL = {}
 
 # =============================================================================
