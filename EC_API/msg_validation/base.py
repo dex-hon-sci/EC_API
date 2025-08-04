@@ -14,7 +14,7 @@ class MsgCheckPara:
     recv_status = False # For checking status_code existence
     recv_succes_status = False # For checking succe state in status_code
     recv_reject_status = False # For checking reject state in status_code
-    recv_trade_snapshot = False
+    #recv_trade_snapshot = False
     recv_result = False # Check for result msg existence
     
     

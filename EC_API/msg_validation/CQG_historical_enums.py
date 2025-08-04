@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Aug  4 11:21:02 2025
+
+@author: dexter
+"""
+from EC_API.ext.WebAPI.historical_2_pb2 import TimeAndSalesReport as TSR
+from EC_API.ext.WebAPI.historical_2_pb2 import BarReportStatusCode as BRS
+from EC_API.ext.WebAPI.historical_2_pb2 import VolumeProfileReport as VPR
+
+
+TIMESALES_REPORT_RESULT_ENUMS_BOOL = {
+    "Accept": [TSR.ResultCode.RESULT_CODE_SUCCESS,
+              TSR.ResultCode.RESULT_CODE_DROPPED], 
+    "Reject": [TSR.ResultCode.RESULT_CODE_DISCONNECTED,
+              TSR.ResultCode.RESULT_CODE_FAILURE,
+              TSR.ResultCode.RESULT_CODE_ACCESS_DENIED,
+              TSR.ResultCode.RESULT_CODE_NOT_FOUND,
+              TSR.ResultCode.RESULT_CODE_OUTSIDE_ALLOWED_RANGE,
+              TSR.ResultCode.RESULT_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+              TSR.ResultCode.RESULT_CODE_REQUEST_RATE_LIMIT_VIOLATION,
+              TSR.ResultCode.RESULT_CODE_NOT_SUPPORTED,
+              TSR.ResultCode.RESULT_CODE_INVALID_PARAMS,
+              ]
+    }
+
+BAR_REPORT_STATUS_ENUMS_BOOL = {
+    "Accept": [BRS.BAR_REPORT_STATUS_CODE_SUCCESS,
+               BRS.BAR_REPORT_STATUS_CODE_SUBSCRIBED,
+               BRS.BAR_REPORT_STATUS_CODE_DROPPED,
+               BRS.BAR_REPORT_STATUS_CODE_UPDATE],
+    "Reject": [BRS.BAR_REPORT_STATUS_CODE_DISCONNECTED,
+               BRS.BAR_REPORT_STATUS_CODE_INVALIDATED,
+               BRS.BAR_REPORT_STATUS_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_FAILURE,
+               BRS.BAR_REPORT_STATUS_CODE_ACCESS_DENIED,
+               BRS.BAR_REPORT_STATUS_CODE_NOT_FOUND,
+               BRS.BAR_REPORT_STATUS_CODE_OUTSIDE_ALLOWED_RANGE,
+               BRS.BAR_REPORT_STATUS_CODE_INVALID_PARAMS,
+               BRS.BAR_REPORT_STATUS_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_SUBSCRIPTION_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_REQUEST_RATE_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_NOT_SUPPORTED,
+               BRS.BAR_REPORT_STATUS_CODE_UPDATE_INTERVAL_OUTSIDE_ALLOWED_RANGE
+               ]
+    }
+
+VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL = {
+    "Accept": [VPR.ResultCode.RESULT_CODE_SUCCESS,
+               VPR.ResultCode.RESULT_CODE_DROPPED,
+               ],
+    "Reject": [VPR.ResultCode.RESULT_CODE_DISCONNECTED,
+               VPR.ResultCode.RESULT_CODE_FAILURE,
+               VPR.ResultCode.RESULT_CODE_ACCESS_DENIED,
+               VPR.ResultCode.RESULT_CODE_NOT_FOUND,
+               VPR.ResultCode.RESULT_CODE_OUTSIDE_ALLOWED_RANGE,
+               VPR.ResultCode.RESULT_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+               VPR.ResultCode.RESULT_CODE_NOT_SUPPORTED,
+               VPR.ResultCode.RESULT_CODE_INVALID_PARAMS
+               ]
+    }
+
+

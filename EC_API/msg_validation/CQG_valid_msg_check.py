@@ -7,22 +7,49 @@ Created on Fri Aug  1 09:28:22 2025
 """
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.msg_validation.base import ValidMsgCheck, MsgCheckPara, MsgCheckPara
+from EC_API.msg_validation.CQG_connect_enums import (
+    LOGON_RESULT_STATUS_ENUMS_BOOL,
+    LOGGEDOFF_REASON_ENUMS_BOOL,
+    RESTORE_STATUS_ENUMS_BOOL,
+    )
+from EC_API.msg_validation.CQG_meta_enums import INFORMATION_REPORT_STATUS_ENUMS_BOOL
+from EC_API.msg_validation.CQG_trade_enums import (
+    TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL,
+    GOFLAT_ORDERSTATUS_ENUMS_BOOL)
+from EC_API.msg_validation.CQG_historical_enums import (
+    TIMESALES_REPORT_RESULT_ENUMS_BOOL,
+    VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL
+    )
+from EC_API.msg_validation.CQG_market_data_enums import MARKETDATA_SUB_STATUS_ENUMS_BOOL
+
 from google.protobuf.descriptor import FieldDescriptor
 
+# Some msg require a status check and some don't
 
-map_enums = {"information_reprort": {"Accept":[], "Reject":[]},
-             "logon_result": {"Accept":[], "Reject":[]},
-             "logged_off": {"Accept":[], "Reject":[]},
-             "restore_or_join_session_result": {"Accept":[], "Reject":[]},
-             "concurrent_connection_join_results": {"Accept":[], "Reject":[]},
-             "order_request_reject": {"Accept":[], "Reject":[]},
-             "trade_subscription_statuses": {"Accept":[], "Reject":[]},
-             "time_and_sales_reports": {"Accept":[], "Reject":[]},
-             "volume_profile_reports": {"Accept":[], "Reject":[]},
-             "market_data_subscription_statuses": {"Accept":[], "Reject":[]},
-             "order_statuses": {"Accept":[], "Reject":[]},
-             "go_flat_statuses": {"Accept":[], "Reject":[]}
-             }
+map_status_enums = {"logon_result": LOGON_RESULT_STATUS_ENUMS_BOOL,
+                    "logged_off": LOGGEDOFF_REASON_ENUMS_BOOL,
+                    "restore_or_join_session_result": RESTORE_STATUS_ENUMS_BOOL,
+                    "information_reprort": INFORMATION_REPORT_STATUS_ENUMS_BOOL,
+                    "trade_subscription_statuses": TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL,
+                    "order_statuses": {"Accept":[], "Reject":[]},
+                    "go_flat_statuses": GOFLAT_ORDERSTATUS_ENUMS_BOOL,
+                    "time_and_sales_reports": TIMESALES_REPORT_RESULT_ENUMS_BOOL,
+                    "volume_profile_reports": VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL,
+                    "market_data_subscription_statuses": MARKETDATA_SUB_STATUS_ENUMS_BOOL,
+                    }
+
+#order_request_rejects
+#order_request_acks
+#trade_snapshot_completions
+#position_statuses
+#collateral_statuses
+#account_summary_statuses
+
+#real_time_market_data
+
+#time_bar_reports
+#volume_profile_reports
+#non_timed_bar_reports
 
 
 def get_CQG_servermsg_type(server_msg: ServerMsg) -> tuple[list[str]|list[ServerMsg]]:
@@ -58,8 +85,9 @@ class CQGValidMsgCheck(ValidMsgCheck, MsgCheckPara):
     # Check message types, map them to their corresponding set of enums
     # Check existence, 
     
-    # check types (existence)
-    # Check specific marker
+    # then check msg types (existence)
+    # match requestID first
+    # Check specific markers (e.g., is_snapshot)
     # check desired response (matching requestID, orderID, clorderid)
 
     def __init__(self, server_msg: ServerMsg):
@@ -90,12 +118,14 @@ class CQGValidMsgCheck(ValidMsgCheck, MsgCheckPara):
             return server_msg
 
 
-# Information report Enums is_report_complete
-# OrderStatus Enum
-# TransactionStatus Enum
 # LogonResults Enum
 # RestoreOrJoinSessionResult Enum
 # LoggedOff Enum
+
+# Information report Enums is_report_complete
+# OrderStatus Enum
+# TransactionStatus Enum
+
 # OrderRequestReject Enum, OrderRequestAck
 # OrderStatus Enum, match OrderID, clorderid
 

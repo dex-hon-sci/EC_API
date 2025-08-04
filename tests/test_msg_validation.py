@@ -16,20 +16,20 @@ def test_MsgCheckPara_onoff()-> None:
     assert CQG_check.recv_status == False
     assert CQG_check.recv_succes_status == False
     assert CQG_check.recv_reject_status == False
-    assert CQG_check.recv_trade_snapshot == False
+    #assert CQG_check.recv_trade_snapshot == False
     assert CQG_check.recv_result == False
     
     # Change all attributes to True
     CQG_check.recv_status = True
     CQG_check.recv_succes_status = True
     CQG_check.recv_reject_status = True
-    CQG_check.recv_trade_snapshot = True
+    #CQG_check.recv_trade_snapshot = True
     CQG_check.recv_result = True
 
     assert CQG_check.recv_status == True
     assert CQG_check.recv_succes_status == True
     assert CQG_check.recv_reject_status == True
-    assert CQG_check.recv_trade_snapshot == True
+    #assert CQG_check.recv_trade_snapshot == True
     assert CQG_check.recv_result == True
 
     
