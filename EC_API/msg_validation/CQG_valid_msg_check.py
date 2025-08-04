@@ -79,6 +79,7 @@ class CQGValidMsgCheck(ValidMsgCheck, MsgCheckPara):
             return self.server_msg
 
     def match_result_IDs_check(self):
+        # Match request_id account_id contract_id cl_order_id
         pass
 
     def special_requirement_check():

@@ -6,9 +6,9 @@ Created on Wed Jul 30 10:23:04 2025
 @author: dexter
 """
 
-from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from WebAPI import webapi_client
-from WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
+from EC_API.ext.WebAPI import webapi_client
+from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
                                        RestoreOrJoinSession, \
                                        RestoreOrJoinSessionResult
 

@@ -46,46 +46,41 @@ MAP_STATUS_ENUMS = {"logon_result": LOGON_RESULT_STATUS_ENUMS_BOOL,
                     }
 
 # key_value pairs for requests and expected reponse types
-MAP_RESPONSES_TYPES = {'logon': ["logon_result",
-                                "concurrent_connection_join_results"],
-                      'restore_or_join_session': ["restore_or_join_session_result"],
-                      'logoff': ["logged_off"],
-                      'ping': ["pong"],
-                      'information_requests': ["information_reports"],
-                      'trade_subscriptions': ["trade_subscription_statuses",
-                                              "trade_snapshot_completions",
-                                              ],
-                      'order_requests': ["order_statuses", "go_flat_statuses"],
-                      'market_data_subscriptions': ["market_data_subscription_statuses",
-                                                    "real_time_market_data"],
-                      'time_and_sales_requests': ["time_and_sales_reports"],
-                      'time_bar_requests': ["time_bar_reports"],
-                      'volume_profile_requests': ["volume_profile_reports"],
-                      'non_timed_bar_requests': ["non_timed_bar_reports"]}
+MAP_RESPONSES_TYPES_STR = {'logon': ["logon_result",
+                                    "concurrent_connection_join_results"],
+                          'restore_or_join_session': ["restore_or_join_session_result"],
+                          'logoff': ["logged_off"],
+                          'ping': ["pong"],
+                          'information_requests': ["information_reports"],
+                          'trade_subscriptions': ["trade_subscription_statuses",
+                                                  "trade_snapshot_completions",
+                                                  ],
+                          'order_requests': ["order_statuses", 
+                                             "go_flat_statuses",
+                                             "order_request_rejects",
+                                             "order_request_acks"],
+                          'market_data_subscriptions': ["market_data_subscription_statuses",
+                                                        "real_time_market_data"],
+                          'time_and_sales_requests': ["time_and_sales_reports"],
+                          'time_bar_requests': ["time_bar_reports"],
+                          'volume_profile_requests': ["volume_profile_reports"],
+                          'non_timed_bar_requests': ["non_timed_bar_reports"]
+                          }
 
 
 #liquidate_all
 #cancel_all_orders
 #suspend_order
 
-#order_request_rejects
-#order_request_acks
-#trade_snapshot_completions
 #position_statuses
 #collateral_statuses
 #account_summary_statuses
 
-#real_time_market_data
-
-#time_bar_reports
-#volume_profile_reports
-#non_timed_bar_reports
 
 # Information report is_report_complete
 
 # OrderStatus Enum, match OrderID, clorderid
 
-# TradeSnapshotCompletion
 # PositionStatus, CollateralStatus, AccountSummaryStatus, 
 # RealTimeMarketData special states
 # TimeBarReport state

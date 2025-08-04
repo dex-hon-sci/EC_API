@@ -28,7 +28,6 @@ NEWORDER_ORDERSTATUS_ENUMS_BOOL = {
                OS.Status.DISCONNECTED,
                OS.Status.EXPIRED],
     "Transit": [OS.Status.IN_TRANSIT,]
-
     }
 
 MODIFYORDER_ORDERSTATUS_ENUMS_BOOL = {
