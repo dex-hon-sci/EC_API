@@ -12,9 +12,9 @@ from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
 from EC_API.connect import ConnectCQG
-from EC_API.connect.hearback import hearback
+from EC_API.connect.hearback import hearback, get_contract_metadata
 from EC_API.monitor.CQG_trade_subscription import TradeSubscription
-#from EC_API.ordering.enums import *
+from EC_API.ordering.enums import *
 from EC_API.ordering.base import LiveOrder
 
 class CQGLiveOrder(LiveOrder):
@@ -31,11 +31,51 @@ class CQGLiveOrder(LiveOrder):
         self._symbol = symbol
         self.request_id = request_id
         self.account_id = account_id
-        #self.msg_type = "Order"
 
-    def _resolve_symbols():
-        return
+    @get_contract_metadata
+    def _resolve_symbols(self, 
+                         symbol_name: str, 
+                         msg_id: int, 
+                         subscribe=None, 
+                         **kwargs):
+        client_msg = ClientMsg()
+        information_request = client_msg.information_requests.add()
+        information_request.id = msg_id
+        if subscribe is not None:
+            information_request.subscribe = subscribe
+            
+        information_request.symbol_resolution_request.symbol = symbol_name
         
+        if 'instrument_group_request' in kwargs:
+            information_request.instrument_group_request = kwargs['instrument_group_request']
+        
+        self._connect.client.client.send_client_message(client_msg)
+        return 
+    
+    @hearback
+    def _request_trade_subscription(self,
+                                    trade_subscription_id: int,
+                                    subscribe: bool,
+                                    sub_scope,
+                                    skip_orders_snapshot):
+        
+        client_msg = ClientMsg()
+        trade_sub_request = client_msg.trade_subscriptions.add()
+        trade_sub_request.id = trade_subscription_id
+        trade_sub_request.subscribe = subscribe
+        trade_sub_request.subscription_scopes.append(sub_scope)
+        trade_sub_request.skip_orders_snapshot = skip_orders_snapshot
+        #trade_sub_request.last_order_update_utc_timestamp = last_order_update_utc_timestamp
+        
+        if sub_scope == SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY:
+            account_summary_parameters = trade_sub_request.account_summary_parameters
+            # 8 means purchasing_power, 15 means current_balance, 16 means profit_loss
+            account_summary_parameters.requested_fields.extend([8,15,16])
+            
+        self._connect.client.send_client_message(client_msg)
+
+        return 
+
     @hearback
     def new_order_request(self, 
                           contract_id: int, # Get this from trade_sub
@@ -234,45 +274,47 @@ class CQGLiveOrder(LiveOrder):
     
         self._connect.client.send_client_message(client_msg)
         print('===============order complete=======================')
-        # Check bool
-        status_check = False
-        trade_snapshot_check = False
-        result_check = False
-    
-        while True:
-            server_msg = self._connect.client.receive_server_message()
-            
-            result_types = {"1": server_msg.order_statuses, 
-                            "2": server_msg.position_statuses, 
-                            "3": server_msg.collateral_statuses, 
-                            "4": server_msg.account_summary_statuses}
-    
-            if server_msg.order_request_rejects is not None: # For catching error message
-                trade_snapshot_check = True 
-            
-            if server_msg.order_statuses is not None:
-                if len(server_msg.order_statuses)>0:
-                    print("recieved order_statues", len(server_msg.order_statuses))
-                    LIS = [server_msg.order_statuses[i].status 
-                           for i in range(len(server_msg.order_statuses))]
-                    print("LIS", LIS)
-                    LIS2 = [server_msg.order_statuses[i].order_id 
-                           for i in range(len(server_msg.order_statuses))]
-                    print("LIS2", LIS2)
-                    #print("TransactionStatus.Status.IN_CANCEL", TransactionStatus.Status.IN_CANCEL)
-                    match LIS[-1]:
-                        case Ord.OrderStatus.Status.IN_CANCEL:
-                            print("IN_CANCEL")
-                        case Ord.OrderStatus.Status.CANCELLED:
-                            print("CANCELLED")
-                            self.result_check = True
-                        case Ord.OrderStatus.Status.REJECTED:
-                            self.result_check = True
-                            print("REJECTED")
-                        
-    
-            if self.trade_snapshot_check and self.result_check:
-                return order_request, server_msg
+# =============================================================================
+#         # Check bool
+#         status_check = False
+#         trade_snapshot_check = False
+#         result_check = False
+#     
+#         while True:
+#             server_msg = self._connect.client.receive_server_message()
+#             
+#             result_types = {"1": server_msg.order_statuses, 
+#                             "2": server_msg.position_statuses, 
+#                             "3": server_msg.collateral_statuses, 
+#                             "4": server_msg.account_summary_statuses}
+#     
+#             if server_msg.order_request_rejects is not None: # For catching error message
+#                 trade_snapshot_check = True 
+#             
+#             if server_msg.order_statuses is not None:
+#                 if len(server_msg.order_statuses)>0:
+#                     print("recieved order_statues", len(server_msg.order_statuses))
+#                     LIS = [server_msg.order_statuses[i].status 
+#                            for i in range(len(server_msg.order_statuses))]
+#                     print("LIS", LIS)
+#                     LIS2 = [server_msg.order_statuses[i].order_id 
+#                            for i in range(len(server_msg.order_statuses))]
+#                     print("LIS2", LIS2)
+#                     #print("TransactionStatus.Status.IN_CANCEL", TransactionStatus.Status.IN_CANCEL)
+#                     match LIS[-1]:
+#                         case Ord.OrderStatus.Status.IN_CANCEL:
+#                             print("IN_CANCEL")
+#                         case Ord.OrderStatus.Status.CANCELLED:
+#                             print("CANCELLED")
+#                             self.result_check = True
+#                         case Ord.OrderStatus.Status.REJECTED:
+#                             self.result_check = True
+#                             print("REJECTED")
+#                         
+#     
+#             if self.trade_snapshot_check and self.result_check:
+#                 return order_request, server_msg
+# =============================================================================
             
     @hearback
     def activate_order_request(self, 
@@ -295,50 +337,87 @@ class CQGLiveOrder(LiveOrder):
         print('===============order complete=======================')
     
         self._connect.client.send_client_message(client_msg)
-        while True:
-            server_msg = self._connect.client.receive_server_message()
-                    
-            if server_msg.order_request_rejects is not None: # For catching error message
-                self.trade_snapshot_check = True 
-    
-            if server_msg.order_statuses is not None:
-                if len(server_msg.order_statuses)>0:
-                    print("recieved order_statues", len(server_msg.order_statuses))
-                    LIS = [server_msg.order_statuses[i].status 
-                           for i in range(len(server_msg.order_statuses))]
-                    print("LIS", LIS)
-                    LIS2 = [server_msg.order_statuses[i].order_id 
-                           for i in range(len(server_msg.order_statuses))]
-                    print("LIS2", LIS2)
-                    #print("TransactionStatus.Status.IN_CANCEL", TransactionStatus.Status.IN_CANCEL)
-                    match LIS[-1]:
-                        case OrderStatus.Status.SUSPENDED:
-                            print("SUSPENDED")
-                        case OrderStatus.Status.ACTIVEAT:
-                            print("ACTIVEAT")
-                            self.result_check = True
-                        case OrderStatus.Status.FILLED:
-                            self.result_check = True
-                            print("FILLED")
-                        
-    
-            if self.trade_snapshot_check and self.result_check:
-                return order_request, server_msg
-    @hearback
-    def cancelall_order_request(self,**kwargs)->ServerMsg:
-        # TBD
         return 
+# =============================================================================
+#         while True:
+#             server_msg = self._connect.client.receive_server_message()
+#                     
+#             if server_msg.order_request_rejects is not None: # For catching error message
+#                 self.trade_snapshot_check = True 
+#     
+#             if server_msg.order_statuses is not None:
+#                 if len(server_msg.order_statuses)>0:
+#                     print("recieved order_statues", len(server_msg.order_statuses))
+#                     LIS = [server_msg.order_statuses[i].status 
+#                            for i in range(len(server_msg.order_statuses))]
+#                     print("LIS", LIS)
+#                     LIS2 = [server_msg.order_statuses[i].order_id 
+#                            for i in range(len(server_msg.order_statuses))]
+#                     print("LIS2", LIS2)
+#                     #print("TransactionStatus.Status.IN_CANCEL", TransactionStatus.Status.IN_CANCEL)
+#                     match LIS[-1]:
+#                         case Ord.OrderStatus.Status.SUSPENDED:
+#                             print("SUSPENDED")
+#                         case Ord.OrderStatus.Status.ACTIVEAT:
+#                             print("ACTIVEAT")
+#                             self.result_check = True
+#                         case Ord.OrderStatus.Status.FILLED:
+#                             self.result_check = True
+#                             print("FILLED")
+#                         
+#     
+#             if self.trade_snapshot_check and self.result_check:
+#                 return order_request, server_msg
+# =============================================================================
+    @hearback
+    def cancelall_order_request(self,
+                                cl_order_id: str,
+                                **kwargs)-> ServerMsg:
+        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+                          }
+        kwargs = dict(default_kwargs, **kwargs)
+        client_msg = ClientMsg()
+        order_request = client_msg.order_requests.add()
+        order_request.request_id = self.request_id
+        order_request.cancel_all_orders.cl_order_id = cl_order_id
+        order_request.cancel_all_orders.when_utc_timestamp = kwargs['when_utc_timestamp']
+        self._connect.client.send_client_message(client_msg)
+
+        return 
+    
     @hearback
     def suspend_order_request(self,**kwargs)->ServerMsg: # SuspendOrder
 
         return 
+    
     @hearback 
-    def liquidateall_order_request(self,**kwargs)->ServerMsg: # LiquidateAll
+    def liquidateall_order_request(self, contract_id,
+                                   **kwargs) -> ServerMsg:
+        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+                          'is_short': None,
+                          'current_day_only': None}
+        kwargs = dict(default_kwargs, **kwargs)
+        client_msg = ClientMsg()
+        order_request = client_msg.order_requests.add()
+        order_request.request_id = self.request_id
+        
+        account_position_filters = order_request.liquidate_all.account_position_filters.add()
+        account_position_filters.account_id = self.account_id
+        account_position_filters.contract_id = contract_id
+        if kwargs['account_position_filters'] is not None:
+            account_position_filters.is_short = kwargs['is_short']
+        if kwargs['current_day_only'] is not None:
+            account_position_filters.current_day_only = kwargs['current_day_only']
+        
+        order_request.liquidate_all.cl_order_id = cl_order_id
+        order_request.liquidate_all.when_utc_timestamp = kwargs['when_utc_timestamp']
+        
+        self._connect.client.send_client_message(client_msg)
 
         return 
 
     @hearback
-    def goflat_order_request(self, **kwargs)->ServerMsg:
+    def goflat_order_request(self, **kwargs) -> ServerMsg:
         default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
                           'execution_source_code': None, 
                           'speculation_type': None}
@@ -355,17 +434,25 @@ class CQGLiveOrder(LiveOrder):
         
         print('===============Go Flat on all orders=======================')
     
-        while True:
-            server_msg = self._connect.client.receive_server_message()
-            if server_msg.trade_snapshot_completions is not None:
-                server_msg = self._connect.client.receive_server_message()
-                break
-                
-        return server_msg
+# =============================================================================
+#         while True:
+#             server_msg = self._connect.client.receive_server_message()
+#             if server_msg.trade_snapshot_completions is not None:
+#                 server_msg = self._connect.client.receive_server_message()
+#                 break
+#                 
+#         return server_msg
+# =============================================================================
     
-    def send():
-        # resolve symbol ->CONTRACTID
+    def send(symbol: str, 
+             request_type: str,
+             order_details: dict):
+        # resolve symbol
         
-        # Trade Subscription
+        # Trade Subscription -> get CONTRACT_ID from Contractmetadata
+        
+        # For new_order_request -> return OrderID
+        
+        # For other oder_requests, use the OrderID from new_order_request
         
         return
