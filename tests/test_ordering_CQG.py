@@ -86,7 +86,6 @@ def test_new_order_request_BUY_LMT_GTC_ICEBERG() -> None:
 def test_new_order_request_SELL_LMT_DAY_FUNARI() -> None:
     return
 
-
 def test_new_order_request_BUY_STP_GTC() -> None:
     return
 def test_new_order_request_BUY_STP_GTD_TRAIL() -> None:
