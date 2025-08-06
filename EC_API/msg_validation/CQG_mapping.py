@@ -47,9 +47,6 @@ MAP_STATUS_ENUMS = {
                        "activate_order":ACTIVEATORDER_ORDERSTATUS_ENUMS_BOOL,
                        "go_flat": GOFLAT_ORDERSTATUS_ENUMS_BOOL,
                        },
-    "position_statuses": {},
-    "collateral_statuses": {},
-    "account_summary_statuses": {},
     "go_flat_statuses": GOFLAT_ORDERSTATUS_ENUMS_BOOL,
     "time_and_sales_reports": TIMESALES_REPORT_RESULT_ENUMS_BOOL,
     "volume_profile_reports": VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL,
@@ -68,7 +65,11 @@ MAP_RESPONSES_TYPES_STR = {
     'order_requests': ["order_statuses", 
                        "go_flat_statuses",
                        "order_request_rejects",
-                       "order_request_acks"],
+                       "order_request_acks",
+                       "position_statuses",
+                       "collateral_statuses",
+                       "account_summary_statuses"
+                       ],
     'market_data_subscriptions': ["market_data_subscription_statuses",
                                   "real_time_market_data"],
     'time_and_sales_requests': ["time_and_sales_reports"],
@@ -77,8 +78,36 @@ MAP_RESPONSES_TYPES_STR = {
     'non_timed_bar_requests': ["non_timed_bar_reports"]
     }
 
-def extract_result_code_from_server_msg(server_msg: ServerMsg, 
-                                        keyword: str) -> int:
+def find_order_request_type()->str:
+    # For Order_request type either new_order, modify_order, cancel_order,...
+    return 
+
+def find_order_status_type(server_msg:ServerMsg)->str:
+    # For Order_statues
+    Q = {"new_order": {"request_id": server_msg.order_statuses.request_id,
+                      "contract_id": server_msg.order_statues.order.contract_id,
+                      "cl_order_id": server_msg.order_statues.order.cl_order_id
+                      },
+        "modify_order": {"request_id": server_msg.order_statuses.request_id,
+                         "order_id": server_msg.order_statuses.order_id,
+                         "cl_order_id": server_msg.order_statuses.cl_order_id,
+                         "orig_cl_order_id": server_msg.order_statuses.order.cl_order_id,
+                        },
+        "cancel_order": {"request_id": server_msg.order_statuses.request_id,
+                         "order_id": server_msg.order_statuses.order_id,
+                         "cl_order_id": server_msg.order_statuses.cl_order_id,
+                         "orig_cl_order_id": server_msg.order_statuses.order.cl_order_id
+                         },
+        "activate_order":{"request_id": server_msg.order_statuses.request_id,
+                         "order_id": server_msg.order_statuses.contract_id,
+                         "cl_order_id": server_msg.order_statuses.cl_order_id,
+                         "orig_cl_order_id": server_msg.order_statuses.order.cl_order_id
+                         },}
+    return 
+
+
+def map_result_code_client2server_msg(server_msg: ServerMsg, 
+                                      keyword: str) -> int:
     MAP_RESULT_CODE = {
         "logon_result": server_msg.result_code,
         "logged_off": server_msg.logoff_reason,
@@ -86,27 +115,20 @@ def extract_result_code_from_server_msg(server_msg: ServerMsg,
         "information_reprort": server_msg.status_code,
         "trade_subscription_statuses": server_msg.status_code,
         "order_request_rejects": server_msg.reject_code,
-        "order_statuses": {"new_order": 0,
-                            "modify_order": 0,
-                            "cancel_order": 0,
-                            "activate_order":0,
-                            "go_flat": 0,
-                            },
-        "position_statuses": {},
-        "collateral_statuses": {},
-        "account_summary_statuses": {},
-        "go_flat_statuses": server_msg.status_code,
+        "order_statuses": server_msg.status,
+        "go_flat_statuses": server_msg.status,
         "time_and_sales_reports": server_msg.result_code,
         "volume_profile_reports": server_msg.result_code,
         "market_data_subscription_statuses": server_msg.result_code,
-                       }
+        }
     
     if keyword in list(MAP_RESULT_CODE.keys()):
         return MAP_RESULT_CODE[keyword]
 
 
-def extract_special_clear_from_server_msg(server_msg: ServerMsg, 
+def map_special_clear_client2server_msg(server_msg: ServerMsg, 
                                           keyword: str) -> bool:
+    # Pair client msg (keys) with special conditions (values) in server msg
     # Check for special conditions
     MAP_SPECIAL_CLEAR = {
         "information_requests": (server_msg.is_report_complete is True),
@@ -115,52 +137,85 @@ def extract_special_clear_from_server_msg(server_msg: ServerMsg,
         "modify_order": (server_msg.order_request_rejects is not None),
         "cancel_order": (server_msg.order_request_rejects is not None),
         "activate_order": (server_msg.order_request_rejects is not None),
-                         }
+        "goflat_order": (server_msg.order_request_rejects is not None)
+        }
+    
     if keyword in list(MAP_SPECIAL_CLEAR.keys()):
         return MAP_SPECIAL_CLEAR[keyword]
     else: 
-    # If special conditions does not exist, assume no special clear is needed
+        # If special conditions does not exist, assume no special clear is needed
         return True
 
 def extract_IDs_from_client_msg(client_msg: ClientMsg,
                                 keyword: str) -> dict:
     MAP_MSG_ID_code = {
-        "information_reprort": msg.id,
-        "trade_subscriptions": msg.id,
-        "order_requests": {"new_order": msg.id,
-                            "modify_order": 0,
-                            "cancel_order": 0,
-                            "activate_order":0,
-                            "go_flat": 0,
-                            },
-        "time_and_sales_requests": msg.id,
-        "volume_profile_requests": msg.id,
-        "non_timed_bar_requests": msg.id,
-                       }
+        "information_requests": client_msg.id,
+        "trade_subscriptions": client_msg.id,
+        "order_requests": {
+            "new_order": {"request_id": client_msg.request_id,
+                          "contract_id": client_msg.new_order.order.contract_id,
+                          "cl_order_id": client_msg.new_order.order.cl_order_id
+                         },
+            "modify_order": {"request_id": client_msg.modify_order.request_id,
+                             "order_id": client_msg.modify_order.order_id,
+                             "cl_order_id": client_msg.modify_order.cl_order_id,
+                             "orig_cl_order_id": client_msg.modify_order.orig_cl_order_id
+                             },
+            "cancel_order": {"request_id": client_msg.cancel_order.request_id,
+                             "order_id": client_msg.cancel_order.order_id,
+                             "cl_order_id": client_msg.cancel_order.cl_order_id,
+                             "orig_cl_order_id": client_msg.cancel_order.orig_cl_order_id
+                             },
+            "activate_order":{"request_id": client_msg.activate_order.request_id,
+                             "order_id": client_msg.activate_order.contract_id,
+                             "cl_order_id": client_msg.activate_order.cl_order_id,
+                             "orig_cl_order_id": client_msg.activate_order.orig_cl_order_id
+                             },
+            "go_flat": {"request_id": client_msg.request_id,},
+            },
+        
+        "time_and_sales_requests": client_msg.request_id,
+        "volume_profile_requests": client_msg.request_id,
+        "non_timed_bar_requests": client_msg.request_id,
+        }
 
-    return 
+    return MAP_MSG_ID_code[keyword]
+
 def extract_IDs_from_server_msg(server_msg: ServerMsg,
                                 keyword: str) -> dict:
     MAP_MSG_ID_code = {
-        "information_requests": msg.id,
-        "trade_subscription_statuses": msg.id,
-        "order_request_rejects": msg.id,
-        "order_statuses": {"new_order": msg.id,
-                            "modify_order": 0,
-                            "cancel_order": 0,
-                            "activate_order":0,
-                            "go_flat": 0,
-                            },
-        "position_statuses": {},
-        "collateral_statuses": {},
-        "account_summary_statuses": {},
-        "go_flat_statuses": msg.id,
-        "time_and_sales_reports": msg.id,
-        "volume_profile_reports": msg.id,
-        "market_data_subscription_statuses": msg.id,
-                       }
+        "information_report": server_msg.id,
+        "trade_subscription_statuses": server_msg.id,
+        "order_request_rejects": server_msg.request_id,
+        "new_order": {"request_id": server_msg.order_statuses.request_id,
+                      "contract_id": server_msg.order_statues.order.contract_id,
+                      "cl_order_id": server_msg.order_statues.order.cl_order_id
+                      },
+        "modify_order": {"request_id": server_msg.order_statuses.request_id,
+                         "order_id": server_msg.order_statuses.order_id,
+                         "cl_order_id": server_msg.order_statuses.cl_order_id,
+                         "orig_cl_order_id": server_msg.order_statuses.order.cl_order_id,
+                        },
+        "cancel_order": {"request_id": server_msg.order_statuses.request_id,
+                         "order_id": server_msg.order_statuses.order_id,
+                         "cl_order_id": server_msg.order_statuses.cl_order_id,
+                         "orig_cl_order_id": server_msg.order_statuses.order.cl_order_id
+                         },
+        "activate_order":{"request_id": server_msg.order_statuses.request_id,
+                         "order_id": server_msg.order_statuses.contract_id,
+                         "cl_order_id": server_msg.order_statuses.cl_order_id,
+                         "orig_cl_order_id": server_msg.order_statuses.order.cl_order_id
+                         },
+        "go_flat_statuses": server_msg.request_id,
+        "time_and_sales_reports": server_msg.request_id,
+        "volume_profile_reports": server_msg.request_id,
+        "market_data_subscription_statuses": server_msg.request_id
+        }
+    
+    ORDER_STATUS_ID = {"order_statuses": {}}
+    MAP_MSG_ID_code = dict(MAP_MSG_ID_code, **ORDER_STATUS_ID)
 
-    return 
+    return MAP_MSG_ID_code[keyword]
         
 
 #liquidate_all

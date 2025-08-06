@@ -7,12 +7,13 @@ Created on Fri Aug  1 09:28:22 2025
 """
 from google.protobuf.descriptor import FieldDescriptor
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from EC_API.msg_validation.base import ValidMsgCheck, MsgCheckPara
+from EC_API.msg_validation.base import ValidMsgCheck
 from EC_API.msg_validation.CQG_mapping import (
     MAP_STATUS_ENUMS, 
     MAP_RESPONSES_TYPES_STR,
     extract_result_code_from_server_msg,
     extract_special_clear_from_server_msg,
+    extract_IDs_from_client_msg,
     extract_IDs_from_server_msg
     )
 
@@ -42,61 +43,64 @@ def get_CQG_msg_type(msg: ClientMsg|ServerMsg) ->\
     return (found_message_types, found_message_values)
 
 
-class CQGValidMsgCheck(ValidMsgCheck, MsgCheckPara):
+class CQGValidMsgCheck(ValidMsgCheck):
     # This class is in charge of validating serverresponse message 
     # AFTER sending a request is sent. 
     # It contains a set of checks that is required to resolve if 
     # we receive the correct set of responses from the server.
-    
-    # Check message types, map them to their corresponding set of enums
-    # Check existence, 
-    
-    # then check msg types (existence) Tier1 (match request types)
-    # match requestID first Tier2
-    # Check specific markers (e.g., is_snapshot) Tier3
-
     def __init__(self, 
                  client_msg: ClientMsg, 
                  server_msg: ServerMsg):
         # Client/Server msg to cross match correct response types
+        # Also serve as an exitence check for "repeated" type of object
         self.client_msg_types, self.client_msg_vals = get_CQG_msg_type(client_msg)
         self.server_msg_types, self.server_msg_vals = get_CQG_msg_type(server_msg)
     
-    def expected_response_check(self):
+    def expected_response_check(self) -> None:
         for client_msg_type, server_msg_type in zip(self.client_msg_types, 
                                                      self.server_msg_types):
             if server_msg_type in MAP_RESPONSES_TYPES_STR[client_msg_type]:
                 self.recv_expected_msg = True
                 
-    def match_result_IDs_check(self):
+    def match_result_IDs_check(self) -> None:
         # Match request_id account_id contract_id cl_order_id
-        pass
-
-    def special_requirement_check(self):
-        for server_msg_type, server_msg_val in zip(self.server_msg_types, 
-                                                   self.server_msg_values):
-            if extract_special_clear_from_server_msg(self.server_msg):
+        for client_msg_type, server_msg_type in zip(self.client_msg_types, 
+                                                     self.server_msg_types):
+            
+            client_msg_IDs = extract_IDs_from_client_msg(self.client_msg, 
+                                                         client_msg_type)
+            server_msg_IDs = extract_IDs_from_server_msg(self.server_msg, 
+                                                         server_msg_type)
+            # match these two
+            if True: #<--- WIP
+                self.recv_match_IDs = True
+        
+    def special_requirement_check(self) -> None:
+        for server_msg_type in self.server_msg_types:
+            if extract_special_clear_from_server_msg(self.server_msg,
+                                                     server_msg_type):
                 self.recv_special_clear = True           
         
-    def accept_status_check(self):
+    def accept_status_check(self) -> None:
         # To check for accepted server_msg
         for server_msg_type, server_msg_val in zip(self.server_msg_types, 
                                                    self.server_msg_values):
-            if extract_result_code_from_server_msg(self.server_msg) in \
-               MAP_STATUS_ENUMS[server_msg_type]["Accept"]:
+            if extract_result_code_from_server_msg(self.server_msg,
+                                                   server_msg_type)\
+               in MAP_STATUS_ENUMS[server_msg_type]["Accept"]:
                 self.recv_success_status = True
             
-    def reject_status_check(self):
+    def reject_status_check(self) -> None:
         # To check for recognised rejected server_msg
         for server_msg_type, server_msg_value in zip(self.server_msg_type, 
                                                      self.server_msg_values):
         # Find out the msg_type
-            if extract_result_code_from_server_msg(self.server_msg) in \
-               MAP_STATUS_ENUMS[server_msg_type]["Reject"]:
+            if extract_result_code_from_server_msg(self.server_msg,
+                                                   server_msg_type)\
+               not in MAP_STATUS_ENUMS[server_msg_type]["Accept"]:
                 self.recv_reject_status = True
             
-
-    def check_all(self):
+    def check_all(self) -> None:
         # Check all condititions
         self.expected_response_check()
         self.match_result_IDs_chec()
@@ -104,9 +108,8 @@ class CQGValidMsgCheck(ValidMsgCheck, MsgCheckPara):
         self.accept_status_check()
         self.reject_status_check()
         
-    def return_msg(self):
+    def return_msg(self) -> ServerMsg | None:
         # Return message policy
-
         succes_msg_cond = (self.recv_expected_response and 
                            self.recv_match_IDs and 
                            self.recv_special_clear and 
@@ -123,5 +126,3 @@ class CQGValidMsgCheck(ValidMsgCheck, MsgCheckPara):
         else:
             pass
 
-# Information report is_report_complete
-# OrderStatus Enum, match OrderID, clorderid
