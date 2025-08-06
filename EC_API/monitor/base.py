@@ -11,6 +11,9 @@ from WebAPI.webapi_2_pb2 import ClientMsg
 # Import EC_API scripts
 from EC_API.connect import ConnectCQG
 
+# Monitor live-data
+# Monitor our own trading routing related info (position, summary)
+
 class Monitor(object):
     # An Object incharge of 
     def __init__(self, connection: ConnectCQG):
@@ -118,8 +121,7 @@ class Monitor(object):
             
     
 # MonitorActiveOrder/ MonitorActivePosition
-
-class MonitorActiveOrder():
+class MonitorTrade():
     def __init__():
         return
     
