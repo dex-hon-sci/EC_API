@@ -5,30 +5,47 @@ Created on Wed Jul 30 09:34:29 2025
 
 @author: dexter
 """
-from dataclasses import dataclass
 from typing import Protocol
-from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
-@dataclass
-class MsgCheckPara:
-    recv_match_result = False # Check for result msg existence with the right IDs
-    recv_succes_status = False # For checking succe state in status_code
-    recv_reject_status = False # For checking reject state in status_code
-    recv_special_clear = False # such as trade_snapshot, is_complete
-    
+# =============================================================================
+# @dataclass
+# class MsgCheckPara:
+#     # Separate ValidMsgCheck from MsgCheckPara in case of 
+# 
+#     recv_expected_response = False # Check for expected response types
+#     recv_match_IDs = False
+#     recv_special_clear = False
+#     recv_accept_status = False # For checking succe state in status_code
+#     recv_reject_status = False # For checking reject state in status_code
+#     
+# =============================================================================
     
 class ValidMsgCheck(Protocol):
     # Interface for Valid msg checking in case we switch to a different
     # Market data service provider
-        
-    def success_status_check(self):
+    def __init__(self):
+        self.recv_expected_response = False
+        self.recv_match_IDs = False
+        self.recv_special_clear = False
+        self.recv_accept_status = False
+        self.recv_reject_status = False
+     
+    def expected_response_check(self):
+        pass
+    
+    def accept_status_check(self):
         pass
     
     def reject_status_check(self):
         pass
     
-    def result_check(self):
+    def special_requirement_check(self):
         # Existence check for the correct message
         pass
     
+    def check_all(self):
+        pass
+    
+    def return_msg(self):
+        pass
     
