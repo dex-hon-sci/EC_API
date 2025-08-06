@@ -5,17 +5,37 @@ Created on Thu Jul 31 13:25:41 2025
 
 @author: dexter
 """
-from EC_API.msg_validation.base import *
+import time
+from google.protobuf import json_format
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.msg_validation.CQG_valid_msg_check import CQGValidMsgCheck
 
-def hearback(client, hearback_time):
+def hearback(client, 
+             client_msg: ClientMsg, 
+             hearback_time: float = 30) -> ServerMsg | None:
     # A decorator function in charge of hearing back a message after sending it
+    start_time = time.time()
     
     while True:
-        
+        server_msg = client.receive_server_message()
         # Msg Check 
-        pass
-    return
+        check = CQGValidMsgCheck(client_msg, server_msg)
+        check.check_all()
+        return_msg =  check.return_msg() 
+        if return_msg is not None:
+            return return_msg
+        
+        duration = time.time() - start_time
+        if duration > hearback_time:
+            break
+        
+
+def render_json(server_msg: ServerMsg) -> str:
+    json_string = json_format.MessageToJson(server_msg, indent=2)
+    print(json_string)
+
+    return json_string
+
 # =============================================================================
 #     # Check bool
 #     status_check = False
