@@ -6,14 +6,15 @@ Created on Wed Jul 30 10:01:16 2025
 @author: dexter
 """
 import datetime
+from datetime import timezone
 
-from WebAPI.order_2_pb2 import Order as Ord 
-from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
+from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
 from EC_API.connect import ConnectCQG
-from EC_API.msg_validation.base import CQGValidMsgCheck
+from EC_API.connect.hearback import hearback
 from EC_API.monitor.CQG_trade_subscription import TradeSubscription
-from EC_API.ordering.enums import *
+#from EC_API.ordering.enums import *
 from EC_API.ordering.base import LiveOrder
 
 class CQGLiveOrder(LiveOrder):
@@ -30,13 +31,12 @@ class CQGLiveOrder(LiveOrder):
         self._symbol = symbol
         self.request_id = request_id
         self.account_id = account_id
-        
-        self.msg_type = "Order"
+        #self.msg_type = "Order"
 
     def _resolve_symbols():
-        
         return
         
+    @hearback
     def new_order_request(self, 
                           contract_id: int, # Get this from trade_sub
                           cl_order_id: str, 
@@ -94,46 +94,51 @@ class CQGLiveOrder(LiveOrder):
         sub_scope = kwargs['sub_scope']
         
         self._connect.client.send_client_message(client_msg)
-        while True:
-            server_msg = self._connect.client.receive_server_message()
-            print(server_msg)
-                    
-            result_types = {"1": server_msg.order_statuses, 
-                            "2": server_msg.position_statuses, 
-                            "3": server_msg.collateral_statuses, 
-                            "4": server_msg.account_summary_statuses}
-    
-            if server_msg.trade_snapshot_completions is not None:
-                trade_snapshot_check = True
-                    
-            if len(result_types[str(sub_scope)]) >0: 
-                if sub_scope in [1]:
-                    LIS_status = [result_types[str(sub_scope)][i].status 
-                                       for i in range(len(result_types[str(sub_scope)]))]
-                    LIS_clorderid = [result_types[str(sub_scope)][i].order.cl_order_id 
-                                       for i in range(len(result_types[str(sub_scope)]))]
+        return self._connect.client, client_msg
+
+# =============================================================================
+#         while True:
+#             server_msg = self._connect.client.receive_server_message()
+#             print(server_msg)
+#                     
+#             result_types = {"1": server_msg.order_statuses, 
+#                             "2": server_msg.position_statuses, 
+#                             "3": server_msg.collateral_statuses, 
+#                             "4": server_msg.account_summary_statuses}
+#     
+#             if server_msg.trade_snapshot_completions is not None:
+#                 trade_snapshot_check = True
+#                     
+#             if len(result_types[str(sub_scope)]) >0: 
+#                 if sub_scope in [1]:
+#                     LIS_status = [result_types[str(sub_scope)][i].status 
+#                                        for i in range(len(result_types[str(sub_scope)]))]
+#                     LIS_clorderid = [result_types[str(sub_scope)][i].order.cl_order_id 
+#                                        for i in range(len(result_types[str(sub_scope)]))]
+#         
+#                     print("LIS_status, LIS_clorderid", LIS_status, LIS_clorderid)
+#                     try:
+#                         # If we find the index we return
+#                         index = LIS_clorderid.index(cl_order_id)
+#         
+#                         print('index', index)
+#                         print("======Result =============")
+#                         result_check = True
+#                         result_msg = server_msg
+#                         print("result", result_msg, result_types[str(sub_scope)])
+#                     except:
+#                         pass
+#                 elif sub_scope in [2,3,4]:
+#                     result_check = True
+#                     result_msg = server_msg
+#     
+#                     
+#             if self.result_check and self.trade_snapshot_check:
+#                 return result_msg
+#         # Listen for order confirmation
+# =============================================================================
         
-                    print("LIS_status, LIS_clorderid", LIS_status, LIS_clorderid)
-                    try:
-                        # If we find the index we return
-                        index = LIS_clorderid.index(cl_order_id)
-        
-                        print('index', index)
-                        print("======Result =============")
-                        result_check = True
-                        result_msg = server_msg
-                        print("result", result_msg, result_types[str(sub_scope)])
-                    except:
-                        pass
-                elif sub_scope in [2,3,4]:
-                    result_check = True
-                    result_msg = server_msg
-    
-                    
-            if self.result_check and self.trade_snapshot_check:
-                return result_msg
-        # Listen for order confirmation
-        
+    @hearback
     def modify_order_request(self,  
                              order_id: int, # Get this from the previous Order 
                              orig_cl_order_id: str, 
@@ -181,31 +186,34 @@ class CQGLiveOrder(LiveOrder):
         print('===============order complete=======================')
         sub_scope = kwargs['sub_scope']
 
-        while True:
-            server_msg = self._connect.client.receive_server_message()
-            print("S_MSG", server_msg)
-                    
-            result_types = {"1": server_msg.order_statuses, 
-                            "2": server_msg.position_statuses, 
-                            "3": server_msg.collateral_statuses, 
-                            "4": server_msg.account_summary_statuses}
-    
-            if server_msg.trade_snapshot_completions is not None:
-                trade_snapshot_check = True
-                                            
-            if len(result_types[str(sub_scope)]) >0: 
-                print("======Result =============",)
-                result_msg = server_msg
-                result_check = True
-                print("result", result_msg, result_types[str(sub_scope)])
-    
-                    
-            if result_check and trade_snapshot_check:
-                #server_msg = client.receive_server_message()
-    
-                return result_msg
+        return self._connect.client, client_msg
+# =============================================================================
+#         while True:
+#             server_msg = self._connect.client.receive_server_message()
+#             print("S_MSG", server_msg)
+#                     
+#             result_types = {"1": server_msg.order_statuses, 
+#                             "2": server_msg.position_statuses, 
+#                             "3": server_msg.collateral_statuses, 
+#                             "4": server_msg.account_summary_statuses}
+#     
+#             if server_msg.trade_snapshot_completions is not None:
+#                 trade_snapshot_check = True
+#                                             
+#             if len(result_types[str(sub_scope)]) >0: 
+#                 print("======Result =============",)
+#                 result_msg = server_msg
+#                 result_check = True
+#                 print("result", result_msg, result_types[str(sub_scope)])
+#     
+#                     
+#             if result_check and trade_snapshot_check:
+#                 #server_msg = client.receive_server_message()
+#     
+#                 return result_msg
+# =============================================================================
 
-
+    @hearback
     def cancel_order_request(self, 
                              order_id: int, 
                              orig_cl_order_id: str, 
@@ -265,7 +273,8 @@ class CQGLiveOrder(LiveOrder):
     
             if self.trade_snapshot_check and self.result_check:
                 return order_request, server_msg
-    
+            
+    @hearback
     def activate_order_request(self, 
                                order_id: int, 
                                orig_cl_order_id: str, 
@@ -315,20 +324,20 @@ class CQGLiveOrder(LiveOrder):
     
             if self.trade_snapshot_check and self.result_check:
                 return order_request, server_msg
-    
+    @hearback
     def cancelall_order_request(self,**kwargs)->ServerMsg:
         # TBD
         return 
-    
+    @hearback
     def suspend_order_request(self,**kwargs)->ServerMsg: # SuspendOrder
 
         return 
-    
-    def Liquidateall_order_request(self,**kwargs)->ServerMsg: # LiquidateAll
+    @hearback 
+    def liquidateall_order_request(self,**kwargs)->ServerMsg: # LiquidateAll
 
         return 
 
-    
+    @hearback
     def goflat_order_request(self, **kwargs)->ServerMsg:
         default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
                           'execution_source_code': None, 
