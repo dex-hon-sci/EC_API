@@ -5,6 +5,7 @@ Created on Wed Jul 30 10:23:04 2025
 
 @author: dexter
 """
+from collections import Protocol
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
@@ -12,7 +13,32 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, 
                                        RestoreOrJoinSession, \
                                        RestoreOrJoinSessionResult
 
+class Connect(Protocol):
+    # Base class for websocket-like connection
+    def __init__(self, 
+                 host_name: str, 
+                 user_name: str, 
+                 password: str):
+        self._host_name = host_name
+        self._user_name = user_name
+        self._password = password
+        
+        # Immediate connection
+    
+    @property
+    def client(self):
+        # return client connection object
+        return self._client
 
+    def logon():
+        pass
+    
+    def logoff():
+        pass
+    
+    def disconnect():
+        pass
+        
 class ConnectCQG(object):
     # This class control all the functions related to connecting to CQG and 
     # subscriptions related functions
@@ -118,7 +144,7 @@ class ConnectCQG(object):
     def resolve_symbol(self, 
                        symbol_name: str, 
                        msg_id: int, 
-                       subscribe: bool=None, **kwargs):
+                       subscribe: bool=None, **kwargs): #decrepated/unused
         # after the server confirm that we login successfully, we can send information_request
         # contains the symbol_resolution_request, the real time data, historical data, 
         # tick data, and order activities are all depended on symbol_resolution_report
