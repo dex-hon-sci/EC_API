@@ -6,14 +6,12 @@ Created on Tue Jul 29 13:19:48 2025
 @author: dexter
 """
 from collections import Protocol
+
 from EC_API.ordering.enums import *
 from EC_API.connect import Connect
 from EC_API.msg_validation.base import CQGValidMsgCheck
 
 class LiveOrder(Protocol):
-    """
-    Protocol class for LiveOrder.
-    """
     def __init__(self, 
                  connect: Connect,
                  symbol_name: str,
@@ -74,18 +72,21 @@ class LiveOrder(Protocol):
     
     def send(self, 
              request_type: RequestType,
-             request_details: dict) -> None:
+             request_details: dict):
         """
         Master function for running LiveOrder object. Send order requests to 
         the exchange provided some request details matching the request types.
 
         Parameters
         ----------
-        request_type : RequestType
-            See RequestType Enums.
+        request_type : str
+            DESCRIPTION.
         request_details : dict
-            A dictionary that should contain everything needed for the 
-            given request_types.
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
 
         """
         match request_type:
