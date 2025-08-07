@@ -7,11 +7,24 @@ Created on Mon Jul 21 17:55:13 2025
 
 This Enum file contain the most relevant enums for ordering.
 """
+from enum import Enum
 
 from EC_API.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
 from EC_API.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
 from EC_API.common.shared_1_pb2 import OrderStatus
 
+
+
+class RequestType(Enum):
+    NEW_ORDER = "new_order_request"
+    MODIFY_ORDER = "modify_order_request"
+    CANCEL_ORDER = "cancel_order_request"
+    ACRIVATE_ORDER = "activate_order_request"
+    CANCELALL_ORDER = "cancelall_order_request"
+    LIQUIDATEALL_ORDER = "liquidateall_order_request"
+    GOFLAT_ORDER = "goflat_order_request"
+    
+    
 SUBSCRIPTION_SCOPE_ORDERS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
 SUBSCRIPTION_SCOPE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
 SUBSCRIPTION_SCOPE_COLLATERAL = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL
