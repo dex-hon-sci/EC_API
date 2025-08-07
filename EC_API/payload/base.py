@@ -6,9 +6,10 @@ Created on Mon Jul 14 19:37:54 2025
 @author: dexter
 """
 
-from EC_API.ordering import LiveOrder
-from .enums import PayloadStatus, OrderRequestType
 from dataclasses import dataclass, field
+from EC_API.ordering.base import LiveOrder
+from EC_API.paylaod.enums import PayloadStatus
+from EC_API.ordering.enums import RequestType
 
 
 @dataclass
@@ -25,50 +26,49 @@ class Payload(object):
     account_id: int = 0
     cl_order_id: str = ""
     status: PayloadStatus = PayloadStatus.PENDING
-    order_request_type: OrderRequestType = OrderRequestType.NEW_ORDER_REQUEST
+    order_request_type: RequestType = RequestType.NEW_ORDER_REQUEST
     start_time: str = 0 # In long text format
     end_time: str = 0 # In long text format
     order_info: dict = field(default_factory=dict)
 
     
     def __post_id__(self):
-        # Check the order instructions
-        
+        # Check the order instructions based on the order type
         match self.order_request_type:
-            case OrderRequestType.NEW_ORDER_REQUEST:
-                # For new_order_request, check for necessary inputs
+            case RequestType.NEW_ORDER:
                 pass
-            case OrderRequestType.MODIFY_ORDER_REQUEST:
+            case RequestType.MODIFY_ORDER:
                 pass
-            case OrderRequestType.CANCEL_ORDER_REQUEST:
+            case RequestType.CANCEL_ORDER:
                 pass
-            case OrderRequestType.GOFLAT_ORDER_REQUEST:
+            case RequestType.ACRIVATE_ORDER:
+                pass
+            case RequestType.CANCELALL_ORDER:
+                pass
+            case RequestType.LIQUIDATEALL_ORDER:
+                pass
+            case RequestType.GOFLAT_ORDER:
                 pass
         return
 
     
 class ExecutePayload_CQG():
     def __init__(self, payload: Payload):
-        self.payload =  payload
+        self.payload = payload
     
     def unload(self):
-        match self.order_request_type:
-            case OrderRequestType.NEW_ORDER_REQUEST:
-                LiveOrder().new_order_request()
-            case OrderRequestType.MODIFY_ORDER_REQUEST:
-                LiveOrder().modify_order_request()
-            case OrderRequestType.CANCEL_ORDER_REQUEST:
-                LiveOrder().cancel_order_request()
-            case OrderRequestType.GOFLAT_ORDER_REQUEST:
-                pass
+        # Use the native function LiveOrder(...).send(...) instead
+# =============================================================================
+#         match self.order_request_type:
+#             case RequestType.NEW_ORDER:
+#                 LiveOrder().new_order_request()
+#             case RequestType.MODIFY_ORDER:
+#                 LiveOrder().modify_order_request()
+#             case RequestType.CANCEL_ORDER:
+#                 LiveOrder().cancel_order()
+#             case RequestType.GOFLAT_ORDER_REQUEST:
+#                 pass
+# =============================================================================
         
         # Sending order request base on the payload type
         return 
-    
-    
-    
-# Request_id
-# account_id
-
-# cl_order_id: str
-#order_id # provided by exchanges

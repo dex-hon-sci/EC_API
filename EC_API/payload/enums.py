@@ -22,3 +22,5 @@ class OrderRequestType(Enum):
     CANCEL_ORDER_REQUEST = "Cancel_order_request"
     CANCEL_ALL_ORDER_REQUEST = "Cancel_all_order_request"
     GOFLAT_ORDER_REQUEST = "GoFlat_order_request"
+    
+    
