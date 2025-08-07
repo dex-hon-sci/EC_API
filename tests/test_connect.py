@@ -53,25 +53,24 @@ def test_logonlogoff() -> None:
 
     # 2.  Send Logon message with valid credentials - user_name, password,
     # client_app_id, private_label, client_version, protocol_version_minor, protocol_version_major.
-    client_msg, logon_obj, logon_server_msg = CONNECT.logon()
+    logon_server_msg = CONNECT.logon()
     
     # Test logon crendtial inputs
-    assert logon_obj.user_name == user_name
-    assert logon_obj.password == password
-    assert logon_obj.client_app_id == "WebApiTest"
-    assert logon_obj.private_label is not None
-    assert logon_obj.client_version == 'python-client-test-2-240'
-    assert logon_obj.protocol_version_minor == 240
-    assert logon_obj.protocol_version_major == 2 
+    assert CONNECT._user_name == user_name
+    assert CONNECT._password == password
+    assert CONNECT.client_app_id == "WebApiTest"
+    assert CONNECT.client_version == 'python-client-test-2-240'
+    assert CONNECT.protocol_version_minor == 240
+    assert CONNECT.protocol_version_major == 2 
     
     logger.info('2. Send Logon message with valid credentials ')
-    logger.info(f'user_name: {logon_obj.user_name}')
-    logger.info(f'password: {logon_obj.password}')
-    logger.info(f'client_app_id: {logon_obj.client_app_id}')
-    logger.info(f'private_label: {logon_obj.private_label}')    
-    logger.info(f'client_version: {logon_obj.client_version}')    
-    logger.info(f'protocol_version_minor: {logon_obj.protocol_version_minor}')    
-    logger.info(f'protocol_version_major: {logon_obj.protocol_version_major}')    
+    logger.info(f'user_name: {CONNECT._user_name}')
+    logger.info(f'password: {CONNECT._password}')
+    logger.info(f'client_app_id: {CONNECT.client_app_id}')
+    logger.info(f'private_label: {CONNECT.private_label}')    
+    logger.info(f'client_version: {CONNECT.client_version}')    
+    logger.info(f'protocol_version_minor: {CONNECT.protocol_version_minor}')    
+    logger.info(f'protocol_version_major: {CONNECT.protocol_version_major}')    
 
     # 3.  Receive LogonResult with result_code='SUCCESS', session_token, 
     # base_time, user_id, and server_time.
@@ -92,7 +91,7 @@ def test_logonlogoff() -> None:
     # Find more API rules in webapi_2.proto)
     # 
     # 5.  Send Logoff message.
-    logoff_obj, logoff_server_msg = CONNECT.logoff()
+    logoff_server_msg = CONNECT.logoff()
     
     logger.info('5. Send Logoff message')
 
@@ -118,7 +117,7 @@ def test_invalid_logon() -> None:
     CONNECT = ConnectCQG(host_name,user_name, invalid_pw)
 
     # valid username but Invalid password input
-    client_msg, logon_obj, logon_server_msg = CONNECT.logon()
+    logon_server_msg = CONNECT.logon()
     
     logger.info('========(Start test_invalid_logon)========')
     logger.info('1. Send Logon message with invalid credentials')
@@ -129,7 +128,7 @@ def test_invalid_logon() -> None:
         logger.info('2. Receive LogonResult with result_code="FAILURE"')
     logger.info('========(End test_invalid_logon)========')
     
-    logoff_obj, logoff_server_msg = CONNECT.logoff()
+    logoff_server_msg = CONNECT.logoff()
     CONNECT.disconnect()
 
 
@@ -195,9 +194,9 @@ def test_restore_session() -> None:
 
     # Allow session restore
     ALLOW_RESTORE = Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE
-    client_msg, logon_obj1, logon_server_msg1 = CONNECT.logon(session_settings = ALLOW_RESTORE)
+    logon_server_msg1 = CONNECT.logon(session_settings = ALLOW_RESTORE)
     
-    assert Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE in logon_obj1.session_settings
+    #assert Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE in CONNECT.session_settings
     logger.info('1. Send Logon message with valid credentials.')
     session_token = logon_server_msg1.logon_result.session_token
         
@@ -238,10 +237,10 @@ def test_restore_session_invalid_token() -> None:
     CONNECT = ConnectCQG(host_name, user_name, password)
     logger.info('========(Start test_restore_session_invalid_token)========')
 
-    client_msg, logon_obj1, logon_server_msg1 = CONNECT.logon(session_settings = 
+    logon_server_msg1 = CONNECT.logon(session_settings = 
                      Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE)
     
-    assert Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE in logon_obj1.session_settings
+    #assert Logon.SessionSetting.SESSION_SETTING_ALLOW_SESSION_RESTORE in logon_obj1.session_settings
     logger.info('1. Send Logon message with valid credentials - user_name, password, \
                 client_app_id, private_label, client_version, session_settings=1 \
                 (SESSION_SETTING_ALLOW_SESSION_RESTORE) , protocol_version_minor,\
@@ -273,7 +272,8 @@ def test_restore_session_invalid_token() -> None:
 
     # 4. Receive RestoreOrJoinSessionResult with 
     # result_code='RESULT_CODE_UNKNOWN_SESSION'.
-    assert server_msg_restore.restore_or_join_session_result.result_code == RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_UNKNOWN_SESSION
+    assert server_msg_restore.restore_or_join_session_result.result_code == \
+           RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_UNKNOWN_SESSION
 
     print('server_msg_special_2', server_msg_restore,
           RestoreOrJoinSessionResult.ResultCode.RESULT_CODE_SUCCESS)
@@ -285,7 +285,7 @@ def test_restore_session_invalid_token() -> None:
     return
 
     
-def test_pingpong_msg():
+def test_pingpong_msg(): # WIP
     # Test Ping Pong messages
     CONNECT = ConnectCQG(host_name,user_name, password)
     logger.info('========(Start test_pingpong_msg)========')

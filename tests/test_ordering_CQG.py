@@ -11,11 +11,16 @@ import logging
 from datetime import timezone
 
 #from WebAPI.webapi_2_pb2 import *
-from WebAPI import webapi_client
-from WebAPI.user_session_2_pb2 import LogonResult
-from WebAPI.metadata_2_pb2 import ContractMetadata, SymbolResolutionReport
-from WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus
+from EC_API.ext.WebAPI import webapi_client
+from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
+from EC_API.ext.WebAPI.metadata_2_pb2 import ContractMetadata, SymbolResolutionReport
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus
 from EC_API.connect.base import ConnectCQG
+from EC_API.utility.base import random_string
+from EC_API.ordering.enums import SUBSCRIPTION_SCOPE_ORDERS
+#from EC_API.ordering.enums import *
+from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
+
 # =============================================================================
 # from run_API_access import (
 #     logon, logoff, resolve_symbol, 
@@ -27,22 +32,23 @@ from EC_API.connect.base import ConnectCQG
 # =============================================================================
 
 host_name = 'wss://demoapi.cqg.com:443'
-user_name = 'EulerWAPI'
-password = 'WAPI'
+user_name = ''
+password = ''
 
-# Account_id and initial parameters
-account_id = 17819227 # change the value according to your account_id
-contract_id = 1
-cl_order_id = '1' # every order must have unique cl_order_id per trader per day
-order_type = 1 # 1 means MKT 2 means LMT 3 means STP 4 means STL
-duration = 1
-side = 1 # 1 means buy and 2 means sell
-qty_significant = 1
-qty_exponent = 0
-is_manual = False
+# =============================================================================
+# # Account_id and initial parameters
+# account_id = 0 # change the value according to your account_id
+# contract_id = 1
+# cl_order_id = '1' # every order must have unique cl_order_id per trader per day
+# order_type = 1 # 1 means MKT 2 means LMT 3 means STP 4 means STL
+# duration = 1
+# side = 1 # 1 means buy and 2 means sell
+# qty_significant = 1
+# qty_exponent = 0
+# is_manual = False
+# =============================================================================
 
 
-from EC_API.ordering.enums import SUBSCRIPTION_SCOPE_ORDERS
 
 
 trade_subscription_id = 1
@@ -65,37 +71,98 @@ logging.basicConfig(filename='./log/temp.log',
                     datefmt="%Y-%m-%d %H:%M:%S")
 
 
-def test_new_order_request_SELL_MKT_DAY() -> None:
+def test_new_order_request_SELL_MKT_DAY(symbol_name: str) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        "cl_order_id": int(random_string()),
+        "order_type": ORDER_TYPE_LMT,
+        "duration": DURATION_DAY, 
+        "side": SIDE_SELL,
+        "qty_significant": 2, # make sure qty are in Decimal (int) not float
+        "qty_exponent": 0, 
+        "is_manual": False,
+        }
+    
+    CLOrder = CQGLiveOrder(connect, 
+                           symbol_name = request_details['symbol_name'], 
+                           request_id =100, 
+                           account_id = 000)
+    CLOrder.send(request_type=RequestType.NEW_ORDER, 
+                 request_details = request_details)
     return
 
-def test_new_order_request_BUY_MKT_GTC() -> None:
+def test_new_order_request_BUY_MKT_GTC(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return 
 
-def test_new_order_request_SELL_MKT_FAK() -> None:
+def test_new_order_request_SELL_MKT_FAK(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
 
-def test_new_order_request_BUY_LMT_DAY() -> None:
+def test_new_order_request_BUY_LMT_DAY(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
 
-def test_new_order_request_SELL_LMT_GTD() -> None:
+def test_new_order_request_SELL_LMT_GTD(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
 
-def test_new_order_request_BUY_LMT_GTC_ICEBERG() -> None:
+def test_new_order_request_BUY_LMT_GTC_ICEBERG(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
 
-def test_new_order_request_SELL_LMT_DAY_FUNARI() -> None:
+def test_new_order_request_SELL_LMT_DAY_FUNARI(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
 
-def test_new_order_request_BUY_STP_GTC() -> None:
+def test_new_order_request_BUY_STP_GTC(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
-def test_new_order_request_BUY_STP_GTD_TRAIL() -> None:
+def test_new_order_request_BUY_STP_GTD_TRAIL(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
-def test_new_order_request_SELL_STP_DAY_QT() -> None:
+def test_new_order_request_SELL_STP_DAY_QT(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
-def test_new_order_request_BUY_STL_DAY_TRAIL_QT() -> None:
+def test_new_order_request_BUY_STL_DAY_TRAIL_QT(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
 
-def test_new_order_request_SELL_STL_GTD() -> None:
+def test_new_order_request_SELL_STL_GTD(symbol_name) -> None:
+    request_details = {
+        "symbol_name": symbol_name,
+        }
+
     return
 
 
