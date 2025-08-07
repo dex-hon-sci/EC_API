@@ -503,7 +503,7 @@ class CQGLiveOrder(LiveOrder):
 
         return
     
-# Usage:
+# Usage: #############################################################
 # payload_details =  { 
 #                 "symbol_name": "CLEV25",
 #                 "cl_order_id": "1231314",
@@ -526,7 +526,7 @@ class CQGLiveOrder(LiveOrder):
 #                request_details = payload_details)
 #
 #
-# Usage:
+# Usage: #############################################################
 # payload_details2 =  { 
 #                 "symbol_name": "CLEV25",
 #                 "order_id": ORDER_ID, # Get this from servermsg in new_order_request or in database

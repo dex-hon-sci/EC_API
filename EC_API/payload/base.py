@@ -7,7 +7,8 @@ Created on Mon Jul 14 19:37:54 2025
 """
 
 from dataclasses import dataclass, field
-from EC_API.ordering.base import LiveOrder
+from EC_API.connect.base import ConnectCQG
+from EC_API.ordering.CQGLiveOrder import CQGLiveOrder
 from EC_API.paylaod.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 
@@ -26,7 +27,7 @@ class Payload(object):
     account_id: int = 0
     cl_order_id: str = ""
     status: PayloadStatus = PayloadStatus.PENDING
-    order_request_type: RequestType = RequestType.NEW_ORDER_REQUEST
+    order_request_type: RequestType = RequestType.NEW_ORDER
     start_time: str = 0 # In long text format
     end_time: str = 0 # In long text format
     order_info: dict = field(default_factory=dict)
@@ -34,6 +35,7 @@ class Payload(object):
     
     def __post_id__(self):
         # Check the order instructions based on the order type
+        # import checking classes and func specific for CQG type orders
         match self.order_request_type:
             case RequestType.NEW_ORDER:
                 pass
@@ -52,23 +54,27 @@ class Payload(object):
         return
 
     
-class ExecutePayload_CQG():
-    def __init__(self, payload: Payload):
-        self.payload = payload
+class ExecutePayload_CQG(object):
+    # Execution object for CQG trade rounting connection
+    def __init__(self, 
+                 connect: ConnectCQG, 
+                 payload: Payload,
+                 request_id: int,
+                 account_id: int):
+        self._connect = connect 
+        self._payload = payload
+        self.request_id = request_id
+        self.account_id = account_id
     
-    def unload(self):
-        # Use the native function LiveOrder(...).send(...) instead
-# =============================================================================
-#         match self.order_request_type:
-#             case RequestType.NEW_ORDER:
-#                 LiveOrder().new_order_request()
-#             case RequestType.MODIFY_ORDER:
-#                 LiveOrder().modify_order_request()
-#             case RequestType.CANCEL_ORDER:
-#                 LiveOrder().cancel_order()
-#             case RequestType.GOFLAT_ORDER_REQUEST:
-#                 pass
-# =============================================================================
-        
-        # Sending order request base on the payload type
-        return 
+    def unload(self) -> None:
+        """
+        Sending order request base on the payload type
+
+        """
+        CLOrder = CQGLiveOrder(self._connect, 
+                               symbol_name = self._payload.order_info['symbol_name'], 
+                               request_id = self.request_id, 
+                               account_id = self.account_id)
+        CLOrder.send(request_type = self._payload.order_request_type, 
+                     request_details = self._payload.order_info)
+
