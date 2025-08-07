@@ -1,33 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jul 23 16:32:53 2025
+Created on Thu Aug  7 10:06:40 2025
 
 @author: dexter
 """
 import time
-from WebAPI.webapi_2_pb2 import ClientMsg
+from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
 # Import EC_API scripts
-from EC_API.connect import ConnectCQG
+from EC_API.connect.base import ConnectCQG
+from EC_API.monitor.base import Monitor
 
-# Monitor live-data
-# Monitor our own trading routing related info (position, summary)
-
-class DataBuffer(object):
-    # A customisable buffer class that take-in data if it is within a 
-    # predefined time-frame, 
-    def __int__(self, time_size):
-        pass
-
-
-class Monitor(object):
-    # An Object incharge of 
+class MonitorRealTimedata_CQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._connection = connection
         self._connection.logon()
         self._msg_id = 200 # just a starting number for message id
-
+        self.buffer = []
+ 
     def connection(self):
         return self._connection
     
@@ -38,12 +29,16 @@ class Monitor(object):
         self._msg_id += 1
         return self._msg_id 
     
-    def request_real_time(self, contract_id:int, level:int=1, 
-                          total_recv_cycle:int = 20, total_send_cycle: int =2,
-                          recv_cycle_delay: int =0, send_cycle_delay: int = 0,
-                          default_timestamp: float | int = 9, 
-                          default_price: float | int = 9, 
-                          default_volume: float | int =9):
+    async def request_real_time(self, 
+                                contract_id:int, 
+                                level:int=1, 
+                                total_recv_cycle:int = 20, 
+                                total_send_cycle: int =2,
+                                recv_cycle_delay: int =0, 
+                                send_cycle_delay: int = 0,
+                                default_timestamp: float | int = 9, 
+                                default_price: float | int = 9, 
+                                default_volume: float | int =9) -> ServerMsg:
         # Two loop approach: Not the most sophisticated but will do for now.
         # Could Use continuous scrapping with a buffer. Send all requests, recv
         # msg, scrap them and bank them in our buffer. Then we post it on the TSDB
@@ -97,8 +92,10 @@ class Monitor(object):
             time.sleep(send_cycle_delay)
         # return Default values if no correct quote message was caught
         return default_timestamp, default_price, default_volume
-
-    def reset_tracker(self, contract_id, total_recv_cycle=5):
+    
+    async def reset_tracker(self, 
+                            contract_id: int, 
+                            total_recv_cycle: int = 5) -> ServerMsg:
         # A function to cancel subscription for the real-time data
         client_msg = ClientMsg()
         subscription = client_msg.market_data_subscriptions.add()
@@ -120,5 +117,11 @@ class Monitor(object):
                 # success
                 if recv_contract_id == contract_id and status == 0:
                     return 
-            
-
+    
+    def run(self) -> dict[str|int|float]:
+        # Get contract_id from resolve symbol
+        
+        self.request_real_time() # Request real-time data
+        
+        await self.reset_tracker() # Reset tracker
+        # get the data from  other symbols
