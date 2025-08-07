@@ -12,7 +12,7 @@ from EC_API.ext.WebAPI import webapi_client
 from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
                                        RestoreOrJoinSession, \
                                        RestoreOrJoinSessionResult
-
+from EC_API.connect.hearback import hearback
 class Connect(Protocol):
     # Base class for websocket-like connection
     def __init__(self, 
@@ -64,7 +64,8 @@ class ConnectCQG(object):
     def client(self):
         # return client connection object
         return self._client
-
+    
+    @hearback
     def logon(self, 
               client_app_id: str ='WebApiTest', 
               client_version: str ='python-client-test-2-240',
@@ -104,6 +105,7 @@ class ConnectCQG(object):
             # the text_message contains the reason why user cannot login.
             raise Exception("Can't login: " + server_msg.logon_result.text_message)
 
+    @hearback
     def logoff(self):
         # Logoff. Invoke this everytime when a connection is dropped
         client_msg = ClientMsg()
@@ -117,7 +119,8 @@ class ConnectCQG(object):
         if server_msg.logged_off.text_message:
             print("Logoff reason is: " + server_msg.logged_off.logoff_reason)
         return server_msg
-            
+           
+    @hearback
     def restore_request(self, session_token: str = None) -> ServerMsg:
         # Restore request taken from class attributes
         restore_msg = ClientMsg()
