@@ -13,7 +13,6 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
 from EC_API.connect import ConnectCQG
 from EC_API.connect.hearback import hearback, get_contract_metadata
-from EC_API.monitor.CQG_trade_subscription import TradeSubscription
 from EC_API.ordering.enums import *
 from EC_API.ordering.base import LiveOrder
 
@@ -54,9 +53,9 @@ class CQGLiveOrder(LiveOrder):
     @hearback
     def _request_trade_subscription(self,
                                     trade_subscription_id: int,
-                                    subscribe: bool,
-                                    sub_scope: int,
-                                    skip_orders_snapshot):
+                                    subscribe: bool = False,
+                                    sub_scope: int = SUBSCRIPTION_SCOPE_ORDERS,
+                                    skip_orders_snapshot: bool = False):
         
         client_msg = ClientMsg()
         trade_sub_request = client_msg.trade_subscriptions.add()
@@ -77,7 +76,7 @@ class CQGLiveOrder(LiveOrder):
 
     @hearback
     def new_order_request(self, 
-                          contract_id: int, # Get this from trade_sub
+                          contract_id: int, # Get this from contractmetadata
                           cl_order_id: str, 
                           order_type: Ord.OrderType, 
                           duration: Ord.Duration, 
@@ -391,7 +390,8 @@ class CQGLiveOrder(LiveOrder):
         return 
     
     @hearback 
-    def liquidateall_order_request(self, contract_id,
+    def liquidateall_order_request(self, 
+                                   contract_id,
                                    **kwargs) -> ServerMsg:
         default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc),
                           'is_short': None,
@@ -444,17 +444,63 @@ class CQGLiveOrder(LiveOrder):
 #         return server_msg
 # =============================================================================
     
-    def send(symbol: str, 
-             request_type: str,
-             request_details: dict):
-        # resolve symbol
+    def send(self, 
+             msg_id:int, 
+             trade_subscription_id: int,
+             symbol_name: str, 
+             request_type: RequestType,
+             request_details: dict,
+             sub_scope = SUBSCRIPTION_SCOPE_ORDERS,
+             **kwargs):
         
-        # Trade Subscription -> get CONTRACT_ID from Contractmetadata
+        # resolve symbol -> get CONTRACT_ID from Contractmetadata
+        CONTRACT_METADATA = self._resolve_symbols(msg_id = msg_id, subscribe=None)
+        CONTRACT_ID = CONTRACT_METADATA.contract_id
+
+        # Trade Subscription 
+        CONTRACT_ID = self._request_trade_subscription(trade_subscription_id,
+                                                       subscribe = True,
+                                                       sub_scope = sub_scope,
+                                                       )
         
-        # For new_order_request -> return OrderID
-        
-        # For other oder_requests, use the OrderID from new_order_request
-        
+        match request_type:
+            case RequestType.NEW_ORDER:
+                # For new_order_request -> return OrderID
+                ORDER_ID = self.new_order_request(CONTRACT_ID, **request_details)
+            #contract_id: int, # Get this from trade_sub
+            #cl_order_id: str, 
+            #order_type: Ord.OrderType, 
+            #duration: Ord.Duration, 
+            #side: Ord.Side,
+            #qty_significant:int, # make sure qty are in Decimal (int) not float
+            #qty_exponent: int, 
+            #is_manual: bool = False,
+            #**kwargs) -> ServerMsg:
+    
+            case RequestType.MODIFY_ORDER:
+                # For other oder_requests, use the OrderID from new_order_request
+                self.modify_order_request(ORDER_ID, **request_details)
+            
+            case RequestType.CANCEL_ORDER:
+                self.cancel_order_request(ORDER_ID, **request_details)
+            
+            case RequestType.ACRIVATE_ORDER:
+                self.activate_order_request(ORDER_ID, **request_details)
+            
+            case RequestType.CANCELALL_ORDER:
+                self.cancelall_order_request(**request_details)
+                
+            case RequestType.LIQUIDATEALL_ORDER:
+                self.liquidateall_order_request(CONTRACT_ID, **request_details)
+                
+            case RequestType.GOFLAT_ORDER:
+                self.goflat_order_request(**request_details)
+                
+        # Unsubscribe from trade subscription
+        trade_server_msg_unsub = self._request_trade_subscription(trade_subscription_id,
+                                            sub_scope=sub_scope,
+                                            subscribe= False)
+
         return
     
 # Usage:
@@ -478,3 +524,23 @@ class CQGLiveOrder(LiveOrder):
 #                          request_id =100, account_id = 000)
 #   CLOrder.send(request_type=RequestType.NEW_ORDER, 
 #                request_details = payload_details)
+#
+#
+# Usage:
+# payload_details2 =  { 
+#                 "symbol_name": "CLEV25",
+#                 "order_id": ORDER_ID, # Get this from servermsg in new_order_request or in database
+#                 "ogri_cl_order_id": "1231314",
+#                 "cl_order_id": "1231315", # new cl_order_id
+#                 "duration": DURATION_GTD, # Change from GTC to GTD
+#                 "qty": 10, # change qty to from 2 to 10
+#                 "scaled_limit_price": 1100, # change LMT proce from 1000 to 1100
+#                  }
+#                       
+# try:
+#   CLOrder = CQGLiveOrder(connect: ConnectCQG, 
+#                          symbol_name = payload_details2['symbol_name'], 
+#                          request_id =102, account_id = 000)
+#   CLOrder.send(request_type=RequestType.MODIFY.ORDER, 
+#                request_details = payload_details2)
+
