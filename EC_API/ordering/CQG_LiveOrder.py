@@ -23,18 +23,17 @@ class CQGLiveOrder(LiveOrder):
 
     def __init__(self, 
                  connect: ConnectCQG, 
-                 symbol: str, 
+                 symbol_name: str, 
                  request_id: int, 
                  account_id: int):
         
         self._connect = connect
-        self._symbol = symbol
+        self._symbol_name = symbol_name
         self.request_id = request_id
         self.account_id = account_id
 
     @get_contract_metadata
     def _resolve_symbols(self, 
-                         symbol_name: str, 
                          msg_id: int, 
                          subscribe=None, 
                          **kwargs):
@@ -44,7 +43,7 @@ class CQGLiveOrder(LiveOrder):
         if subscribe is not None:
             information_request.subscribe = subscribe
             
-        information_request.symbol_resolution_request.symbol = symbol_name
+        information_request.symbol_resolution_request.symbol = self._symbol_name
         
         if 'instrument_group_request' in kwargs:
             information_request.instrument_group_request = kwargs['instrument_group_request']
@@ -56,7 +55,7 @@ class CQGLiveOrder(LiveOrder):
     def _request_trade_subscription(self,
                                     trade_subscription_id: int,
                                     subscribe: bool,
-                                    sub_scope,
+                                    sub_scope: int,
                                     skip_orders_snapshot):
         
         client_msg = ClientMsg()
@@ -192,7 +191,8 @@ class CQGLiveOrder(LiveOrder):
                           'remove_suspension_utc_time': None,
                           'duration': None, 'good_thru_date': None,
                           'good_thru_utc_timestamp': None, 
-                          'extra_attributes': None,'sub_scope':1}
+                          'extra_attributes': None,
+                          'sub_scope':1}
         kwargs = dict(default_kwargs, **kwargs)
 
         client_msg = ClientMsg()
@@ -446,7 +446,7 @@ class CQGLiveOrder(LiveOrder):
     
     def send(symbol: str, 
              request_type: str,
-             order_details: dict):
+             request_details: dict):
         # resolve symbol
         
         # Trade Subscription -> get CONTRACT_ID from Contractmetadata
@@ -456,3 +456,25 @@ class CQGLiveOrder(LiveOrder):
         # For other oder_requests, use the OrderID from new_order_request
         
         return
+    
+# Usage:
+# payload_details =  { 
+#                 "symbol_name": "CLEV25",
+#                 "cl_order_id": "1231314",
+#                 "order_type": ORDER_TYPE_LMT, 
+#                 "duration": DURATION_GTC, 
+#                 "side": SIDE_BUY,
+#                 "qty_significant": 2, # make sure qty are in Decimal (int) not float
+#                 "qty_exponent": 0, 
+#                 "is_manual": bool = False,
+#                 "scaled_limit_price": 1000,
+#                 "good_thru_date": datetime.datetime(2025,9,9),
+#                 "exec_instructions": EXEC_INSTRUCTION_AON
+#                  }
+#                       
+# try:
+#   CLOrder = CQGLiveOrder(connect: ConnectCQG, 
+#                          symbol_name = payload_details['symbol_name'], 
+#                          request_id =100, account_id = 000)
+#   CLOrder.send(request_type=RequestType.NEW_ORDER, 
+#                request_details = payload_details)
