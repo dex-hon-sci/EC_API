@@ -10,26 +10,32 @@ from datetime import timezone
 
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-
 from EC_API.connect import ConnectCQG
 from EC_API.connect.hearback import hearback, get_contract_metadata
 from EC_API.ordering.enums import *
 from EC_API.ordering.base import LiveOrder
+from EC_API.utility import random_string
 
 class CQGLiveOrder(LiveOrder):
     # a class that control the ordering action to the exchange
     # This object is specific for CQG type request
-
     def __init__(self, 
                  connect: ConnectCQG, 
                  symbol_name: str, 
                  request_id: int, 
-                 account_id: int):
+                 account_id: int,
+                 sub_scope: int = SUBSCRIPTION_SCOPE_ORDERS,
+                 msg_id: int = int(random_string(length=10)), 
+                 trade_subscription_id: int = int(random_string(length=10))):
         
         self._connect = connect
         self._symbol_name = symbol_name
         self.request_id = request_id
         self.account_id = account_id
+        self.sub_scope = sub_scope
+        self.msg_id = msg_id # for information report
+        self.trade_subscription_id = trade_subscription_id # for trade subscription
+        self.auto_unsub = True
 
     @get_contract_metadata
     def _resolve_symbols(self, 
@@ -385,7 +391,7 @@ class CQGLiveOrder(LiveOrder):
         return 
     
     @hearback
-    def suspend_order_request(self,**kwargs)->ServerMsg: # SuspendOrder
+    def suspend_order_request(self, **kwargs)->ServerMsg: # SuspendOrder
 
         return 
     
@@ -432,76 +438,52 @@ class CQGLiveOrder(LiveOrder):
         #order_request.go_flat.speculation_type = kwargs['speculation_type']
         self._connect.client.send_client_message(client_msg)
         
-        print('===============Go Flat on all orders=======================')
-    
-# =============================================================================
-#         while True:
-#             server_msg = self._connect.client.receive_server_message()
-#             if server_msg.trade_snapshot_completions is not None:
-#                 server_msg = self._connect.client.receive_server_message()
-#                 break
-#                 
-#         return server_msg
-# =============================================================================
     
     def send(self, 
-             msg_id:int, 
-             trade_subscription_id: int,
-             symbol_name: str, 
              request_type: RequestType,
              request_details: dict,
-             sub_scope = SUBSCRIPTION_SCOPE_ORDERS,
-             **kwargs):
+             **kwargs) -> None:
         
         # resolve symbol -> get CONTRACT_ID from Contractmetadata
-        CONTRACT_METADATA = self._resolve_symbols(msg_id = msg_id, subscribe=None)
+        CONTRACT_METADATA = self._resolve_symbols(msg_id = self.msg_id, subscribe=None)
         CONTRACT_ID = CONTRACT_METADATA.contract_id
 
         # Trade Subscription 
-        CONTRACT_ID = self._request_trade_subscription(trade_subscription_id,
+        CONTRACT_ID = self._request_trade_subscription(self.trade_subscription_id,
                                                        subscribe = True,
-                                                       sub_scope = sub_scope,
+                                                       sub_scope = self.sub_scope
                                                        )
         
         match request_type:
             case RequestType.NEW_ORDER:
                 # For new_order_request -> return OrderID
-                ORDER_ID = self.new_order_request(CONTRACT_ID, **request_details)
-            #contract_id: int, # Get this from trade_sub
-            #cl_order_id: str, 
-            #order_type: Ord.OrderType, 
-            #duration: Ord.Duration, 
-            #side: Ord.Side,
-            #qty_significant:int, # make sure qty are in Decimal (int) not float
-            #qty_exponent: int, 
-            #is_manual: bool = False,
-            #**kwargs) -> ServerMsg:
+                server_msg = self.new_order_request(CONTRACT_ID, **request_details)
     
             case RequestType.MODIFY_ORDER:
                 # For other oder_requests, use the OrderID from new_order_request
-                self.modify_order_request(ORDER_ID, **request_details)
+                server_msg = self.modify_order_request(**request_details)
             
             case RequestType.CANCEL_ORDER:
-                self.cancel_order_request(ORDER_ID, **request_details)
+                server_msg = self.cancel_order_request(**request_details)
             
             case RequestType.ACRIVATE_ORDER:
-                self.activate_order_request(ORDER_ID, **request_details)
+                server_msg = self.activate_order_request(**request_details)
             
             case RequestType.CANCELALL_ORDER:
-                self.cancelall_order_request(**request_details)
+                server_msg = self.cancelall_order_request(**request_details)
                 
             case RequestType.LIQUIDATEALL_ORDER:
-                self.liquidateall_order_request(CONTRACT_ID, **request_details)
+                server_msg = self.liquidateall_order_request(CONTRACT_ID, **request_details)
                 
             case RequestType.GOFLAT_ORDER:
-                self.goflat_order_request(**request_details)
+                server_msg = self.goflat_order_request()
                 
         # Unsubscribe from trade subscription
-        trade_server_msg_unsub = self._request_trade_subscription(trade_subscription_id,
-                                            sub_scope=sub_scope,
-                                            subscribe= False)
+        unsub_trade_msg = self._request_trade_subscription(self.trade_subscription_id,
+                                                            subscribe = False,
+                                                            sub_scope =self.sub_scope)
 
-        return
+        return server_msg
     
 # Usage: #############################################################
 # payload_details =  { 
