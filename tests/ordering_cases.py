@@ -5,7 +5,7 @@ Created on Fri Aug  8 11:02:05 2025
 
 @author: dexter
 """
-
+from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus
 from EC_API.connect.base import ConnectCQG
 from EC_API.utility.base import random_string
 from EC_API.ordering.enums import *
@@ -270,7 +270,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send(request_type = RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
     
@@ -516,6 +516,9 @@ class CancelOrderCases(object):
         self.cancel_order(ORDER_ID)
         
 class ActivateOrderCases(object):
+    """
+    Activate order test cases
+    """
     def __init__(self, 
                  connect: ConnectCQG,
                  account_id: int,
@@ -568,6 +571,74 @@ class ActivateOrderCases(object):
         # Activate this order
         self.activate_order(ORDER_ID)
 
-class GoFlatOrderCases():
-    def __init__():
-        pass
+class GoFlatOrderCases(object):
+    """
+    Go Flat order test cases
+    """
+
+    def __init__(self, 
+                 connect: ConnectCQG,
+                 account_id: int,
+                 symbol_name: str):
+        self.connect = connect
+        self.account_id = account_id
+        self.symbol_name = symbol_name
+        self.orig_cl_order_id = ""
+        
+    def goflat_order(self):
+        activate_request_details = {
+            "order_id": order_id, 
+            "orig_cl_order_id": self.orig_cl_order_id,
+            "cl_order_id": random_string(length=10),
+            }
+        CLOrder = CQGLiveOrder(self.connect, 
+                               symbol_name = self.symbol_name, 
+                               request_id = int(random_string(length=10)), 
+                               account_id = self.account_id)
+        server_msg = CLOrder.send(request_type=RequestType.GOFLAT_ORDER, 
+                                  request_details = activate_request_details)
+
+        assert type(server_msg) == GoFlatStatus
+    
+    def run_all(self, scaled_limit_price: int):
+        # Send a new MKT order
+        initial_request_details_1 = {
+            "symbol_name": self.symbol_name,
+            "cl_order_id": random_string(length=10),
+            "order_type": ORDER_TYPE_MKT,
+            "duration": DURATION_DAY, 
+            "side": SIDE_SELL,
+            "qty_significant": 1, # make sure qty are in Decimal (int) not float
+            "qty_exponent": 0, 
+            "is_manual": False,
+            }
+        
+        CLOrder_1 = CQGLiveOrder(self.connect, 
+                               symbol_name = initial_request_details_1['symbol_name'], 
+                               request_id = int(random_string(length=10)), 
+                               account_id = self.account_id)
+        server_msg_1 = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+                                  request_details = initial_request_details_1)
+        
+        # Send a new LMT order
+        initial_request_details_2 = {
+            "symbol_name": self.symbol_name,
+            "cl_order_id": random_string(length=10),
+            "order_type": ORDER_TYPE_LMT,
+            "duration": DURATION_DAY, 
+            "side": SIDE_SELL,
+            "qty_significant": 1, # make sure qty are in Decimal (int) not float
+            "qty_exponent": 0, 
+            "is_manual": False,
+            "scaled_limit_price": scaled_limit_price
+            }
+        
+        CLOrder_2 = CQGLiveOrder(self.connect, 
+                                symbol_name = initial_request_details_2['symbol_name'], 
+                                request_id = int(random_string(length=10)), 
+                                account_id = self.account_id)
+        server_msg_2 = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+                                  request_details = initial_request_details_2)
+        
+        # Send GoFlat Order, check if there are any remaining orders left
+        self.goflat_order()
