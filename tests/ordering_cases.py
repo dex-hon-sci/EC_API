@@ -8,7 +8,6 @@ Created on Fri Aug  8 11:02:05 2025
 
 from EC_API.connect.base import ConnectCQG
 from EC_API.utility.base import random_string
-#from EC_API.ordering.enums import SUBSCRIPTION_SCOPE_ORDERS, RequestType
 from EC_API.ordering.enums import *
 from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
 
@@ -343,11 +342,10 @@ class NewOrderCases(object):
         assert server_msg.order_statuses[-1].order.duration == DURATION_GTD
         assert server_msg.order_statuses[-1].order.side == SIDE_SELL
         
-    def run_all(self) -> None:
-        #Logon Info report, contrad_ID, trade Sub
-        scaled_stop_price = 0
-        scaled_limit_price = 0
-        
+    def run_all(self, 
+                scaled_limit_price: int, 
+                scaled_stop_price: int) -> None:
+
         self.new_order_request_SELL_MKT_DAY()
         self.new_order_request_BUY_MKT_GTC()
         self.new_order_request_SELL_MKT_FAK()
@@ -362,7 +360,6 @@ class NewOrderCases(object):
                                                     SL_price_offset = 300,
                                                     scaled_trail_offset = 10)
         self.new_order_request_SELL_STL_GTD(scaled_stop_price, SL_price_offset = 300)
-        # unsub trade, logoff
 
 class ModifyOrderCases(object):
     """
@@ -377,31 +374,78 @@ class ModifyOrderCases(object):
         self.symbol_name = symbol_name
         self.orig_cl_order_id = ""
 
-    def modify_order_qty(self, new_qty: int) -> None:
-    
-        return
-    
-    def modify_order_LMT_price(self, new_LMT_price: int) -> None:
-    
-        return
+    def modify_order_qty(self, order_id: int, 
+                         new_qty: int) -> None:
+        modify_request_details = {
+            "order_id": order_id,
+            "cl_order_id": random_string(length=10),
+            "orig_cl_order_id": self.orig_cl_order_id,
+            "qty": new_qty
+            }
+        CLOrder = CQGLiveOrder(self.connect, 
+                               symbol_name = self.symbol_name, 
+                               request_id = int(random_string(length=10)), 
+                               account_id = self.account_id)
+        server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
+                                  request_details = modify_request_details)
 
-    def modify_order_STP_price(self, new_STP_price: int) -> None:
+        assert server_msg.order_statuses[-1].status == FILLED
     
-        return
+    def modify_order_LMT_price(self, order_id: int, 
+                               new_LMT_price: int) -> None:
+        modify_request_details = {
+            "order_id": order_id,
+            "cl_order_id": random_string(length=10),
+            "orig_cl_order_id": self.orig_cl_order_id,
+            "scaled_limit_price": new_LMT_price
+            }
 
-    def run_all(self, scaled_limit_price, scaled_stop_price) -> None:
+        CLOrder = CQGLiveOrder(self.connect, 
+                               symbol_name = self.symbol_name, 
+                               request_id = int(random_string(length=10)), 
+                               account_id = self.account_id)
+        server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
+                                  request_details = modify_request_details)
+
+        assert server_msg.order_statuses[-1].status == FILLED
+
+    def modify_order_STP_price(self, order_id: int, 
+                               new_STP_price: int) -> None:
+        modify_request_details = {
+            "order_id": order_id,
+            "cl_order_id": random_string(length=10),
+            "orig_cl_order_id": self.orig_cl_order_id,
+            "scaled_stop_price": scaled_stop_price
+            }
+
+        CLOrder = CQGLiveOrder(self.connect, 
+                               symbol_name = self.symbol_name, 
+                               request_id = int(random_string(length=10)), 
+                               account_id = self.account_id)
+        server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
+                                  request_details = modify_request_details)
+
+        assert server_msg.order_statuses[-1].status == FILLED
+
+    def run_all(self, 
+                old_LMT_price: int, 
+                old_STP_price: int,
+                new_LMT_price: int, 
+                new_STP_price: int, 
+                old_qty: int,
+                new_qty: int) -> None:
         # Send a new order first
         initial_request_details = {
-            "symbol_name": symbol_name,
+            "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
             "order_type": ORDER_TYPE_MKT,
             "duration": DURATION_GTC, 
             "side": SIDE_BUY,
-            "qty_significant": 2, # make sure qty are in Decimal (int) not float
+            "qty_significant": old_qty, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
-            "scaled_limit_price": scaled_limit_price,
-            "scaled_stop_price": scaled_stop_price
+            "scaled_limit_price": old_LMT_price,
+            "scaled_stop_price": old_STP_price
             }
         CLOrder = CQGLiveOrder(self.connect, 
                                symbol_name = initial_request_details['symbol_name'], 
@@ -409,10 +453,13 @@ class ModifyOrderCases(object):
                                account_id = self.account_id)
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details)
+        
+        ORDER_ID = server_msg.order_statuses[0].order_id
+        self.orig_cl_order_id = initial_request_details["cl_order_id"]
         # Modify this order
-        # self.modify_order_qty() <-decrapted 
-        self.modify_order_LMT_price()
-        self.modify_order_STP_price()
+        # self.modify_order_qty(ORDER_ID, new_qty) <-Some issue with modify qty 
+        self.modify_order_LMT_price(ORDER_ID, new_LMT_price)
+        self.modify_order_STP_price(ORDER_ID, new_STP_price)
 
 class CancelOrderCases(object):
     """
@@ -434,7 +481,7 @@ class CancelOrderCases(object):
             "orig_cl_order_id": self.orig_cl_order_id
             }
         CLOrder = CQGLiveOrder(self.connect, 
-                               symbol_name = initial_request_details['symbol_name'], 
+                               symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
         server_msg = CLOrder.send(request_type=RequestType.CANCEL_ORDER, 
@@ -442,7 +489,7 @@ class CancelOrderCases(object):
 
         assert server_msg.order_statuses[-1].status == FILLED
         
-    def run_all(self, scaled_limit_price) -> None:
+    def run_all(self, scaled_limit_price: int) -> None:
         # Send a new order first
         initial_request_details = {
             "symbol_name": self.symbol_name,
@@ -472,14 +519,53 @@ class CancelOrderCases(object):
 class ActivateOrderCases(object):
     def __init__(self, 
                  connect: ConnectCQG,
-                 account_id: int):
+                 account_id: int,
+                 symbol_name: str):
         self.connect = connect
         self.account_id = account_id
+        self.symbol_name = symbol_name
         self.orig_cl_order_id = ""
         
-    def activate_order()->None:
-        return 
+    def activate_order(self, order_id: int)->None:
+        activate_request_details = {
+            "order_id": order_id, 
+            "orig_cl_order_id": self.orig_cl_order_id,
+            "cl_order_id": random_string(length=10),
+            }
+        CLOrder = CQGLiveOrder(self.connect, 
+                               symbol_name = self.symbol_name, 
+                               request_id = int(random_string(length=10)), 
+                               account_id = self.account_id)
+        server_msg = CLOrder.send(request_type=RequestType.ACRIVATE_ORDER, 
+                                  request_details = activate_request_details)
+
+        assert server_msg.order_statuses[-1].status == FILLED
+ 
     
-    def run_all():
-        return
-        
+    def run_all(self):
+        # Send a new order first
+        initial_request_details = {
+            "symbol_name": self.symbol_name,
+            "cl_order_id": random_string(length=10),
+            "order_type": ORDER_TYPE_MKT,
+            "duration": DURATION_DAY, 
+            "side": SIDE_SELL,
+            "qty_significant": 1, # make sure qty are in Decimal (int) not float
+            "qty_exponent": 0, 
+            "is_manual": False,
+            "suspend": True
+            }
+        CLOrder = CQGLiveOrder(self.connect, 
+                               symbol_name = initial_request_details['symbol_name'], 
+                               request_id = int(random_string(length=10)), 
+                               account_id = self.account_id)
+        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+                                  request_details = initial_request_details)
+
+        assert server_msg_SELL_MKT_DAY.order_statuses[0].status == SUSPENDED
+        ORDER_ID = server_msg.order_statuses[0].order_id
+        self.orig_cl_order_id = initial_request_details['cl_order_id']
+
+        # Activate this order
+        self.activate_order(ORDER_ID)
+

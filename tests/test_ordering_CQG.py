@@ -20,7 +20,12 @@ from EC_API.connect.base import ConnectCQG
 from EC_API.utility.base import random_string
 from EC_API.ordering.enums import SUBSCRIPTION_SCOPE_ORDERS, RequestType
 #from EC_API.ordering.enums import *
-
+from tests.ordering_cases import (
+    NewOrderCases, 
+    ModifyOrderCases, 
+    CancelOrderCases,
+    ActivateOrderCases
+    )
 
 HOST_NAME = 'wss://demoapi.cqg.com:443'
 USR_NAME = ''
@@ -40,38 +45,44 @@ logging.basicConfig(filename='./log/temp.log',
                     format="%(asctime) s%(levelname)s %(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S")
 
-from tests.ordering_cases import (
-    NewOrderCases, 
-    ModifyOrderCases, 
-    CancelOrderCases,
-    ActivateOrderCases
-    )
-        
+
+symbols = ["",""]
+LMT_price = [0,0]
+STP_price = [0,0]
+
 @pytest.mark.parametrize() 
-def test_success_order_requests(symbol_name: str) -> None:
+def test_success_order_requests(symbol_name: str,
+                                scaled_limit_price: int, 
+                                scaled_stop_price: int) -> None:
     CONNECT = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD)
     #logger.info('========(Start test_success_order_requests)========')
     # 1.Send Logon message with valid credentials.
     #logger.info('1.Send Logon message with valid credentials.')
     NOC = NewOrderCases(CONNECT, ACCOUNT_ID, symbol_name)
-    NOC.run_all()
+    NOC.run_all(scaled_limit_price, scaled_stop_price)
     logoff_server_msg = CONNECT.logoff()
     CONNECT.disconnect()
     
 @pytest.mark.parametrize() 
-def test_modify_order(symbol_name: str) -> None:
+def test_modify_order(symbol_name: str,
+                      old_LMT_price: int, old_STP_price: int,
+                      new_LMT_price: int, new_STP_price: int, 
+                      old_qty: int, new_qty: int) -> None:
     CONNECT = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD)
     MOC = ModifyOrderCases(CONNECT, ACCOUNT_ID, symbol_name)
-    MOC.run_all()
+    MOC.run_all(old_LMT_price, old_STP_price, 
+                new_LMT_price, new_STP_price, 
+                old_qty, new_qty)
     logoff_server_msg = CONNECT.logoff()
     CONNECT.disconnect()
 
     
 @pytest.mark.parametrize() 
-def test_cancel_order(symbol_name: str) -> None:
+def test_cancel_order(symbol_name: str, 
+                      scaled_limit_price: int) -> None:
     CONNECT = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD)
     COC = CancelOrderCases(CONNECT, ACCOUNT_ID, symbol_name)
-    COC.run_all()
+    COC.run_all(scaled_limit_price)
     logoff_server_msg = CONNECT.logoff()
     CONNECT.disconnect()
    
@@ -87,227 +98,10 @@ def test_activate_order(symbol_name: str):
 #test_success_collateral_status_requests
 #test_account_summary_status_requests
 #test_goflat_request
+#test_cancellall_
+#test_liquidate_all_
 
-def test_modify_order() -> None:
-    CONNECT = ConnectCQG(host_name,user_name, password)
-    logger.info('========(Start test_modify_order)========')
-
-    # 1. Send Logon message with valid credentials.
-    client_msg, logon_obj, logon_server_msg = CONNECT.logon()
-    logger.info('1. Send Logon message with valid credentials.')
-
-    print('logon_server_msg', logon_server_msg)
-    # 2. Receive LogonResult with result_code='SUCCESS'.
-    assert logon_server_msg.logon_result.result_code == LogonResult.ResultCode.RESULT_CODE_SUCCESS
-    logger.info('2. Receive LogonResult result_code: SUCCESS')
-
-    # 3. Send InformationRequest with symbol_resolution_request for 
-    symbol1 = "F.US.ZUI"
-    information_request1, server_msg1 = resolve_symbol(client, symbol1, 1)
-    msg_id = 4
-    logger.info(f'-------(Start Testing orders with Symbol1: {symbol1})--------')
-    logger.info('3. Send InformationRequest with symbol_resolution_request')
-
-    # 4. Receive InformationReport with SymbolResolutionReport with 
-    # status_code=’SUCCESS’ and contract_metadata for the symbol.
-    assert server_msg1.information_reports[0].status_code == InformationReport.StatusCode.STATUS_CODE_SUCCESS
-    contract_metadata1 = server_msg1.information_reports[0].symbol_resolution_report.contract_metadata
-
-    assert type(contract_metadata1)==ContractMetadata
-    logger.info(f'4. Information Report for {symbol1} status_code: SUCCESS')
-    logger.info(f'4. Contract_metadata for {symbol1}: {contract_metadata1}')
-
-    # 5. Send TradeSubscription with subscribe = true and subscription_scope=ORDERS.
-    trade_sub_request1, status_msg1, trade_server_msg1 = request_trade_subscription(
-                                                                       client, 
-                                                                       msg_id, 
-                                                                       sub_scope=SUBSCRIPTION_SCOPE_ORDERS)    
-    msg_id +=1
-    print('trade_sub_request',trade_sub_request1)
-    print('server_msg', trade_server_msg1)
-    print('step 5 successful')
-    logger.info(f'5. Send TradeSubscription with subscribe = true and subscription_scope=ORDERS')
-
-    # 6. Receive TradeSubscriptionStatus with status_code = ‘SUCCESS’ 
-    # and TradeSnapshotCompletion.
-    print('trade_server_msg1', trade_server_msg1.trade_subscription_statuses)
-    
-    assert status_msg1.trade_subscription_statuses[0].status_code == TradeSubscriptionStatus.StatusCode.STATUS_CODE_SUCCESS
-    logger.info(f'6. Receive TradeSubscriptionStatus for {symbol1}: SUCCESS')
-
-    print('step 6 successful')
-
-    # 7. Send NewOrder for SELL STL GTC order.
-    request_id = int(random_string(length=7))
-    cl_order_id = str(request_id)
-    SCALED_STP_PRICE = 9000
-    SCALED_LMT_PRICE = 10000
-    
-    logger.info(f'7. Send new SELL STL GTC order for {symbol1} at {SCALED_STP_PRICE}')
-    server_msg_NO_SELL_STL_GTC =  new_order_request(
-                                        client, request_id, 
-                                        account_id, contract_id, 
-                                        cl_order_id, ORDER_TYPE_STL, 
-                                        DURATION_GTC, SIDE_SELL, 
-                                        qty_significant, qty_exponent, 
-                                        is_manual,
-                                        scaled_limit_price=SCALED_LMT_PRICE,
-                                        scaled_stop_price=SCALED_STP_PRICE)
-    ORDER_ID = server_msg_NO_SELL_STL_GTC.order_statuses[0].order_id
-
-    print('Step 7 successful')
-    
-    # 8.  Receive OrderStatus.
-    print('server_msg_NO_SELL_STL_GTC', server_msg_NO_SELL_STL_GTC)
-    print(server_msg_NO_SELL_STL_GTC.order_statuses[0].order_id)
-    logger.info(f'8. Receive OrderStatus: {server_msg_NO_SELL_STL_GTC}')
-
-    orig_cl_order_id = cl_order_id
-
-# =============================================================================
-#     # 9. Send ModifyOrder with modified qty.
-#     request_id = int(random_string(length=7))
-#     orig_cl_order_id = cl_order_id
-#     cl_order_id = str(request_id +10)
-#     print('MODIFY ORDER orig_cl_order_id', orig_cl_order_id)
-#     #request_id = request_id + 10
-#     #cl_order_id = str(request_id +10)
-#     print('MODIFY ORDER cl_order_id', cl_order_id)
-#     
-#     new_qty = 7
-#     #new_qty = Decimal(significand=1)
-#     print("new_qty", new_qty)
-#     server_msg_modify1 = modify_order_request(client, request_id, account_id, 
-#                                               ORDER_ID, orig_cl_order_id, 
-#                                               cl_order_id, qty = new_qty)
-# 
-#     # 10. Receive OrderStatus.
-#     print('server_msg_modify 1', server_msg_modify1)
-# =============================================================================
-    
-    # 11. Send ModifyOrder with modified limit_price.
-    request_id = int(random_string(length=7))
-    cl_order_id = str(request_id +10)
-    print('MODIFY ORDER orig_cl_order_id', orig_cl_order_id)
-    print('MODIFY ORDER cl_order_id', cl_order_id)
-    logger.info(f'11. Send ModifyOrder with modified limit_price: 10000->11000')
-    server_msg_modify2 = modify_order_request(client, request_id, account_id, 
-                                              ORDER_ID, orig_cl_order_id, 
-                                              cl_order_id, scaled_limit_price = 11000)
-
-    # 12. Receive OrderStatus.
-    print('server_msg_modify2', server_msg_modify2)
-    logger.info(f'12. Receive OrderStatus: {server_msg_modify2}')
-
-
-    # 13. Send ModifyOrder with modified stop_price.
-    #cl_order_id = str(request_id +10)
-    request_id = int(random_string(length=7))
-    #orig_cl_order_id = cl_order_id
-    cl_order_id = str(request_id +10)
-    print('MODIFY ORDER orig_cl_order_id', orig_cl_order_id)
-    print('MODIFY ORDER cl_order_id', cl_order_id)
-    logger.info(f'11. Send ModifyOrder with modified stop_price: 9000->8000')
-    server_msg_modify3 = modify_order_request(client, request_id, account_id, 
-                                              ORDER_ID, orig_cl_order_id, 
-                                              cl_order_id, scaled_stop_price = 8000)
-
-    # 14. Receive OrderStatus.
-    print('server_msg_modify3', server_msg_modify3)
-    logger.info(f'14. Receive OrderStatus: {server_msg_modify3}')
-
-    # 15. Send Logoff message.
-    logger.info(f'15. Send Logoff message')
-
-    logoff_obj, logoff_server_msg = CONNECT.logoff()
-
-    CONNECT.disconnect()
-    logger.info('========(End test_modify_order)========') 
-    return 
-
-    
-def test_suspended_activate_order() -> None:
-    # Place a Suspended Order, Activate Order
-    CONNECT = ConnectCQG(host_name,user_name, password)
-    logger.info('========(Start test_suspended_activate_order)========')
-
-    # 1.  Send Logon message with valid credentials.
-    client_msg, logon_obj, logon_server_msg = CONNECT.logon()
-
-    print('logon_server_msg', logon_server_msg)
-
-    # 2.  Receive LogonResult with result_code='SUCCESS'.
-    assert logon_server_msg.logon_result.result_code == LogonResult.ResultCode.RESULT_CODE_SUCCESS
-    logger.info('2. LogonResult result_code: SUCCESS')
-    print('step 2 successful')
-
-    # 3.  Send InformationRequest with symbol_resolution_request for symbol=’F.US.ZUC’.
-    symbol1 = "F.US.ZUC"
-    msg_id = int(random_string(length=5))
-    information_request1, server_msg1 = resolve_symbol(client, symbol1, msg_id)
-    print('step 3 successful')
-    logger.info('3. Send InformationRequest with symbol_resolution_request for symbol=’F.US.ZUC’.')
-
-    msg_id +=1
-    
-    # 4.  Receive InformationReport with SymbolResolutionReport with 
-    #status_code=’SUCCESS’ and contract_metadata for the symbol.
-    assert server_msg1.information_reports[0].status_code == InformationReport.StatusCode.STATUS_CODE_SUCCESS
-    logger.info('4. Receive InformationReport with SymbolResolutionReport with \
-                 status_code=’SUCCESS’ and contract_metadata for the symbol')
-
-    # 5.  Send TradeSubscription with subscribe = true and subscription_scope=ORDERS.
-    trade_sub_request1, status_msg1, \
-    trade_server_msg1 = request_trade_subscription(client, msg_id, 
-                                                   sub_scope=SUBSCRIPTION_SCOPE_ORDERS)    
-    logger.info(f'5. Send TradeSubscription with subscribe = true and subscription_scope=ORDERS.')
-
-    # 6.  Receive TradeSubscriptionStatus with status_code = ‘SUCCESS’ and 
-    # TradeSnapshotCompletion.
-    assert status_msg1.trade_subscription_statuses[0].status_code == TradeSubscriptionStatus.StatusCode.STATUS_CODE_SUCCESS
-    logger.info(f'6. Receive TradeSubscriptionStatus with status_code for {symbol1}: SUCCESS')
-
-    # 7.  Send NewOrder for SELL LMT DAY order with suspend = true.
-    request_id = int(random_string(length=7))
-    cl_order_id = str(request_id)
-    logger.info(f'7. Send NewOrder SELL DAY MKT order for {symbol1}')
-    server_msg_SELL_MKT_DAY =  new_order_request(
-                                        client, request_id, 
-                                        account_id, contract_id, 
-                                        cl_order_id, ORDER_TYPE_MKT, 
-                                        DURATION_DAY, SIDE_SELL, 
-                                        qty_significant, qty_exponent, 
-                                        is_manual,
-                                        sub_scope=SUBSCRIPTION_SCOPE_ORDERS,
-                                        suspend=True)
-    logger.info(f'7. Send NewOrder for SELL LMT DAY order with suspend = true.')
-
-    # 8.  Receive OrderStatus.
-    assert server_msg_SELL_MKT_DAY.order_statuses[0].status == SUSPENDED
-    logger.info(f'8. Receive OrderStatus: {server_msg_SELL_MKT_DAY}')
-    
-    ORDER_ID = server_msg_SELL_MKT_DAY.order_statuses[0].order_id
-
-    # 9.  Send ActivateOrder.
-    orig_cl_order_id = cl_order_id
-    cl_order_id = str(request_id+10)
-    server_msg_activate = activate_order_request(client, request_id, 
-                                                 account_id, ORDER_ID, 
-                                                 orig_cl_order_id, cl_order_id)
-
-    print("server_msg_activate", server_msg_activate)
-    logger.info(f'9. Send ActivateOrder.')
-
-    # 10. Receive OrderStatus.
-    
-    logger.info(f' 10. Receive OrderStatus: {server_msg_activate}')
-    # 11. Send Logoff message.
-    logoff_obj, logoff_server_msg = CONNECT.logoff()
-    logger.info(f'11. Send Logoff message.')
-
-    CONNECT.disconnect()
-    logger.info('========(End test_suspended_activate_order)========') 
-    
+        
 def test_success_pos_status_requests() -> None:
     # Successful Position Status Requests
 
