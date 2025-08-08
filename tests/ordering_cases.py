@@ -22,7 +22,6 @@ class NewOrderCases(object):
                  symbol_name: str):
         self.connect = connect
         self.account_id = account_id
-        #self.contract_id = None
         self.symbol_name = symbol_name
         
     def new_order_request_SELL_MKT_DAY(self) -> None:
@@ -569,3 +568,6 @@ class ActivateOrderCases(object):
         # Activate this order
         self.activate_order(ORDER_ID)
 
+class GoFlatOrderCases():
+    def __init__():
+        pass
