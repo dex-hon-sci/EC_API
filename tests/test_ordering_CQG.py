@@ -109,7 +109,6 @@ def test_goflat_order(symbol_name: str) -> None:
 #test_cancellall_
 #test_liquidate_all_
 
-
 @pytest.mark.parametrize("symbol_name", symbols) 
 def test_success_pos_status_requests(symbol_name: str) -> None:
     CONNECT = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD)

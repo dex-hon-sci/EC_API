@@ -32,4 +32,5 @@ def test_MsgCheckPara_onoff()-> None:
     #assert CQG_check.recv_trade_snapshot == True
     assert CQG_check.recv_result == True
 
+# test_all_types_of mseesage repsonse
     
