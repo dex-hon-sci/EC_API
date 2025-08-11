@@ -60,14 +60,14 @@ class CQGLiveOrder(LiveOrder):
     def _request_trade_subscription(self,
                                     trade_subscription_id: int,
                                     subscribe: bool = False,
-                                    sub_scope: int = SUBSCRIPTION_SCOPE_ORDERS,
+                                    #sub_scope: int = SUBSCRIPTION_SCOPE_ORDERS,
                                     skip_orders_snapshot: bool = False):
         
         client_msg = ClientMsg()
         trade_sub_request = client_msg.trade_subscriptions.add()
         trade_sub_request.id = trade_subscription_id
         trade_sub_request.subscribe = subscribe
-        trade_sub_request.subscription_scopes.append(sub_scope)
+        trade_sub_request.subscription_scopes.append(self.sub_scope)
         trade_sub_request.skip_orders_snapshot = skip_orders_snapshot
         #trade_sub_request.last_order_update_utc_timestamp = last_order_update_utc_timestamp
         
@@ -90,17 +90,39 @@ class CQGLiveOrder(LiveOrder):
                           qty_significant:int, # make sure qty are in Decimal (int) not float
                           qty_exponent: int, 
                           is_manual: bool = False,
+                          #sub_scope: int = 1
                           **kwargs) -> ServerMsg:
         
-        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
-                          'exec_instructions':None,
-                          'good_thru_date': None,
-                          'scaled_limit_price': None, 
-                          'scaled_stop_price': None,
-                          'sub_scope':1}
         
-        kwargs = dict(default_kwargs, **kwargs)
+        default_kwargs = {
+                 'when_utc_time': datetime.datetime.now(timezone.utc),
+                 'exec_instructions': None,
+                 'good_thru_date': None,
+                 'scaled_limit_price': None,
+                 'scaled_stop_price': None,
+                 'extra_attributes': None,
+                 'algo_strategy': "CQG ARRIVALPRICE"
+                 }
         
+# =============================================================================
+#         default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
+#                           'algo_strategy': "CQG ARRIVALPRICE",
+#                           'extra_attributes.name': "ALGO_CQG_cost_model",
+#                           'extra_attributes.value': 1
+#                           }
+#         
+#         optional_kwargs = {'exec_instructions':None,
+#                            'good_thru_date': None,
+#                            'scaled_limit_price': None, 
+#                            'scaled_stop_price': None,}
+# =============================================================================
+        merged_kwargs = {**default_kwargs, **kwargs}
+
+# =============================================================================
+#         kwargs = dict(default_kwargs, **kwargs)
+#         kwargs = dict(optional_kwargs, **kwargs)
+#         
+# =============================================================================
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
         order_request.request_id = self.request_id
@@ -114,34 +136,69 @@ class CQGLiveOrder(LiveOrder):
         order_request.new_order.order.qty.exponent = qty_exponent
         order_request.new_order.order.is_manual = is_manual
         
-        # add the limit_price when order_type is LIMIT
-        if kwargs['exec_instructions'] is not None:
-            order_request.new_order.order.exec_instructions.append(kwargs['exec_instructions'])
-            
-        if kwargs['good_thru_date'] is not None:
-            order_request.new_order.order.good_thru_date = kwargs['good_thru_date']
-            
-        if kwargs['scaled_limit_price'] is not None:
-            order_request.new_order.order.scaled_limit_price = kwargs['scaled_limit_price']
-            
-        if kwargs['scaled_stop_price'] is not None:
-            order_request.new_order.order.scaled_stop_price = kwargs['scaled_stop_price']
-            
-        if kwargs['when_utc_time'] is not None:
-            order_request.new_order.order.when_utc_time = kwargs['when_utc_timestamp']
-
-        order_request.new_order.order.algo_strategy = "CQG ARRIVALPRICE"
-        extra_attributes = order_request.new_order.order.extra_attributes.add()
-        extra_attributes.name = "ALGO_CQG_cost_model"
-        extra_attributes.value = "1"
+        optional_kwargs_keys = ['good_thru_date','scaled_limit_price',
+                                'scaled_stop_price','when_utc_timestamp']
+        
+        for proto_field_name in optional_kwargs_keys:
+            value = merged_kwargs.get(proto_field_name)
+            if value is not None:
+                setattr(order_request.new_order.order, proto_field_name, value)
+                
+        exec_instructions = merged_kwargs.get('exec_instructions')
+        if exec_instructions:
+            for instruction in exec_instructions:
+                order_request.new_order.order.exec_instructions.append(instruction)
+                
+        # Set the algorithm strategy
+        order_request.new_order.order.algo_strategy = merged_kwargs['algo_strategy']
+        
+        # Handle extra attributes if provided. This is a repeated field.
+        extra_attributes_data = merged_kwargs.get('extra_attributes')
+        if extra_attributes_data:
+          for name, value in extra_attributes_data.items():
+            extra_attribute = order_request.new_order.order.extra_attributes.add()
+            extra_attribute.name = name
+            extra_attribute.value = value
+        
+# =============================================================================
+#         # add the limit_price when order_type is LIMIT
+#         if kwargs['exec_instructions'] is not None:
+#             order_request.new_order.order.exec_instructions.append(kwargs['exec_instructions'])
+#             
+#         if kwargs['good_thru_date'] is not None:
+#             order_request.new_order.order.good_thru_date = kwargs['good_thru_date']
+#             
+#         if kwargs['scaled_limit_price'] is not None:
+#             order_request.new_order.order.scaled_limit_price = kwargs['scaled_limit_price']
+#             
+#         if kwargs['scaled_stop_price'] is not None:
+#             order_request.new_order.order.scaled_stop_price = kwargs['scaled_stop_price']
+#             
+#         if kwargs['when_utc_time'] is not None:
+#             order_request.new_order.order.when_utc_time = kwargs['when_utc_timestamp']
+# 
+#         order_request.new_order.order.algo_strategy = "CQG ARRIVALPRICE"
+# =============================================================================
+        
+# =============================================================================
+#         extra_attributes = order_request.new_order.order.extra_attributes.add()
+#         extra_attributes.name = "ALGO_CQG_cost_model"
+#         extra_attributes.value = "1"
+# =============================================================================
     
-        sub_scope = kwargs['sub_scope']
         
         self._connect.client.send_client_message(client_msg)
         return self._connect.client, client_msg
 
 # =============================================================================
-#         while True:
+# =============================================================================
+#       for key in list(default_kwargs.keys)[1:]:
+#           if kwargs[key] is not None:
+#               if True:
+#                   pass
+#               elif False:
+# #         while True:
+# =============================================================================
 #             server_msg = self._connect.client.receive_server_message()
 #             print(server_msg)
 #                     
@@ -188,17 +245,20 @@ class CQGLiveOrder(LiveOrder):
                              orig_cl_order_id: str, 
                              cl_order_id: str, 
                              **kwargs) -> ServerMsg: # WIP
-        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
-                          'qty': 0, 
-                          'scaled_limit_price': None,
-                          'scaled_stop_price': None,
-                          'remove_activation_time': None,
-                          'remove_suspension_utc_time': None,
-                          'duration': None, 'good_thru_date': None,
-                          'good_thru_utc_timestamp': None, 
-                          'extra_attributes': None,
-                          'sub_scope':1}
-        kwargs = dict(default_kwargs, **kwargs)
+        default_kwargs = {
+            'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+            'qty': None, 
+            'scaled_limit_price': None,
+            'scaled_stop_price': None,
+            'remove_activation_time': None,
+            'remove_suspension_utc_time': None,
+            'duration': None, 'good_thru_date': None,
+            'good_thru_utc_timestamp': None, 
+            'extra_attributes': None,
+            }
+        
+        #kwargs = dict(default_kwargs, **kwargs)
+        merged_kwargs = {**default_kwargs, **kwargs}
 
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
@@ -207,6 +267,15 @@ class CQGLiveOrder(LiveOrder):
         order_request.modify_order.account_id = self.account_id
         order_request.modify_order.orig_cl_order_id = orig_cl_order_id
         order_request.modify_order.cl_order_id = cl_order_id
+        
+        optional_kwargs_keys = ['qty', 
+                                'scaled_limit_price', 
+                                'scaled_limit_price',
+                                'remove_activation_time', 
+                                'remove_suspension_utc_time', 
+                                'duration', 
+                                'good_thru_date', 'good_thru_utc_timestamp',
+                                'extra_attributes']
         
         if kwargs['qty'] != None:
             order_request.modify_order.qty = kwargs['qty']
@@ -229,7 +298,6 @@ class CQGLiveOrder(LiveOrder):
         
         self._connect.client.send_client_message(client_msg)
         print('===============order complete=======================')
-        sub_scope = kwargs['sub_scope']
 
         return self._connect.client, client_msg
 # =============================================================================
