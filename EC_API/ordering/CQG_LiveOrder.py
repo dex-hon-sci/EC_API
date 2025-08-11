@@ -25,8 +25,9 @@ class CQGLiveOrder(LiveOrder):
                  request_id: int, 
                  account_id: int,
                  sub_scope: int = SUBSCRIPTION_SCOPE_ORDERS,
-                 msg_id: int = int(random_string(length=10)), 
-                 trade_subscription_id: int = int(random_string(length=10))):
+                 msg_id: int = int(random_string(length=10)), # For symbol resolutions
+                 trade_subscription_id: int = int(random_string(length=10)) # For trade_sub
+                 ):
         
         self._connect = connect
         self._symbol_name = symbol_name
@@ -39,12 +40,11 @@ class CQGLiveOrder(LiveOrder):
 
     @get_contract_metadata
     def _resolve_symbols(self, 
-                         msg_id: int, 
                          subscribe=None, 
                          **kwargs):
         client_msg = ClientMsg()
         information_request = client_msg.information_requests.add()
-        information_request.id = msg_id
+        information_request.id = self.msg_id
         if subscribe is not None:
             information_request.subscribe = subscribe
             
@@ -58,20 +58,18 @@ class CQGLiveOrder(LiveOrder):
     
     @hearback
     def _request_trade_subscription(self,
-                                    trade_subscription_id: int,
-                                    subscribe: bool = False,
-                                    #sub_scope: int = SUBSCRIPTION_SCOPE_ORDERS,
+                                    subscribe: bool = True,
                                     skip_orders_snapshot: bool = False):
         
         client_msg = ClientMsg()
         trade_sub_request = client_msg.trade_subscriptions.add()
-        trade_sub_request.id = trade_subscription_id
+        trade_sub_request.id = self.trade_subscription_id
         trade_sub_request.subscribe = subscribe
         trade_sub_request.subscription_scopes.append(self.sub_scope)
         trade_sub_request.skip_orders_snapshot = skip_orders_snapshot
         #trade_sub_request.last_order_update_utc_timestamp = last_order_update_utc_timestamp
         
-        if sub_scope == SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY:
+        if self.sub_scope == SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY:
             account_summary_parameters = trade_sub_request.account_summary_parameters
             # 8 means purchasing_power, 15 means current_balance, 16 means profit_loss
             account_summary_parameters.requested_fields.extend([8,15,16])
@@ -82,15 +80,14 @@ class CQGLiveOrder(LiveOrder):
 
     @hearback
     def new_order_request(self, 
-                          contract_id: int, # Get this from contractmetadata
-                          cl_order_id: str, 
-                          order_type: Ord.OrderType, 
-                          duration: Ord.Duration, 
-                          side: Ord.Side,
-                          qty_significant:int, # make sure qty are in Decimal (int) not float
-                          qty_exponent: int, 
+                          contract_id: int = 0, # Get this from contractmetadata
+                          cl_order_id: str = "", 
+                          order_type: Ord.OrderType = ORDER_TYPE_MKT, 
+                          duration: Ord.Duration = DURATION_DAY, 
+                          side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
+                          qty_significant: int = 0, # make sure qty are in Decimal (int) not float
+                          qty_exponent: int = 0, 
                           is_manual: bool = False,
-                          #sub_scope: int = 1
                           **kwargs) -> ServerMsg:
         
         
@@ -101,28 +98,13 @@ class CQGLiveOrder(LiveOrder):
                  'scaled_limit_price': None,
                  'scaled_stop_price': None,
                  'extra_attributes': None,
+                 'scaled_trail_offset': None,
+                 'good_thru_utc_timestamp': None,
+                 'suspend': None,
                  'algo_strategy': "CQG ARRIVALPRICE"
                  }
-        
-# =============================================================================
-#         default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
-#                           'algo_strategy': "CQG ARRIVALPRICE",
-#                           'extra_attributes.name': "ALGO_CQG_cost_model",
-#                           'extra_attributes.value': 1
-#                           }
-#         
-#         optional_kwargs = {'exec_instructions':None,
-#                            'good_thru_date': None,
-#                            'scaled_limit_price': None, 
-#                            'scaled_stop_price': None,}
-# =============================================================================
         merged_kwargs = {**default_kwargs, **kwargs}
 
-# =============================================================================
-#         kwargs = dict(default_kwargs, **kwargs)
-#         kwargs = dict(optional_kwargs, **kwargs)
-#         
-# =============================================================================
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
         order_request.request_id = self.request_id
@@ -136,8 +118,14 @@ class CQGLiveOrder(LiveOrder):
         order_request.new_order.order.qty.exponent = qty_exponent
         order_request.new_order.order.is_manual = is_manual
         
-        optional_kwargs_keys = ['good_thru_date','scaled_limit_price',
-                                'scaled_stop_price','when_utc_timestamp']
+        optional_kwargs_keys = [
+            'good_thru_date',
+            'scaled_limit_price',
+            'scaled_stop_price',
+            'when_utc_timestamp',
+            'scaled_trail_offset',
+            'good_thru_utc_timestamp',
+            'suspend']
         
         for proto_field_name in optional_kwargs_keys:
             value = merged_kwargs.get(proto_field_name)
@@ -149,101 +137,23 @@ class CQGLiveOrder(LiveOrder):
             for instruction in exec_instructions:
                 order_request.new_order.order.exec_instructions.append(instruction)
                 
-        # Set the algorithm strategy
         order_request.new_order.order.algo_strategy = merged_kwargs['algo_strategy']
         
-        # Handle extra attributes if provided. This is a repeated field.
         extra_attributes_data = merged_kwargs.get('extra_attributes')
         if extra_attributes_data:
           for name, value in extra_attributes_data.items():
             extra_attribute = order_request.new_order.order.extra_attributes.add()
             extra_attribute.name = name
-            extra_attribute.value = value
-        
-# =============================================================================
-#         # add the limit_price when order_type is LIMIT
-#         if kwargs['exec_instructions'] is not None:
-#             order_request.new_order.order.exec_instructions.append(kwargs['exec_instructions'])
-#             
-#         if kwargs['good_thru_date'] is not None:
-#             order_request.new_order.order.good_thru_date = kwargs['good_thru_date']
-#             
-#         if kwargs['scaled_limit_price'] is not None:
-#             order_request.new_order.order.scaled_limit_price = kwargs['scaled_limit_price']
-#             
-#         if kwargs['scaled_stop_price'] is not None:
-#             order_request.new_order.order.scaled_stop_price = kwargs['scaled_stop_price']
-#             
-#         if kwargs['when_utc_time'] is not None:
-#             order_request.new_order.order.when_utc_time = kwargs['when_utc_timestamp']
-# 
-#         order_request.new_order.order.algo_strategy = "CQG ARRIVALPRICE"
-# =============================================================================
-        
-# =============================================================================
-#         extra_attributes = order_request.new_order.order.extra_attributes.add()
-#         extra_attributes.name = "ALGO_CQG_cost_model"
-#         extra_attributes.value = "1"
-# =============================================================================
-    
+            extra_attribute.value = value    
         
         self._connect.client.send_client_message(client_msg)
         return self._connect.client, client_msg
-
-# =============================================================================
-# =============================================================================
-#       for key in list(default_kwargs.keys)[1:]:
-#           if kwargs[key] is not None:
-#               if True:
-#                   pass
-#               elif False:
-# #         while True:
-# =============================================================================
-#             server_msg = self._connect.client.receive_server_message()
-#             print(server_msg)
-#                     
-#             result_types = {"1": server_msg.order_statuses, 
-#                             "2": server_msg.position_statuses, 
-#                             "3": server_msg.collateral_statuses, 
-#                             "4": server_msg.account_summary_statuses}
-#     
-#             if server_msg.trade_snapshot_completions is not None:
-#                 trade_snapshot_check = True
-#                     
-#             if len(result_types[str(sub_scope)]) >0: 
-#                 if sub_scope in [1]:
-#                     LIS_status = [result_types[str(sub_scope)][i].status 
-#                                        for i in range(len(result_types[str(sub_scope)]))]
-#                     LIS_clorderid = [result_types[str(sub_scope)][i].order.cl_order_id 
-#                                        for i in range(len(result_types[str(sub_scope)]))]
-#         
-#                     print("LIS_status, LIS_clorderid", LIS_status, LIS_clorderid)
-#                     try:
-#                         # If we find the index we return
-#                         index = LIS_clorderid.index(cl_order_id)
-#         
-#                         print('index', index)
-#                         print("======Result =============")
-#                         result_check = True
-#                         result_msg = server_msg
-#                         print("result", result_msg, result_types[str(sub_scope)])
-#                     except:
-#                         pass
-#                 elif sub_scope in [2,3,4]:
-#                     result_check = True
-#                     result_msg = server_msg
-#     
-#                     
-#             if self.result_check and self.trade_snapshot_check:
-#                 return result_msg
-#         # Listen for order confirmation
-# =============================================================================
         
     @hearback
     def modify_order_request(self,  
-                             order_id: int, # Get this from the previous Order 
-                             orig_cl_order_id: str, 
-                             cl_order_id: str, 
+                             order_id: int = 0, # Get this from the previous Order 
+                             orig_cl_order_id: str = "", 
+                             cl_order_id: str = "", 
                              **kwargs) -> ServerMsg: # WIP
         default_kwargs = {
             'when_utc_timestamp': datetime.datetime.now(timezone.utc),
@@ -252,13 +162,13 @@ class CQGLiveOrder(LiveOrder):
             'scaled_stop_price': None,
             'remove_activation_time': None,
             'remove_suspension_utc_time': None,
-            'duration': None, 'good_thru_date': None,
+            'duration': None, 
+            'good_thru_date': None,
             'good_thru_utc_timestamp': None, 
             'extra_attributes': None,
             }
         
-        #kwargs = dict(default_kwargs, **kwargs)
-        merged_kwargs = {**default_kwargs, **kwargs}
+        kwargs = dict(default_kwargs, **kwargs)
 
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
@@ -267,73 +177,44 @@ class CQGLiveOrder(LiveOrder):
         order_request.modify_order.account_id = self.account_id
         order_request.modify_order.orig_cl_order_id = orig_cl_order_id
         order_request.modify_order.cl_order_id = cl_order_id
+        order_request.modify_order.when_utc_timestamp = kwargs['when_utc_timestamp']
         
-        optional_kwargs_keys = ['qty', 
-                                'scaled_limit_price', 
-                                'scaled_limit_price',
-                                'remove_activation_time', 
-                                'remove_suspension_utc_time', 
-                                'duration', 
-                                'good_thru_date', 'good_thru_utc_timestamp',
-                                'extra_attributes']
+        optional_kwargs_keys = [
+            'qty', 
+            'scaled_limit_price', 
+            'scaled_limit_price',
+            'remove_activation_time', 
+            'remove_suspension_utc_time', 
+            'duration', 
+            'good_thru_date', 
+            'good_thru_utc_timestamp',
+            'extra_attributes'
+            ]
         
-        if kwargs['qty'] != None:
-            order_request.modify_order.qty = kwargs['qty']
-        if kwargs['scaled_limit_price'] != None:
-            order_request.modify_order.scaled_limit_price = kwargs['scaled_limit_price']
-        if kwargs['scaled_stop_price'] != None:
-            order_request.modify_order.scaled_stop_price = kwargs['scaled_stop_price']
-        if kwargs['remove_activation_time'] != None:
-            order_request.modify_order.remove_activation_time = kwargs['remove_activation_time']
-        if kwargs['remove_suspension_utc_time'] !=None:
-            order_request.modify_order.remove_suspension_utc_time = kwargs['remove_suspension_utc_time']
-        if kwargs['duration'] != None:
-            order_request.modify_order.duration = kwargs['duration']
-        if kwargs['good_thru_date'] != None:
-            order_request.modify_order.good_thru_date = kwargs['good_thru_date']
-        if kwargs['good_thru_utc_timestamp'] != None:
-            order_request.modify_order.good_thru_utc_timestamp = kwargs['good_thru_utc_timestamp']
-        if kwargs['extra_attributes'] != None:
-            order_request.modify_order.extra_attributes.append(kwargs['extra_attributes'])
+        for key in optional_kwargs_keys:
+            if kwargs[key] is not None:
+                setattr(order_request.modify_order, key, kwargs[key])
+                
+        extra_attributes_data = kwargs.get('extra_attributes')
+        if extra_attributes_data:
+          for name, value in extra_attributes_data.items():
+            extra_attribute = order_request.new_order.order.extra_attributes.add()
+            extra_attribute.name = name
+            extra_attribute.value = value
         
         self._connect.client.send_client_message(client_msg)
-        print('===============order complete=======================')
 
         return self._connect.client, client_msg
-# =============================================================================
-#         while True:
-#             server_msg = self._connect.client.receive_server_message()
-#             print("S_MSG", server_msg)
-#                     
-#             result_types = {"1": server_msg.order_statuses, 
-#                             "2": server_msg.position_statuses, 
-#                             "3": server_msg.collateral_statuses, 
-#                             "4": server_msg.account_summary_statuses}
-#     
-#             if server_msg.trade_snapshot_completions is not None:
-#                 trade_snapshot_check = True
-#                                             
-#             if len(result_types[str(sub_scope)]) >0: 
-#                 print("======Result =============",)
-#                 result_msg = server_msg
-#                 result_check = True
-#                 print("result", result_msg, result_types[str(sub_scope)])
-#     
-#                     
-#             if result_check and trade_snapshot_check:
-#                 #server_msg = client.receive_server_message()
-#     
-#                 return result_msg
-# =============================================================================
 
     @hearback
     def cancel_order_request(self, 
-                             order_id: int, 
-                             orig_cl_order_id: str, 
-                             cl_order_id: str,  
+                             order_id: int = 0, 
+                             orig_cl_order_id: str = "", 
+                             cl_order_id: str = "",  
                              **kwargs) -> ServerMsg:
-        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc).timestamp()}
-        #default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc)}
+        default_kwargs = {
+            'when_utc_timestamp': datetime.datetime.now(timezone.utc).timestamp()
+            }
         kwargs = dict(default_kwargs, **kwargs)
         
         client_msg = ClientMsg()
@@ -346,58 +227,19 @@ class CQGLiveOrder(LiveOrder):
         order_request.cancel_order.when_utc_timestamp = kwargs['when_utc_timestamp']
     
         self._connect.client.send_client_message(client_msg)
-        print('===============order complete=======================')
-# =============================================================================
-#         # Check bool
-#         status_check = False
-#         trade_snapshot_check = False
-#         result_check = False
-#     
-#         while True:
-#             server_msg = self._connect.client.receive_server_message()
-#             
-#             result_types = {"1": server_msg.order_statuses, 
-#                             "2": server_msg.position_statuses, 
-#                             "3": server_msg.collateral_statuses, 
-#                             "4": server_msg.account_summary_statuses}
-#     
-#             if server_msg.order_request_rejects is not None: # For catching error message
-#                 trade_snapshot_check = True 
-#             
-#             if server_msg.order_statuses is not None:
-#                 if len(server_msg.order_statuses)>0:
-#                     print("recieved order_statues", len(server_msg.order_statuses))
-#                     LIS = [server_msg.order_statuses[i].status 
-#                            for i in range(len(server_msg.order_statuses))]
-#                     print("LIS", LIS)
-#                     LIS2 = [server_msg.order_statuses[i].order_id 
-#                            for i in range(len(server_msg.order_statuses))]
-#                     print("LIS2", LIS2)
-#                     #print("TransactionStatus.Status.IN_CANCEL", TransactionStatus.Status.IN_CANCEL)
-#                     match LIS[-1]:
-#                         case Ord.OrderStatus.Status.IN_CANCEL:
-#                             print("IN_CANCEL")
-#                         case Ord.OrderStatus.Status.CANCELLED:
-#                             print("CANCELLED")
-#                             self.result_check = True
-#                         case Ord.OrderStatus.Status.REJECTED:
-#                             self.result_check = True
-#                             print("REJECTED")
-#                         
-#     
-#             if self.trade_snapshot_check and self.result_check:
-#                 return order_request, server_msg
-# =============================================================================
+        return
             
     @hearback
     def activate_order_request(self, 
-                               order_id: int, 
-                               orig_cl_order_id: str, 
-                               cl_order_id: str, 
+                               order_id: int = 0, 
+                               orig_cl_order_id: str = "", 
+                               cl_order_id: str = "", 
                                **kwargs) -> ServerMsg:
-        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc),
-                          }
+        default_kwargs = {
+            'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+            }
         kwargs = dict(default_kwargs, **kwargs)
+        
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
         order_request.request_id = self.request_id
@@ -411,44 +253,16 @@ class CQGLiveOrder(LiveOrder):
     
         self._connect.client.send_client_message(client_msg)
         return 
-# =============================================================================
-#         while True:
-#             server_msg = self._connect.client.receive_server_message()
-#                     
-#             if server_msg.order_request_rejects is not None: # For catching error message
-#                 self.trade_snapshot_check = True 
-#     
-#             if server_msg.order_statuses is not None:
-#                 if len(server_msg.order_statuses)>0:
-#                     print("recieved order_statues", len(server_msg.order_statuses))
-#                     LIS = [server_msg.order_statuses[i].status 
-#                            for i in range(len(server_msg.order_statuses))]
-#                     print("LIS", LIS)
-#                     LIS2 = [server_msg.order_statuses[i].order_id 
-#                            for i in range(len(server_msg.order_statuses))]
-#                     print("LIS2", LIS2)
-#                     #print("TransactionStatus.Status.IN_CANCEL", TransactionStatus.Status.IN_CANCEL)
-#                     match LIS[-1]:
-#                         case Ord.OrderStatus.Status.SUSPENDED:
-#                             print("SUSPENDED")
-#                         case Ord.OrderStatus.Status.ACTIVEAT:
-#                             print("ACTIVEAT")
-#                             self.result_check = True
-#                         case Ord.OrderStatus.Status.FILLED:
-#                             self.result_check = True
-#                             print("FILLED")
-#                         
-#     
-#             if self.trade_snapshot_check and self.result_check:
-#                 return order_request, server_msg
-# =============================================================================
+
     @hearback
     def cancelall_order_request(self,
-                                cl_order_id: str,
+                                cl_order_id: str = "",
                                 **kwargs)-> ServerMsg:
-        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc),
-                          }
+        default_kwargs = {
+            'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+            }
         kwargs = dict(default_kwargs, **kwargs)
+        
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
         order_request.request_id = self.request_id
@@ -459,18 +273,21 @@ class CQGLiveOrder(LiveOrder):
         return 
     
     @hearback
-    def suspend_order_request(self, **kwargs)->ServerMsg: # SuspendOrder
+    def suspend_order_request(self, **kwargs) -> ServerMsg: # SuspendOrder
 
         return 
     
     @hearback 
     def liquidateall_order_request(self, 
-                                   contract_id,
+                                   contract_id: int = 0,
                                    **kwargs) -> ServerMsg:
-        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(timezone.utc),
-                          'is_short': None,
-                          'current_day_only': None}
+        default_kwargs = {
+            'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+            'is_short': None,
+            'current_day_only': None
+            }
         kwargs = dict(default_kwargs, **kwargs)
+        
         client_msg = ClientMsg()
         order_request = client_msg.order_requests.add()
         order_request.request_id = self.request_id
@@ -478,6 +295,7 @@ class CQGLiveOrder(LiveOrder):
         account_position_filters = order_request.liquidate_all.account_position_filters.add()
         account_position_filters.account_id = self.account_id
         account_position_filters.contract_id = contract_id
+        
         if kwargs['account_position_filters'] is not None:
             account_position_filters.is_short = kwargs['is_short']
         if kwargs['current_day_only'] is not None:
@@ -492,9 +310,11 @@ class CQGLiveOrder(LiveOrder):
 
     @hearback
     def goflat_order_request(self, **kwargs) -> ServerMsg:
-        default_kwargs = {'when_utc_timestamp': datetime.datetime.now(),
-                          'execution_source_code': None, 
-                          'speculation_type': None}
+        default_kwargs = {
+            'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+            'execution_source_code': None, 
+            'speculation_type': None
+            }
         kwargs = dict(default_kwargs, **kwargs)
     
         client_msg = ClientMsg()
@@ -521,12 +341,12 @@ class CQGLiveOrder(LiveOrder):
                                                        subscribe = True,
                                                        sub_scope = self.sub_scope
                                                        )
-        
+
         match request_type:
             case RequestType.NEW_ORDER:
                 # For new_order_request -> return OrderID
-                server_msg = self.new_order_request(CONTRACT_ID, **request_details)
-    
+                server_msg = self.new_order_request(CONTRACT_ID, 
+                                                    **request_details)
             case RequestType.MODIFY_ORDER:
                 # For other oder_requests, use the OrderID from new_order_request
                 server_msg = self.modify_order_request(**request_details)
@@ -541,15 +361,18 @@ class CQGLiveOrder(LiveOrder):
                 server_msg = self.cancelall_order_request(**request_details)
                 
             case RequestType.LIQUIDATEALL_ORDER:
-                server_msg = self.liquidateall_order_request(CONTRACT_ID, **request_details)
-                
+                server_msg = self.liquidateall_order_request(CONTRACT_ID, 
+                                                             **request_details)
             case RequestType.GOFLAT_ORDER:
                 server_msg = self.goflat_order_request()
                 
-        # Unsubscribe from trade subscription
-        unsub_trade_msg = self._request_trade_subscription(self.trade_subscription_id,
-                                                            subscribe = False,
-                                                            sub_scope =self.sub_scope)
+        if self.auto_unsub:
+            # Unsubscribe from trade subscription
+            unsub_trade_msg = self._request_trade_subscription(
+                self.trade_subscription_id,
+                subscribe = False,
+                sub_scope =self.sub_scope
+                )
 
         return server_msg
     
@@ -560,7 +383,7 @@ class CQGLiveOrder(LiveOrder):
 #                 "order_type": ORDER_TYPE_LMT, 
 #                 "duration": DURATION_GTC, 
 #                 "side": SIDE_BUY,
-#                 "qty_significant": 2, # make sure qty are in Decimal (int) not float
+#                 "qty_significant": 2,
 #                 "qty_exponent": 0, 
 #                 "is_manual": bool = False,
 #                 "scaled_limit_price": 1000,
@@ -575,11 +398,11 @@ class CQGLiveOrder(LiveOrder):
 #   CLOrder.send(request_type=RequestType.NEW_ORDER, 
 #                request_details = payload_details)
 #
-#
+######################################################################
 # Usage: #############################################################
 # payload_details2 =  { 
 #                 "symbol_name": "CLEV25",
-#                 "order_id": ORDER_ID, # Get this from servermsg in new_order_request or in database
+#                 "order_id": ORDER_ID, 
 #                 "ogri_cl_order_id": "1231314",
 #                 "cl_order_id": "1231315", # new cl_order_id
 #                 "duration": DURATION_GTD, # Change from GTC to GTD
@@ -593,4 +416,4 @@ class CQGLiveOrder(LiveOrder):
 #                          request_id =102, account_id = 000)
 #   CLOrder.send(request_type=RequestType.MODIFY.ORDER, 
 #                request_details = payload_details2)
-
+######################################################################
