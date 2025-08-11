@@ -54,7 +54,6 @@ class ValidMsgCheck(Protocol):
         the request was fully being responded to, e.g. is_report_complete = true.
 
         """
-
         pass
     
     def check_all(self) -> None:
