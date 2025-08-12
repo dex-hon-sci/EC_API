@@ -41,24 +41,20 @@ class PayloadFormatCheck(Protcol):
     def check_universal_essential_fields(self):
         """
         """
-
         pass
     
     def check_order_specific_essential_fields(self):
         """
         """
-
         pass
     
     def check_request_specific_essential_fields(self):
         """
         """
-
         pass
         
     def run(self):
         """
         """
-
         pass
 

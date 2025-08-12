@@ -30,7 +30,6 @@ class Payload(object):
     # (New, modify, cancel, activate, cancelall,liquateall, goflat)
     account_id: int = 0
     request_id: int = 0
-    #cl_order_id: str = ""
     status: PayloadStatus = PayloadStatus.PENDING
     order_request_type: RequestType = RequestType.NEW_ORDER
     start_time: datetime.datetime = datetime.datetime.now(timezone.utc)\
@@ -62,7 +61,6 @@ class ExecutePayload_CQG(object):
         
     def change_payload_status(server_msg):
         pass
-
     
     def unload(self) -> None:
         """
@@ -87,16 +85,29 @@ class ExecutePayload_CQG(object):
 ### Usage #############################################################
 ### construct order_info
 # order_info = {
-#   "cl_order_id": random_strin(length=10),
+#    "symbol_name": "CLEV25",
+#    "cl_order_id": "1231314",
+#    "order_type": ORDER_TYPE_LMT, 
+#    "duration": DURATION_GTC, 
+#    "side": SIDE_BUY,
+#    "qty_significant": 2,
+#    "qty_exponent": 0, 
+#    "is_manual": False,
+#    "scaled_limit_price": 1000,
+#    "good_thru_date": datetime.datetime(2025,9,9),
+#    "exec_instructions": EXEC_INSTRUCTION_AON
+#     }
 #
-#  }
 ### Make Payload ######################################################
 # Payload(
 #   account_id = account_id,
 #   request_id = int(random_strin(length=10)),
 #   status = PayloadStatus.PENDING,
 #   order_request_type = RequestType.NEW_ORDER,
-#
+#   start_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=5)
+#   end_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(days=1)
+#   order_info = order_info,
+#   
 #   )
 #
 ### ExecutePayload #####################################################

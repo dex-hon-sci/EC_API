@@ -22,12 +22,12 @@ ASSETS_SAFETY_RANGE = {
                                   'lower_limit': 0},
             'qty': {'upper_limit': 10,
                     'lower_limit': 1},
-            'qty_significant': {'upper_limit': 0,
-                                'lower_limit': 0},
-            '': {'upper_limit': 0,
-                                'lower_limit': 0},
-            }
-    
+            'qty_significant': {'upper_limit': 9,
+                                'lower_limit': 1},
+            'qty_exponent': {'upper_limit': 1,
+                             'lower_limit': 0},
+            },
+    "HOE": {}
     } # example dict
 
 class CQGFormatCheck(PayloadFormatCheck):
@@ -53,21 +53,156 @@ class CQGFormatCheck(PayloadFormatCheck):
         isnot_null(credential_essentials_field_types, self.order_info)
         is_correct_type(credential_essentials_field_types, self.order_info)
         
-    def check_global_essential_fields(self) -> None:
-        # Check order request input formats for essential fields
-        # Fields type, value check                
-        global_essentials_field_types = {
-            'contract_id': int, 
-            'cl_order_id': str, 
-            'duration': Ord.Duration,
-            'order_type': Ord.OrderType, 
-            'side': Ord.Side, 
-            'qty_significant': int,
-            }
-        isnot_null(global_essentials_field_types, self.order_info) # Null checks
-        is_correct_type(global_essentials_field_types, self.order_info) # Type checks
+# =============================================================================
+#     def check_global_essential_fields(self) -> None:
+#         # Check order request input formats for essential fields
+#         # Fields type, value check                
+#         global_essentials_field_types = {
+#             #'contract_id': int, 
+#             'cl_order_id': str, 
+#             'duration': Ord.Duration,
+#             'order_type': Ord.OrderType, 
+#             'side': Ord.Side, 
+#             'qty_significant': int,
+#             }
+#         isnot_null(global_essentials_field_types, self.order_info) # Null checks
+#         is_correct_type(global_essentials_field_types, self.order_info) # Type checks
+# 
+# =============================================================================
+    def check_request_specific_fields(self) -> None:
+        # Check if the fields are valid for a specific request type 
+        match self.order_request_type:
+            case RequestType.NEW_ORDER:
+                acceptable_request_specific_fields = {
+                    'cl_order_id': str, 
+                    "order_type": Ord.OrderType,
+                    "duration": Ord.Duration,
+                    "side": Ord.Side,
+                    "qty_significant": int,
+                    "qty_exponent": int,
+                    "is_manual": bool,
+                    "exec_instructions": Ord.ExecInstruction, 
+                    "good_thru_date": datetime.datetime,
+                    "scaled_limit_price": int,
+                    "scaled_stop_price": int,
+                    'extra_attributes': dict,
+                    'scaled_trail_offset': int,
+                    'suspend': bool,
+                    'algo_strategy': str,
+                    }
+                
+                essentials_request_specific_field_types = {
+                    'cl_order_id': str, 
+                    'duration': Ord.Duration,
+                    'order_type': Ord.OrderType, 
+                    'side': Ord.Side, 
+                    'qty_significant': int,
+                    }
+                
+                isnot_null(essentials_request_specific_field_types, 
+                           self.order_info) # Null checks
+                is_correct_type(essentials_request_specific_field_types, 
+                                self.order_info) # Type checks
+                
+            case RequestType.MODIFY_ORDER:
+                # ORDER_ID, status is not filled
+                acceptable_request_specific_fields = {
+                    'orig_cl_order_id': str,
+                    "cl_order_id": str, 
+                    'when_utc_timestamp': datetime.datetime,
+                    'qty': int, 
+                    'scaled_limit_price': int,
+                    'scaled_stop_price': int,
+                    'remove_activation_time': bool,
+                    'remove_suspension_utc_time': bool,
+                    'duration': Ord.Duration, 
+                    'good_thru_date': None,
+                    'good_thru_utc_timestamp': datetime.datetime, 
+                    'activation_utc_timestamp': datetime.datetime,
+                    'extra_attributes': dict,
+                    }
+                
+                essentials_request_specific_field_types = {
+                    'orig_cl_order_id': str,
+                    "cl_order_id": str, 
+                    }
+                
+                isnot_null(essentials_request_specific_field_types, 
+                           self.order_info) # Null checks
+                is_correct_type(essentials_request_specific_field_types, 
+                                self.order_info) # Type checks
 
-                                
+            case RequestType.CANCEL_ORDER:
+                # ORDER_ID, status is not filled
+                acceptable_request_specific_fields = {
+                    'orig_cl_order_id': str,
+                    "cl_order_id": str, 
+                    'when_utc_timestamp': int
+                    }
+                
+                essentials_request_specific_field_types = {
+                    'orig_cl_order_id': str,
+                    "cl_order_id": str, 
+                    }
+                
+                isnot_null(essentials_request_specific_field_types, 
+                           self.order_info) # Null checks
+                is_correct_type(essentials_request_specific_field_types, 
+                                self.order_info) # Type checks
+
+            case RequestType.ACRIVATE_ORDER:
+                # ORDER_ID, status is suspend
+                acceptable_request_specific_fields = {
+                    'orig_cl_order_id': str,
+                    "cl_order_id": str, 
+                    'when_utc_timestamp': int
+                    }
+                
+                essentials_request_specific_field_types = {
+                    'orig_cl_order_id': str,
+                    "cl_order_id": str, 
+                    }
+                
+                isnot_null(essentials_request_specific_field_types, 
+                           self.order_info) # Null checks
+                is_correct_type(essentials_request_specific_field_types, 
+                                self.order_info) # Type checks
+
+            case RequestType.CANCELALL_ORDER:
+                acceptable_request_specific_fields = {
+                    'cl_order_id': str,
+                    'when_utc_timestamp': int
+                    }
+                
+                essentials_request_specific_field_types = {
+                    "cl_order_id": str, 
+                    }
+                
+                isnot_null(essentials_request_specific_field_types, 
+                           self.order_info) # Null checks
+                is_correct_type(essentials_request_specific_field_types, 
+                                self.order_info) # Type checks
+
+
+            case RequestType.LIQUIDATEALL_ORDER:
+                acceptable_request_specific_fields = {
+                    'when_utc_timestamp': datetime.datetime,
+                    'is_short': bool,
+                    'current_day_only': bool
+                    }
+
+            case RequestType.GOFLAT_ORDER:
+                acceptable_request_specific_fields = {
+                    'when_utc_timestamp': datetime.datetime,
+                    'execution_source_code': bool, 
+                    'speculation_type': bool
+                    }
+
+        for key, _ in self.order_info:
+            if key not in list(acceptable_request_specific_fields.keys()):
+                raise AttributeError(f"{key} is not an acceptable field for\
+                                     {self.order_request_type} request.")
+                                     
     def check_order_specific_essential_fields(self) -> None:
         # This function check the essential fields for particular order options
         # Such as LMT order needs to have the field scaled_limit_price
@@ -107,43 +242,9 @@ class CQGFormatCheck(PayloadFormatCheck):
             Ord.ExecInstruction.EXEC_INSTRUCTION_TRAIL:
             isnot_null(execution_Trail_field_types, self.order_info)
             is_correct_type(execution_Trail_field_types, self.order_info)
-            
-    
-        
-    def check_request_specific_fields(self) -> None:
-        # Check if the fields are valid for a specific request type 
-        match self.order_request_type:
-            case RequestType.NEW_ORDER:
-                
-                pass
-            
-            case RequestType.MODIFY_ORDER:
-                # ORDER_ID, status is not filled
-                
-                pass
-            
-            case RequestType.CANCEL_ORDER:
-                # ORDER_ID, status is not filled
 
-                pass
-            
-            case RequestType.ACRIVATE_ORDER:
-                
-                # ORDER_ID, status is suspend
-                pass
-            
-            case RequestType.CANCELALL_ORDER:
-                pass
-            
-            case RequestType.LIQUIDATEALL_ORDER:
-                pass
-            
-            case RequestType.GOFLAT_ORDER:
-                pass
-            
     def check_valid_value(self) -> None:
         # Check if the value entered is allowed by our safety parameters.  
-        
         # Call the relevant dictionary that store all the safety prarmeters
         range_mapping = self.asset_safty_range[self.order_info['symbol_name']]
         
@@ -156,25 +257,11 @@ class CQGFormatCheck(PayloadFormatCheck):
                         raise ValueError(f'{key} is outside of the allowed range:\
                                          [{low_bound}, {up_bound}]')
     
-    def run(self):
+    def run(self) -> None:
         self.check_crendential()
-        self.check_global_essential_fields()
-        self.check_order_specific_essential_fields()
+        #self.check_global_essential_fields()
         self.check_request_specific_fields()
+        self.check_order_specific_essential_fields()
         self.check_valid_value()
-        
-        optional_field_types = {  
-            'when_utc_time': datetime.datetime,
-            'exec_instructions': Ord.ExecInstruction,
-            'good_thru_date': int,
-            'scaled_limit_price': int,
-            'scaled_stop_price': int,
-            'extra_attributes': dict,
-            'scaled_trail_offset': int,
-            'suspend': bool,
-            'algo_strategy': str,
-            'remove_activation_time': bool,
-            'remove_suspension_utc_time': bool,
-            }
         
 
