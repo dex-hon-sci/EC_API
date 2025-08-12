@@ -53,22 +53,6 @@ class CQGFormatCheck(PayloadFormatCheck):
         isnot_null(credential_essentials_field_types, self.order_info)
         is_correct_type(credential_essentials_field_types, self.order_info)
         
-# =============================================================================
-#     def check_global_essential_fields(self) -> None:
-#         # Check order request input formats for essential fields
-#         # Fields type, value check                
-#         global_essentials_field_types = {
-#             #'contract_id': int, 
-#             'cl_order_id': str, 
-#             'duration': Ord.Duration,
-#             'order_type': Ord.OrderType, 
-#             'side': Ord.Side, 
-#             'qty_significant': int,
-#             }
-#         isnot_null(global_essentials_field_types, self.order_info) # Null checks
-#         is_correct_type(global_essentials_field_types, self.order_info) # Type checks
-# 
-# =============================================================================
     def check_request_specific_fields(self) -> None:
         # Check if the fields are valid for a specific request type 
         match self.order_request_type:
@@ -259,7 +243,6 @@ class CQGFormatCheck(PayloadFormatCheck):
     
     def run(self) -> None:
         self.check_crendential()
-        #self.check_global_essential_fields()
         self.check_request_specific_fields()
         self.check_order_specific_essential_fields()
         self.check_valid_value()

@@ -57,9 +57,9 @@ class ExecutePayload_CQG(object):
         self._connect = connect 
         self._payload = payload
         self.account_id = account_id
-        self.request_id = request_id
+        #self.request_id = request_id
         
-    def change_payload_status(server_msg):
+    def change_payload_status(server_msg) -> None:
         pass
     
     def unload(self) -> None:
@@ -71,13 +71,14 @@ class ExecutePayload_CQG(object):
         if self._payload.status == PayloadStatus.PENDING:
             CLOrder = CQGLiveOrder(self._connect, 
                                    symbol_name = self._payload.order_info['symbol_name'], 
-                                   request_id = self.request_id, 
+                                   request_id = self._payload.request_id, 
                                    account_id = self.account_id)
             server_msg = CLOrder.send(request_type = self._payload.order_request_type, 
                                       request_details = self._payload.order_info)
             # Check if the order is successfuly sent
             #if server_msg #If it is in accept status, change payload status to 
             # SENT, if not, ARCHIEVED
+            # After Filled, add Order_ID to self.order_info
             
         else:
             raise Exception("Only pending payloads can be unloaded.")
@@ -99,7 +100,7 @@ class ExecutePayload_CQG(object):
 #     }
 #
 ### Make Payload ######################################################
-# Payload(
+# PL1 = Payload(
 #   account_id = account_id,
 #   request_id = int(random_strin(length=10)),
 #   status = PayloadStatus.PENDING,
@@ -107,7 +108,12 @@ class ExecutePayload_CQG(object):
 #   start_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=5)
 #   end_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(days=1)
 #   order_info = order_info,
-#   
+#   check_method = CQGFormatCheck
 #   )
 #
 ### ExecutePayload #####################################################
+# account_id = 0000000
+# connect = ConnectCQG(host_name, user_name, password)
+# try:
+#   EP = ExecutePayload_CQG(connect, PL1, account_id)
+#   EP.unload()

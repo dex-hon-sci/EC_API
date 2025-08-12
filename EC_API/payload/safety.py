@@ -35,26 +35,30 @@ class PayloadFormatCheck(Protcol):
         
     def check_crendential(self):
         """
+        Run null and type check on the global fields.
         """
         pass
     
-    def check_universal_essential_fields(self):
+    def check_request_specific_fields(self):
         """
+        Run null, type, attr checks on request specific fields.
         """
         pass
     
     def check_order_specific_essential_fields(self):
         """
+        Run null and type checks on order specific fields.
         """
         pass
     
-    def check_request_specific_essential_fields(self):
+    def check_valid_value(self):
         """
+        Run checks to see if the input values are within the safety range.
         """
         pass
         
     def run(self):
         """
+        Run all checks.
         """
         pass
-
