@@ -165,6 +165,7 @@ class CQGLiveOrder(LiveOrder):
             'duration': None, 
             'good_thru_date': None,
             'good_thru_utc_timestamp': None, 
+            'activation_utc_timestamp': None,
             'extra_attributes': None,
             }
         
@@ -185,9 +186,11 @@ class CQGLiveOrder(LiveOrder):
             'scaled_limit_price',
             'remove_activation_time', 
             'remove_suspension_utc_time', 
+            'activation_utc_timestamp',
             'duration', 
             'good_thru_date', 
             'good_thru_utc_timestamp',
+            'activation_utc_timestamp',
             'extra_attributes'
             ]
         
@@ -364,7 +367,7 @@ class CQGLiveOrder(LiveOrder):
                 server_msg = self.liquidateall_order_request(CONTRACT_ID, 
                                                              **request_details)
             case RequestType.GOFLAT_ORDER:
-                server_msg = self.goflat_order_request()
+                server_msg = self.goflat_order_request(**request_details)
                 
         if self.auto_unsub:
             # Unsubscribe from trade subscription

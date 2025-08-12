@@ -99,6 +99,10 @@ class CQGValidMsgCheck(ValidMsgCheck):
                                                    server_msg_type)\
                not in MAP_STATUS_ENUMS[server_msg_type]["Accept"]:
                 self.recv_reject_status = True
+                
+    def fill_status_check():
+        # Check if the status indicate the order is filled
+        pass
             
     def check_all(self) -> None:
         # Check all condititions
@@ -107,9 +111,12 @@ class CQGValidMsgCheck(ValidMsgCheck):
         self.special_requirement_check()
         self.accept_status_check()
         self.reject_status_check()
+        self.fill_status_check()
         
     def return_msg(self) -> ServerMsg | None:
         # Return message policy
+        self.check_all()
+        
         succes_msg_cond = (self.recv_expected_response and 
                            self.recv_match_IDs and 
                            self.recv_special_clear and 
