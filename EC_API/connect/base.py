@@ -30,13 +30,13 @@ class Connect(Protocol):
         # return client connection object
         return self._client
 
-    def logon():
+    def logon(self):
         pass
     
-    def logoff():
+    def logoff(self):
         pass
     
-    def disconnect():
+    def disconnect(self):
         pass
         
 class ConnectCQG(object):
@@ -51,15 +51,16 @@ class ConnectCQG(object):
         self._host_name = host_name
         self._user_name = user_name
         self._password = password
-        
-        # immediate connect to the server as we create the object
-        self._client = webapi_client.WebApiClient()
-        self._client.connect(self._host_name)
-        
+    
         self.session_token = None
         self.client_app_id = None
         self.protocol_version_major = None
         self.protocol_version_minor = None
+        
+        # immediate connect to the server as we create the object
+        self._client = webapi_client.WebApiClient()
+        self._client.connect(self._host_name)
+
         
     def client(self):
         # return client connection object
@@ -99,7 +100,7 @@ class ConnectCQG(object):
             self.protocol_version_minor = protocol_version_minor
             
             print("Logon Successful")
-            return server_msg.logon_result.base_time
+            return server_msg
         else:
             # the text_message contains the reason why user cannot login.
             raise Exception("Can't login: " + server_msg.logon_result.text_message)

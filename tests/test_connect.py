@@ -6,21 +6,22 @@ Created on Wed Jul 30 10:40:12 2025
 @author: dexter
 """
 import time
-#from WebAPI.webapi_2_pb2 import *
-from WebAPI.user_session_2_pb2 import (
+import logging
+
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
+from EC_API.ext.WebAPI.user_session_2_pb2 import (
     LogonResult, LoggedOff, Logon, \
     RestoreOrJoinSession, 
     RestoreOrJoinSessionResult
 )
 from EC_API.connect.base import ConnectCQG
 
-import logging
 
 host_name = 'wss://demoapi.cqg.com:443'
 user_name = ''
 password = ''
 
-symbol_name = 'F.US.ZUC'
+symbol_name = 'CLE'
 invalid_pw = "fakepassword"
 
 client_app_id='WebApiTest', 
