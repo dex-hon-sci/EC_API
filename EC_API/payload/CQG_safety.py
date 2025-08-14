@@ -167,7 +167,6 @@ class CQGFormatCheck(PayloadFormatCheck):
                 is_correct_type(essentials_request_specific_field_types, 
                                 self.order_info) # Type checks
 
-
             case RequestType.LIQUIDATEALL_ORDER:
                 acceptable_request_specific_fields = {
                     'when_utc_timestamp': datetime.datetime,

@@ -5,11 +5,11 @@ Created on Mon Jul 14 19:37:54 2025
 
 @author: dexter
 """
+# Python imports
 import datetime
 from datetime import timezone
-from typing import Protcol
 from dataclasses import dataclass, field
-
+# EC_API imports
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.connect.base import ConnectCQG
 from EC_API.ordering.CQGLiveOrder import CQGLiveOrder
@@ -101,8 +101,8 @@ class ExecutePayload_CQG(object):
 #
 ### Make Payload ######################################################
 # PL1 = Payload(
-#   account_id = account_id,
-#   request_id = int(random_strin(length=10)),
+#   account_id = 0000000,
+#   request_id = int(random_string(length=10)),
 #   status = PayloadStatus.PENDING,
 #   order_request_type = RequestType.NEW_ORDER,
 #   start_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=5)
@@ -117,3 +117,5 @@ class ExecutePayload_CQG(object):
 # try:
 #   EP = ExecutePayload_CQG(connect, PL1, account_id)
 #   EP.unload()
+#
+########################################################################
