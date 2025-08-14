@@ -1,17 +1,95 @@
-EC_API:: A wrapper package utilising WebSocket for Algo Trading 
-===============================================================
+# *EC_API*:: A wrapper package utilising WebSocket for Algo Trading 
+=================================================================
+|Python| |GitHub|
 
-## : Overview
+## Overview
+-----------
 EC_API provides easy-to-use functions for xxx.
+
 In the current version, we use CQG WebAPI to fascilate trade 
 routing through their WebSocket and TSL layers. 
 
-## : Usage
+## Project Organization (under construction)
+-----------------------
+├── EC_API
+│   ├── connect
+│   │   ├── base.py
+│   │   ├── hearback.py
+│   │   └── __init__.py
+│   ├── ext
+│   │   ├── common
+│   │   │   ├── decimal_pb2.py
+│   │   │   ├── __init__.py
+│   │   │   └── shared_1_pb2.py
+│   │   ├── __init__.py
+│   │   └── WebAPI
+│   │       ├── account_authorization_2_pb2.py
+│   │       ├── api_limit_2_pb2.py
+│   │       ├── economic_calendar_2_pb2.py
+│   │       ├── historical_2_pb2.py
+│   │       ├── __init__.py
+│   │       ├── instrument_definition_2_pb2.py
+│   │       ├── market_data_2_pb2.py
+│   │       ├── metadata_2_pb2.py
+│   │       ├── metadata_admin_2_pb2.py
+│   │       ├── order_2_pb2.py
+│   │       ├── otc_1_pb2.py
+│   │       ├── rules_1_pb2.py
+│   │       ├── strategy_2_pb2.py
+│   │       ├── strategy_definition_2_pb2.py
+│   │       ├── symbol_browsing_2_pb2.py
+│   │       ├── trade_routing_2_pb2.py
+│   │       ├── trading_account_2_pb2.py
+│   │       ├── trading_session_2_pb2.py
+│   │       ├── user_attribute_2_pb2.py
+│   │       ├── user_session_2_pb2.py
+│   │       ├── webapi_2_pb2.py
+│   │       ├── webapi_client.py
+│   │       └── websocket.py
+│   ├── __init__.py
+│   ├── monitor
+│   │   ├── base.py
+│   │   ├── cqg
+│   │   ├── CQG_realtime_data.py
+│   │   ├── CQG_trade_info.py
+│   │   ├── CQG_trade_subscription.py
+│   │   ├── __init__.py
+│   ├── msg_validation
+│   │   ├── base.py
+│   │   ├── cqg
+│   │   ├── CQG_connect_enums.py
+│   │   ├── CQG_historical_enums.py
+│   │   ├── CQG_mapping.py
+│   │   ├── CQG_market_data_enums.py
+│   │   ├── CQG_meta_enums.py
+│   │   ├── CQG_trade_enums.py
+│   │   ├── CQG_valid_msg_check.py
+│   │   ├── __init__.py
+│   ├── ordering
+│   │   ├── base.py
+│   │   ├── CQG_LiveOrder.py
+│   │   ├── enums.py
+│   │   ├── __init__.py
+│   ├── payload
+│   │   ├── base.py
+│   │   ├── CQG_safety.py
+│   │   ├── enums.py
+│   │   ├── __init__.py
+│   │   └── safety.py
+│   ├── _typing.py
+│   ├── utility
+│   │   ├── base.py
+│   │   └── __init__.py
+│   └── _version.py
+├── main.py
+-----------------------
 
+## Usage
+--------
 Here are some examples for the usage. 
 We use CQG connection as an example in this demostration.
 
-To facilitate connections, 
+To facilitate a connection, 
 ```python
 from EC_API.connect.base import ConnectCQG
 
@@ -24,9 +102,10 @@ ACCOUNT_ID = 0000000
 CONNECT = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD)
 ```
 
-To send a new order request directly via EC_API native functions.
+To send a new order request directly via EC_API native functions (not recommended).
 
 ```python
+from datetime import timezone, datetime, timedelta
 from EC_API.utility.base import random_string
 from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
 new_order_details =  { 
@@ -39,7 +118,7 @@ new_order_details =  {
     "qty_exponent": 0, 
     "is_manual": bool = False,
     "scaled_limit_price": 1000,
-    "good_thru_date": datetime.datetime(2025,9,9),
+    "good_thru_date": datetime(2025,9,9),
     "exec_instructions": EXEC_INSTRUCTION_AON
     }
                       
@@ -79,16 +158,15 @@ try:
 
 ```
 
-
 However, it is recommended to send order request to the exhange's 
-server using *Payload* objects. The payload class provided format
+server using `Payload` objects. The payload class provided format
 checking and safety regulation for the input parameters. 
 
-To send orders with *Payload*, you can use this:
+To send orders with `Payload`, you can use this:
 
 ```python 
 from EC_API.payload.base import Payload, ExecutePayload_CQG
-
+from EC_API.payload.CQG_safety import CQGFormatCheck
 ORDER_INFO = {
    "symbol_name": "CLEV25",
    "cl_order_id": "1231314",
@@ -99,7 +177,7 @@ ORDER_INFO = {
    "qty_exponent": 0, 
    "is_manual": False,
    "scaled_limit_price": 1000,
-   "good_thru_date": datetime.datetime(2025,9,9),
+   "good_thru_date": datetime(2025,9,9),
    "exec_instructions": EXEC_INSTRUCTION_AON
     }
 
@@ -108,18 +186,17 @@ PL1 = Payload(
   request_id = 100,
   status = PayloadStatus.PENDING,
   order_request_type = RequestType.NEW_ORDER,
-  start_time = datetime.datetime.now(timezone.utc) +\
-               datetime.timedelta(minutes=5)
-  end_time = datetime.datetime.now(timezone.utc) +\
-             datetime.timedelta(days=1)
+  start_time = datetime.now(timezone.utc) +\
+               timedelta(minutes=5)
+  end_time = datetime.now(timezone.utc) +\
+             timedelta(days=1)
   order_info = ORDER_INFO,
-  check_method = CQGFormatCheck
+  check_method = CQGFormatCheck # Setup the format checking policy
   )
 
 # ExecutePayload 
 try:
-  EP = ExecutePayload_CQG(CONNECT, PL1, ACCOUNT_ID)
-  EP.unload()
+  EP = ExecutePayload_CQG(CONNECT, PL1, ACCOUNT_ID).unload()
 
 ```
 Result:
@@ -130,4 +207,3 @@ To monitor Position,
 
 To monitor
 
-##: Project Organization (under construction)
