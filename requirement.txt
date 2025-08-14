@@ -6,5 +6,6 @@ numpy>=2.3.1
 google3>=1.0.0
 protobuf>=5.29.3
 pandas>=2.3.1
+websocket-client
 
 
