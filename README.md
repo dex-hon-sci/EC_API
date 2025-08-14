@@ -1,6 +1,5 @@
 # *EC_API*:: A wrapper package utilising WebSocket for Algo Trading 
-=================================================================
-|Python| |GitHub|
+
 
 ## Overview
 -----------
@@ -8,88 +7,6 @@ EC_API provides easy-to-use functions for xxx.
 
 In the current version, we use CQG WebAPI to fascilate trade 
 routing through their WebSocket and TSL layers. 
-
-## Project Organization (under construction)
------------------------
-    ├── EC_API
-    |   ├── connect
-    |   |   ├── base.py
-    |   |   ├── hearback.py
-    |   |   └── __init__.py
-    |   ├── ext
-    |   |   ├── common
-    |   |   |   ├── decimal_pb2.py
-    |   |   |   ├── __init__.py
-    |   |   |   └── shared_1_pb2.py
-    |   |   ├── __init__.py
-    |   |   └── WebAPI
-    |   |       ├── account_authorization_2_pb2.py
-    |   |       ├── api_limit_2_pb2.py
-    |   |       ├── economic_calendar_2_pb2.py
-    |   |       ├── historical_2_pb2.py
-    |   |       ├── __init__.py
-    |   |       ├── instrument_definition_2_pb2.py
-    |   |       ├── market_data_2_pb2.py
-    |   |       ├── metadata_2_pb2.py
-    |   |       ├── metadata_admin_2_pb2.py
-    |   |       ├── order_2_pb2.py
-    |   |       ├── otc_1_pb2.py
-    |   |       ├── rules_1_pb2.py
-    |   |       ├── strategy_2_pb2.py
-    |   |       ├── strategy_definition_2_pb2.py
-    |   |       ├── symbol_browsing_2_pb2.py
-    |   |       ├── trade_routing_2_pb2.py
-    |   |       ├── trading_account_2_pb2.py
-    |   |       ├── trading_session_2_pb2.py
-    |   |       ├── user_attribute_2_pb2.py
-    |   |       ├── user_session_2_pb2.py
-    |   |       ├── webapi_2_pb2.py
-    |   |       ├── webapi_client.py
-    |   |       └── websocket.py
-    |   ├── __init__.py
-    |   ├── monitor
-    |   |   ├── base.py
-    |   |   ├── cqg
-    |   |   ├── CQG_realtime_data.py
-    |   |   ├── CQG_trade_info.py
-    |   |   ├── CQG_trade_subscription.py
-    |   |   ├── __init__.py
-    |   ├── msg_validation
-    |   |   ├── base.py
-    |   |   ├── cqg
-    |   |   ├── CQG_connect_enums.py
-    |   |   ├── CQG_historical_enums.py
-    |   |   ├── CQG_mapping.py
-    |   |   ├── CQG_market_data_enums.py
-    |   |   ├── CQG_meta_enums.py
-    |   |   ├── CQG_trade_enums.py
-    |   |   ├── CQG_valid_msg_check.py
-    |   |   ├── __init__.py
-    |   ├── ordering
-    |   |   ├── base.py
-    |   |   ├── CQG_LiveOrder.py
-    |   |   ├── enums.py
-    |   |   ├── __init__.py
-    |   ├── payload
-    |   |   ├── base.py
-    |   |   ├── CQG_safety.py
-    |   |   ├── enums.py
-    |   |   ├── __init__.py
-    |   |   └── safety.py
-    |   ├── _typing.py
-    |   ├── utility
-    |   |   ├── base.py
-    |   |   └── __init__.py
-    |   └── _version.py
-    ├── tests
-    |   ├── ordering_cases.py
-    |   ├── test_connect.py
-    |   ├── test_monitor_CQG.py
-    |   ├── test_msg_validation.py
-    |   ├── test_ordering_CQG.py
-    |   ├── test_payload_CQG.py
-    ├── main.py
------------------------
 
 ## Usage
 --------
@@ -211,6 +128,93 @@ Result:
 
 ```
 To monitor Position,
+```python
+```
 
-To monitor
+To monitor Real-time Data
+```python
+```
 
+
+## Project Organization (under construction)
+-----------------------
+    ├── EC_API
+    │   ├── connect                              <- In charge of server connections and authetications.
+    │   │   ├── base.py
+    │   │   ├── hearback.py                      <- Universal decorators functions for receiving server msg.
+    │   │   └── __init__.py
+    │   ├── ext                                  <- External codes.
+    │   │   ├── common
+    │   │   │   ├── decimal_pb2.py
+    │   │   │   ├── __init__.py
+    │   │   │   └── shared_1_pb2.py
+    │   │   ├── __init__.py
+    │   │   └── WebAPI                            <- Generated format files from CQG WebAPI protocol buffer.
+    │   │       ├── account_authorization_2_pb2.py
+    │   │       ├── api_limit_2_pb2.py
+    │   │       ├── economic_calendar_2_pb2.py
+    │   │       ├── historical_2_pb2.py
+    │   │       ├── __init__.py
+    │   │       ├── instrument_definition_2_pb2.py
+    │   │       ├── market_data_2_pb2.py
+    │   │       ├── metadata_2_pb2.py
+    │   │       ├── metadata_admin_2_pb2.py
+    │   │       ├── order_2_pb2.py
+    │   │       ├── otc_1_pb2.py
+    │   │       ├── rules_1_pb2.py
+    │   │       ├── strategy_2_pb2.py
+    │   │       ├── strategy_definition_2_pb2.py
+    │   │       ├── symbol_browsing_2_pb2.py
+    │   │       ├── trade_routing_2_pb2.py
+    │   │       ├── trading_account_2_pb2.py
+    │   │       ├── trading_session_2_pb2.py
+    │   │       ├── user_attribute_2_pb2.py
+    │   │       ├── user_session_2_pb2.py
+    │   │       ├── webapi_2_pb2.py
+    │   │       ├── webapi_client.py
+    │   │       └── websocket.py
+    │   ├── __init__.py
+    │   ├── monitor                              <- All functions related to monitoring.
+    │   │   ├── base.py
+    │   │   ├── cqg
+    │   │   ├── CQG_realtime_data.py
+    │   │   ├── CQG_trade_info.py
+    │   │   ├── CQG_trade_subscription.py
+    │   │   ├── __init__.py
+    │   ├── msg_validation                       <- In charge of validating server message.
+    │   │   ├── base.py
+    │   │   ├── cqg
+    │   │   ├── CQG_connect_enums.py
+    │   │   ├── CQG_historical_enums.py
+    │   │   ├── CQG_mapping.py                   <- CQG-specific valid client-server msg mappings.
+    │   │   ├── CQG_market_data_enums.py
+    │   │   ├── CQG_meta_enums.py
+    │   │   ├── CQG_trade_enums.py
+    │   │   ├── CQG_valid_msg_check.py
+    │   │   ├── __init__.py
+    │   ├── ordering                             <- In charge of sending orders to the exchanges.
+    │   │   ├── base.py
+    │   │   ├── CQG_LiveOrder.py
+    │   │   ├── enums.py
+    │   │   ├── __init__.py
+    │   ├── payload                              <- Define the unified payload format for order requests.
+    │   │   ├── base.py
+    │   │   ├── CQG_safety.py                    <- CQG-specific safety parameters and format checks.
+    │   │   ├── enums.py
+    │   │   ├── __init__.py
+    │   │   └── safety.py
+    │   ├── _typing.py
+    │   ├── utility
+    │   │   ├── base.py
+    │   │   └── __init__.py
+    │   └── _version.py
+    ├── tests
+    │   ├── ordering_cases.py
+    │   ├── test_connect.py
+    │   ├── test_monitor_CQG.py
+    │   ├── test_msg_validation.py
+    │   ├── test_ordering_CQG.py
+    │   ├── test_payload_CQG.py
+    │   ├── __init__.py
+    ├── main.py
+-----------------------
