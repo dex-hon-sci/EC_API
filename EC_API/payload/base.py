@@ -57,7 +57,7 @@ class ExecutePayload_CQG(object):
         self._connect = connect 
         self._payload = payload
         self.account_id = account_id
-        #self.request_id = request_id
+        self.sub_scope = 1
         
     def change_payload_status(server_msg) -> None:
         pass
@@ -72,7 +72,8 @@ class ExecutePayload_CQG(object):
             CLOrder = CQGLiveOrder(self._connect, 
                                    symbol_name = self._payload.order_info['symbol_name'], 
                                    request_id = self._payload.request_id, 
-                                   account_id = self.account_id)
+                                   account_id = self.account_id,
+                                   sub_scope = self.sub_scope)
             server_msg = CLOrder.send(request_type = self._payload.order_request_type, 
                                       request_details = self._payload.order_info)
             # Check if the order is successfuly sent
@@ -82,40 +83,3 @@ class ExecutePayload_CQG(object):
             
         else:
             raise Exception("Only pending payloads can be unloaded.")
-
-### Usage #############################################################
-### construct order_info
-# order_info = {
-#    "symbol_name": "CLEV25",
-#    "cl_order_id": "1231314",
-#    "order_type": ORDER_TYPE_LMT, 
-#    "duration": DURATION_GTC, 
-#    "side": SIDE_BUY,
-#    "qty_significant": 2,
-#    "qty_exponent": 0, 
-#    "is_manual": False,
-#    "scaled_limit_price": 1000,
-#    "good_thru_date": datetime.datetime(2025,9,9),
-#    "exec_instructions": EXEC_INSTRUCTION_AON
-#     }
-#
-### Make Payload ######################################################
-# PL1 = Payload(
-#   account_id = 0000000,
-#   request_id = int(random_string(length=10)),
-#   status = PayloadStatus.PENDING,
-#   order_request_type = RequestType.NEW_ORDER,
-#   start_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=5)
-#   end_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(days=1)
-#   order_info = order_info,
-#   check_method = CQGFormatCheck
-#   )
-#
-### ExecutePayload #####################################################
-# account_id = 0000000
-# connect = ConnectCQG(host_name, user_name, password)
-# try:
-#   EP = ExecutePayload_CQG(connect, PL1, account_id)
-#   EP.unload()
-#
-########################################################################

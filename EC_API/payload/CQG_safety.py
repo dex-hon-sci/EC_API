@@ -17,7 +17,7 @@ from EC_API.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
 
 ASSETS_SAFETY_RANGE = {
     "CLE": {'scaled_limit_price': {'upper_limit': 0, 
-                                       'lower_limit': 0},
+                                   'lower_limit': 0},
             'scaled_stop_price': {'upper_limit': 0,
                                   'lower_limit': 0},
             'qty': {'upper_limit': 10,
@@ -48,7 +48,7 @@ class CQGFormatCheck(PayloadFormatCheck):
         #self.sub_scope = sub_scope
         credential_essentials_field_types = {
             "symbol_name": str,
-            "sub_scope": TS.SubscriptionScope
+            #"sub_scope": TS.SubscriptionScope
             }
         isnot_null(credential_essentials_field_types, self.order_info)
         is_correct_type(credential_essentials_field_types, self.order_info)

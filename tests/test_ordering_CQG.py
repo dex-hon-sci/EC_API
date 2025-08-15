@@ -40,7 +40,7 @@ logging.basicConfig(filename='./log/temp.log',
                     datefmt="%Y-%m-%d %H:%M:%S")
 
 # Input parameters
-symbols = ["",""]
+symbols = ["CLE","HOE"]
 LMT_price = [0,0]
 STP_price = [0,0]
 QTY = [1,1]
