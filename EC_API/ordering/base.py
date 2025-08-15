@@ -5,11 +5,11 @@ Created on Tue Jul 29 13:19:48 2025
 
 @author: dexter
 """
-from collections import Protocol
+from typing import Protocol
 
 from EC_API.ordering.enums import *
-from EC_API.connect import Connect
-from EC_API.msg_validation.base import CQGValidMsgCheck
+from EC_API.connect.base import Connect
+from EC_API.msg_validation.CQG_valid_msg_check import CQGValidMsgCheck
 
 class LiveOrder(Protocol):
     def __init__(self, 

@@ -5,9 +5,11 @@ Created on Tue Aug 12 16:18:22 2025
 
 @author: dexter
 """
+import pytest
 from datetime import datetime,timezone, timedelta
 from EC_API.payload.base import Payload
-from EC_API.paylaod.enums import PayloadStatus, RequestType
+from EC_API.payload.enums import PayloadStatus
+from EC_API.ordering.enums import RequestType
 from EC_API.payload.CQG_safety import CQGFormatCheck
 from EC_API.ordering.enums import *
 
@@ -44,7 +46,7 @@ def test_CQGFormatCheck_check_crendential_success() -> None:
 
 def test_CQGFormatCheck_check_crendential_fail_null() -> None:
     null_input = {
-        "symbol_name": "",
+        "symbol_name": None, # missing symbol_name
         "cl_order_id": "1231314",
         "order_type": ORDER_TYPE_LMT, 
         "duration": DURATION_GTC, 
@@ -54,9 +56,8 @@ def test_CQGFormatCheck_check_crendential_fail_null() -> None:
         "is_manual": False,
         "scaled_limit_price": 1000,
         "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": EXEC_INSTRUCTION_AON
         }
-    with pytest.raises(KeyError, match=r"Essential parameter(s): symbol_name is missing"):
+    with pytest.raises(KeyError, match=r"Essential parameter(s): symbol_name is missing."):
         PL = Payload(          
             request_id = 100,
             status = PayloadStatus.PENDING,
@@ -66,7 +67,9 @@ def test_CQGFormatCheck_check_crendential_fail_null() -> None:
             order_info = null_input,
             check_method = CQGFormatCheck
             )
-
+    #print(PL)
+    
+#test_CQGFormatCheck_check_crendential_fail_null()
 def test_CQGFormatCheck_check_crendential_fail_TypeError() -> None:
     wrong_type = {
         "symbol_name": 00000, # Wrong type input in symbol_name
@@ -96,7 +99,7 @@ def test_CQGFormatCheck_check_crendential_fail_TypeError() -> None:
 # ACRIVATE_ORDER, CANCELALL_ORDER, LIQUIDATEALL_ORDER, GOFLAT_ORDER)
 def test_CQGFormatCheck_check_request_specific_fields_NEW_ORDER_fail_null():
     null_input = {
-        "symbol_name": "",
+        "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
         "order_type": ORDER_TYPE_LMT, 
         "duration": DURATION_GTC, 

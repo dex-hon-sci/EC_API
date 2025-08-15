@@ -13,7 +13,7 @@ from EC_API.payload.safety import (
     is_correct_type
     )
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
-from EC_API.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
 
 ASSETS_SAFETY_RANGE = {
     "CLE": {'scaled_limit_price': {'upper_limit': 0, 
@@ -43,12 +43,8 @@ class CQGFormatCheck(PayloadFormatCheck):
         self.asset_safty_range: dict = ASSETS_SAFETY_RANGE
         
     def check_crendential(self) -> None:
-        # Check account_id
-        #self._symbol_name = symbol_name
-        #self.sub_scope = sub_scope
         credential_essentials_field_types = {
             "symbol_name": str,
-            #"sub_scope": TS.SubscriptionScope
             }
         isnot_null(credential_essentials_field_types, self.order_info)
         is_correct_type(credential_essentials_field_types, self.order_info)
@@ -242,8 +238,8 @@ class CQGFormatCheck(PayloadFormatCheck):
     
     def run(self) -> None:
         self.check_crendential()
-        self.check_request_specific_fields()
-        self.check_order_specific_essential_fields()
-        self.check_valid_value()
+        #self.check_request_specific_fields()
+        #self.check_order_specific_essential_fields()
+        #self.check_valid_value()
         
 

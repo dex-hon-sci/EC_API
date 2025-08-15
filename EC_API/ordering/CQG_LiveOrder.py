@@ -10,11 +10,11 @@ from datetime import timezone
 
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from EC_API.connect import ConnectCQG
+from EC_API.connect.base import ConnectCQG
 from EC_API.connect.hearback import hearback, get_contract_metadata
 from EC_API.ordering.enums import *
 from EC_API.ordering.base import LiveOrder
-from EC_API.utility import random_string
+from EC_API.utility.base import random_string
 
 class CQGLiveOrder(LiveOrder):
     # a class that control the ordering action to the exchange

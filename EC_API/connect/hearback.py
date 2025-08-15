@@ -12,12 +12,11 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.msg_validation.CQG_valid_msg_check import CQGValidMsgCheck
 
         
-def hearback(func: Callable[str, int], 
-             hearback_time: float = 30, *args, **kwargs): 
-    client, client_msg = func(*args, **kwargs) 
-    def wrapper() -> ServerMsg:  
+def hearback(func: Callable[str, int]): 
+    def wrapper(hearback_time: float = 30, *args, **kwargs) -> ServerMsg:  
+        client, client_msg = func(*args, **kwargs) 
+
         start_time = time.time()
-        
         while True:
             server_msg = client.receive_server_message()
             # Msg Check 
@@ -32,11 +31,10 @@ def hearback(func: Callable[str, int],
                 return 
     return wrapper
 
-def get_contract_metadata(func: Callable[str, int], 
-                          *args, **kwargs):
-    client, client_msg = func(*args, **kwargs)
-    def wrapper() -> ServerMsg:
+def get_contract_metadata(func: Callable[str, int]):
+    def wrapper(*args, **kwargs) -> ServerMsg:
         # Check if client_msg is an information_request
+        client, client_msg = func(*args, **kwargs)
 
         while True: # hearback loop
             server_msg = client.receive_server_message()

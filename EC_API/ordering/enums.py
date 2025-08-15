@@ -9,9 +9,9 @@ This Enum file contain the most relevant enums for ordering.
 """
 from enum import Enum
 
-from EC_API.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
-from EC_API.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
-from EC_API.common.shared_1_pb2 import OrderStatus
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
+from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
+from EC_API.ext.common.shared_1_pb2 import OrderStatus
 
 
 

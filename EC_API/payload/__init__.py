@@ -10,16 +10,16 @@ sending the payload package through the ordering function to send out liveorder.
 
 It should be independent of WebAPI provider.
 
-Signal.actions -> CQGOrder -> Payload
+Signal.actions -> CQGLiveOrder -> Payload
 
 
 """
 from EC_API.payload.enums import PayloadStatus, OrderRequestType
-from EC_API.payload.base import Payload, ExecutePayload
+from EC_API.payload.base import Payload, ExecutePayload_CQG
 
 __all__ = [
     "Payload",
-    "ExecutePayload"
+    "ExecutePayload_CQG",
     "PayloadStatus",
     "OrderRequestType"
     ]

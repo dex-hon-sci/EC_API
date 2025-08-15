@@ -40,7 +40,8 @@ ACCOUNT_ID = 0000000
 CONNECT = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD)
 ```
 
-To send a new order request directly via EC_API native functions (not recommended).
+To send a new order request directly via `EC_API` native functions 
+(not recommended) from the `ordering` module.
 
 ```python
 from datetime import timezone, datetime, timedelta
@@ -73,7 +74,7 @@ Result:
 
 ```
 
-To send modify order request in a similar fashion
+To send a modify order request in a similar fashion
 ```python
 
 modify_order_details =  { 
@@ -96,8 +97,8 @@ try:
 
 ```
 
-However, it is recommended to send order request to the exhange's 
-server using `Payload` objects. The payload class provided format
+However, it is recommended to send order requests to the exchanges'' 
+server using an `Payload` object. The payload class provided format
 checking and safety regulation for the input parameters. 
 
 To send orders with `Payload`, you can use this:
@@ -148,7 +149,6 @@ To monitor Position,
 To monitor Real-time Data
 ```python
 ```
-## Module Reviews
 
 
 ## Project Organization (under construction)

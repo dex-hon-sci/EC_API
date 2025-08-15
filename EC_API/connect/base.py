@@ -5,13 +5,12 @@ Created on Wed Jul 30 10:23:04 2025
 
 @author: dexter
 """
-from collections import Protocol
-
+# Native Python imports
+from typing import Protocol
+# EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
-from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult, LoggedOff, Logon, \
-                                       RestoreOrJoinSession, \
-                                       RestoreOrJoinSessionResult
+from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
 
 class Connect(Protocol):
     # Base class for websocket-like connection

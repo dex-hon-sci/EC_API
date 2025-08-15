@@ -7,7 +7,7 @@ Created on Fri Aug  1 18:54:28 2025
 """
 
 from EC_API.ext.common.shared_1_pb2 import OrderStatus as OS
-from EC_PAI.ext.WebAPI.trading_route_2_pb2 import TradeSubscriptionStatus as TSS
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus as TSS
 from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus as GFS
 
 TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL = {

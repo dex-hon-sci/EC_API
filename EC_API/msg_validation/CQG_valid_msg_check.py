@@ -11,8 +11,8 @@ from EC_API.msg_validation.base import ValidMsgCheck
 from EC_API.msg_validation.CQG_mapping import (
     MAP_STATUS_ENUMS, 
     MAP_RESPONSES_TYPES_STR,
-    extract_result_code_from_server_msg,
-    extract_special_clear_from_server_msg,
+    map_result_code_client2server_msg,
+    map_special_clear_client2server_msg,
     extract_IDs_from_client_msg,
     extract_IDs_from_server_msg
     )
@@ -77,7 +77,7 @@ class CQGValidMsgCheck(ValidMsgCheck):
         
     def special_requirement_check(self) -> None:
         for server_msg_type in self.server_msg_types:
-            if extract_special_clear_from_server_msg(self.server_msg,
+            if map_special_clear_client2server_msg(self.server_msg,
                                                      server_msg_type):
                 self.recv_special_clear = True           
         
@@ -85,7 +85,7 @@ class CQGValidMsgCheck(ValidMsgCheck):
         # To check for accepted server_msg
         for server_msg_type, server_msg_val in zip(self.server_msg_types, 
                                                    self.server_msg_values):
-            if extract_result_code_from_server_msg(self.server_msg,
+            if map_result_code_client2server_msg(self.server_msg,
                                                    server_msg_type)\
                in MAP_STATUS_ENUMS[server_msg_type]["Accept"]:
                 self.recv_success_status = True
@@ -95,12 +95,13 @@ class CQGValidMsgCheck(ValidMsgCheck):
         for server_msg_type, server_msg_value in zip(self.server_msg_type, 
                                                      self.server_msg_values):
         # Find out the msg_type
-            if extract_result_code_from_server_msg(self.server_msg,
+            if map_result_code_client2server_msg(self.server_msg,
                                                    server_msg_type)\
                not in MAP_STATUS_ENUMS[server_msg_type]["Accept"]:
                 self.recv_reject_status = True
                 
     def fill_status_check():
+        # Specific check for order requests type of client messages.
         # Check if the status indicate the order is filled
         pass
             

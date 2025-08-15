@@ -5,7 +5,7 @@ Created on Mon Aug 11 20:40:59 2025
 
 @author: dexter
 """
-from typing import Protcol, Any
+from typing import Protocol, Any
 from EC_API.ordering.enums import RequestType
 
 def isnot_null(reference_dict: dict[str, Any], 
@@ -18,11 +18,11 @@ def isnot_null(reference_dict: dict[str, Any],
 def is_correct_type(reference_dict: dict[str, Any], 
                     target_dict: dict[str, Any]) -> None:
     # Return nothing if type exist in target_dict, else raise key error
-    for key, value in reference_dict:
-        if type(target_dict[key]) is not reference_dict[key]:
-            raise TypeError(f"Type Error, {key} must be: {target_dict[key]}")
+    for key in reference_dict:
+        if type(target_dict[key]) != reference_dict[key]:
+            raise TypeError(f"Type Error, {key} must be: {reference_dict[key].__name__}.")
             
-class PayloadFormatCheck(Protcol):
+class PayloadFormatCheck(Protocol):
     """
     Protocol class for checking Payload formats
     """

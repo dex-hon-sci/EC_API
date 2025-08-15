@@ -6,7 +6,7 @@ Created on Mon Aug  4 11:57:10 2025
 @author: dexter
 """
 
-from EC_API.ext.WebAPI.market_data_2_pb_2 import MarketDataSubscriptionStatus as MDSS
+from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscriptionStatus as MDSS
 
 MARKETDATA_SUB_STATUS_ENUMS_BOOL = {
     "Accept": [MDSS.StatusCode.STATUS_CODE_SUCCESS,

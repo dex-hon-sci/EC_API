@@ -12,8 +12,9 @@ from dataclasses import dataclass, field
 # EC_API imports
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.connect.base import ConnectCQG
-from EC_API.ordering.CQGLiveOrder import CQGLiveOrder
-from EC_API.paylaod.enums import PayloadStatus
+from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
+from EC_API.payload.CQG_safety import CQGFormatCheck
+from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
 
@@ -37,11 +38,13 @@ class Payload(object):
     end_time: datetime.datetime = datetime.datetime.now(timezone.utc)\
                                     + datetime.timedelta(days=2) # In long text format
     order_info: dict = field(default_factory=dict)
-    check_method: PayloadFormatCheck = PayloadFormatCheck
+    check_method: PayloadFormatCheck = CQGFormatCheck
     
-    def __post_id__(self) -> None:
+    def __post_init__(self) -> None:
         # Check the order instructions based on the order type
         # import checking classes and func specific for CQG type orders
+        #check_obj = self.check_method(self.order_request_type, 
+        #                              self.order_info)
         check_obj = self.check_method(self.order_request_type, 
                                       self.order_info)
         check_obj.run()
