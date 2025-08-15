@@ -13,7 +13,7 @@ from EC_API.msg_validation.CQG_valid_msg_check import CQGValidMsgCheck
 
         
 def hearback(func: Callable[str, int], 
-             hearback_time: float =30, *args, **kwargs): 
+             hearback_time: float = 30, *args, **kwargs): 
     client, client_msg = func(*args, **kwargs) 
     def wrapper() -> ServerMsg:  
         start_time = time.time()
