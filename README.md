@@ -1,15 +1,29 @@
-# *EC_API*:: A wrapper package utilising WebSocket for Algo Trading 
+# *EC_API*: A wrapper package utilising WebSocket for Algo Trading 
 
 
 ## Overview
------------
-EC_API provides easy-to-use functions for xxx.
+`EC_API` provides easy-to-use functions for algorithmic trading. 
+It is a wrapper package that utilises Websocket messaging to fasicilates 
+trades, real-time data monitor, open posoitions tradcking, and etc.
 
-In the current version, we use CQG WebAPI to fascilate trade 
-routing through their WebSocket and TSL layers. 
+In the current version, we only support trade and real-time data monitoring 
+through CQG WebAPI which connect to their trade routing server through 
+WebSocket and TSL layers. 
+
+## Module Reviews
+`EC_API` contains the following modules:
+| Module | Description |
+|-----------|-------------|
+| `connect` | Connection modiule that is in charge of authetication and message<br> hear-back. |
+| `ext` | External codes. Trade routing API codes are in here.  |
+| `monitor` | Monitor module takes care of information request, open-order<br>tracking, and real-time data request. |
+| `msg_validation` | It is in charge of server message validation. After sending<br>a client request, the server repsonse message goes through<br>message validation process in this module. The functions match<br>the message ID and map them with the acceptable message type<br>to ensure accurate pairing between client-server messages. |
+| `ordering` | It handles `LiveOrder` type objects and how we send order request<br>to the exchanges. |
+| `payload` | It contains the `Payload` class where parameters validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
+| `utility` | It contains utility functions for the package.  |
+
 
 ## Usage
---------
 Here are some examples for the usage. 
 We use CQG connection as an example in this demostration.
 
@@ -35,12 +49,11 @@ from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
 new_order_details =  { 
     "symbol_name": "CLEV25",
     "cl_order_id": "1231314",
-    "order_type": ORDER_TYPE_LMT, 
-    "duration": DURATION_GTC, 
-    "side": SIDE_BUY,
+    "order_type": ORDER_TYPE_LMT,  # For Limit orders
+    "duration": DURATION_GTC,      # With a Duration of Good-till-Cancel
+    "side": SIDE_BUY,              # Buy order
     "qty_significant": 2,
     "qty_exponent": 0, 
-    "is_manual": bool = False,
     "scaled_limit_price": 1000,
     "good_thru_date": datetime(2025,9,9),
     "exec_instructions": EXEC_INSTRUCTION_AON
@@ -49,10 +62,11 @@ new_order_details =  {
 try:
   CLOrder1 = CQGLiveOrder(CONNECT, 
                          symbol_name = new_order_details['symbol_name'], 
-                         request_id =100, 
+                         request_id = 100, 
                          account_id = ACCOUNT_ID)
-  CLOrder1.send(request_type=RequestType.NEW_ORDER, 
-                request_details = new_order_details) # Specific the request type
+  # Specify the request type as you send the order
+  CLOrder1.send(request_type = RequestType.NEW_ORDER, 
+                request_details = new_order_details)  
 ```
 Result:
 ```plaintext
@@ -77,7 +91,7 @@ try:
                          symbol_name = modify_order_details['symbol_name'], 
                          request_id =102, 
                          account_id = ACCOUNT_ID)
-  CLOrder2.send(request_type=RequestType.MODIFY.ORDER, 
+  CLOrder2.send(request_type = RequestType.MODIFY.ORDER, 
                 request_details = modify_order_details)
 
 ```
@@ -134,6 +148,7 @@ To monitor Position,
 To monitor Real-time Data
 ```python
 ```
+## Module Reviews
 
 
 ## Project Organization (under construction)
