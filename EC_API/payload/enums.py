@@ -15,12 +15,14 @@ class PayloadStatus(Enum):
     VOID = "Cancelled" # Confirm Cancelled, change state in ShellPile
     ARCHIVED = "Archived" # Order was not sent and reach its time limit, move from Chamber to Archieve
     
-class OrderRequestType(Enum):
-    # Order types in the CQG ordering format
-    NEW_ORDER_REQUEST = "new_order_request"
-    MODIFY_ORDER_REQUEST = "modify_order_request"
-    CANCEL_ORDER_REQUEST = "cancel_order_request"
-    CANCEL_ALL_ORDER_REQUEST = "cancel_all_order_request"
-    GOFLAT_ORDER_REQUEST = "goflat_order_request"
+# =============================================================================
+# class OrderRequestType(Enum):
+#     # Order types in the CQG ordering format
+#     NEW_ORDER_REQUEST = "new_order_request"
+#     MODIFY_ORDER_REQUEST = "modify_order_request"
+#     CANCEL_ORDER_REQUEST = "cancel_order_request"
+#     CANCEL_ALL_ORDER_REQUEST = "cancel_all_order_request"
+#     GOFLAT_ORDER_REQUEST = "goflat_order_request"
+# =============================================================================
     
     

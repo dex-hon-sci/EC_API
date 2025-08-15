@@ -8,7 +8,15 @@ Created on Fri Aug  8 11:02:05 2025
 from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus
 from EC_API.connect.base import ConnectCQG
 from EC_API.utility.base import random_string
-from EC_API.ordering.enums import *
+from EC_API.ordering.enums import (
+    SubScope,
+    OrderType,
+    Duration,
+    Side,
+    RequestType,
+    ExecInstruction,
+    OrderStatus
+    )
 from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
 
 
@@ -28,9 +36,9 @@ class NewOrderCases(object):
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_MKT,
-            "duration": DURATION_DAY, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_MKT,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -43,17 +51,17 @@ class NewOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
         
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_MKT #(1)
-        assert server_msg.order_statuses[-1].order.duration == DURATION_DAY #(1)
-        assert server_msg.order_statuses[-1].order.side == SIDE_SELL #(2)
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_MKT #(1)
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_DAY #(1)
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_SELL #(2)
     
     def new_order_request_BUY_MKT_GTC(self) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_MKT,
-            "duration": DURATION_GTC, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_MKT,
+            "duration": Duration.DURATION_GTC, 
+            "side": Side.SIDE_BUY,
             "qty_significant": 1, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -67,17 +75,17 @@ class NewOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
         
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_MKT
-        assert server_msg.order_statuses[-1].order.duration == DURATION_GTC
-        assert server_msg.order_statuses[-1].order.side == SIDE_BUY
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_MKT
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_GTC
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_BUY
     
     def new_order_request_SELL_MKT_FAK(self) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_MKT,
-            "duration": DURATION_FAK, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_MKT,
+            "duration": Duration.DURATION_FAK, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 1, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -89,17 +97,17 @@ class NewOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                      request_details = request_details)
     
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_MKT
-        assert server_msg.order_statuses[-1].order.duration == DURATION_FAK
-        assert server_msg.order_statuses[-1].order.side == SIDE_SELL
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_MKT
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_FAK
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_SELL
     
     def new_order_request_BUY_LMT_DAY(self, scaled_limit_price: int) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_LMT,
-            "duration": DURATION_DAY, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_LMT,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_BUY,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -113,18 +121,19 @@ class NewOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                      request_details = request_details)
     
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_LMT
-        assert server_msg.order_statuses[-1].order.duration == DURATION_DAY
-        assert server_msg.order_statuses[-1].order.side == SIDE_BUY
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_LMT
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_DAY
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_BUY
     
     
     def new_order_request_SELL_LMT_GTD(self, scaled_limit_price: int) -> None:
+        GOOD_THRU_DATE = None
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_LMT,
-            "duration": DURATION_GTD, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_LMT,
+            "duration": Duration.DURATION_GTD, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -136,27 +145,27 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string()), 
                                account_id = self.account_id)
-        CLOrder.send(request_type=RequestType.NEW_ORDER, 
-                     request_details = request_details)
+        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+                                  request_details = request_details)
             
     
-        assert server_msg_NO_SELL_LMT_GTD_SYM2.order_statuses[-1].order.order_type == ORDER_TYPE_LMT
-        assert server_msg_NO_SELL_LMT_GTD_SYM2.order_statuses[-1].order.duration == DURATION_GTD
-        assert server_msg_NO_SELL_LMT_GTD_SYM2.order_statuses[-1].order.side == SIDE_SELL
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_LMT
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_GTD
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_SELL
     
     
     def new_order_request_BUY_LMT_GTC_ICEBERG(self, scaled_limit_price: int) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_LMT,
-            "duration": DURATION_GTC, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_LMT,
+            "duration": Duration.DURATION_GTC, 
+            "side": Side.SIDE_BUY,
             "qty_significant": 1, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
             "scaled_limit_price": scaled_limit_price,
-            "exec_instructions": EXEC_INSTRUCTION_ICEBERG,
+            "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_ICEBERG,
             }
     
         CLOrder = CQGLiveOrder(self.connect, 
@@ -166,24 +175,24 @@ class NewOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_LMT
-        assert server_msg.order_statuses[-1].order.duration == DURATION_GTC
-        assert server_msg.order_statuses[-1].order.side == SIDE_BUY
-        assert server_msg.order_statuses[-1].order.exec_instructions[0] == EXEC_INSTRUCTION_ICEBERG
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_LMT
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_GTC
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_BUY
+        assert server_msg.order_statuses[-1].order.exec_instructions[0] == ExecInstruction.EXEC_INSTRUCTION_ICEBERG
     
     
     def new_order_request_SELL_LMT_DAY_FUNARI(self, scaled_limit_price: int) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_LMT,
-            "duration": DURATION_DAY, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_LMT,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
             "scaled_limit_price": scaled_limit_price,
-            "exec_instructions": EXEC_INSTRUCTION_FUNARI
+            "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_FUNARI
             }
     
         CLOrder = CQGLiveOrder(self.connect, 
@@ -193,19 +202,19 @@ class NewOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_LMT
-        assert server_msg.order_statuses[-1].order.duration == DURATION_DAY
-        assert server_msg.order_statuses[-1].order.side == SIDE_SELL
-        assert server_msg.order_statuses[-1].order.exec_instructions[0] == EXEC_INSTRUCTION_FUNARI
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_LMT
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_DAY
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_SELL
+        assert server_msg.order_statuses[-1].order.exec_instructions[0] == ExecInstruction.EXEC_INSTRUCTION_FUNARI
     
     
     def new_order_request_BUY_STP_GTC(self, scaled_stop_price: int) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_STP,
-            "duration": DURATION_GTC, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_STP,
+            "duration": Duration.DURATION_GTC, 
+            "side": Side.SIDE_BUY,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -220,22 +229,22 @@ class NewOrderCases(object):
                                   request_details = request_details)
     
     
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_STP
-        assert server_msg.order_statuses[-1].order.duration == DURATION_GTC
-        assert server_msg.order_statuses[-1].order.side == SIDE_BUY
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_STP
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_GTC
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_BUY
     
     
     def new_order_request_BUY_STP_GTD_TRAIL(self, scaled_stop_price) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_STP,
-            "duration": DURATION_GTD, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_STP,
+            "duration": Duration.DURATION_GTD, 
+            "side": Side.SIDE_BUY,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
-            "exec_instructions": EXEC_INSTRUCTION_TRAIL,
+            "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_TRAIL,
             "good_thru_date": GOOD_THRU_DATE,
             "scaled_stop_price": scaled_stop_price,
             "scaled_trail_offset": 10
@@ -248,18 +257,18 @@ class NewOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_STP
-        assert server_msg.order_statuses[-1].order.duration == DURATION_GTD
-        assert server_msg.order_statuses[-1].order.side == SIDE_BUY
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_STP
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_GTD
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_BUY
     
     
     def new_order_request_SELL_STP_DAY_QT(self, scaled_stop_price: int) -> None:
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_STP,
-            "duration": DURATION_DAY, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_STP,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -275,9 +284,9 @@ class NewOrderCases(object):
     
     
         # 27. Receive OrderStatus.
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_STP
-        assert server_msg.order_statuses[-1].order.duration == DURATION_DAY
-        assert server_msg.order_statuses[-1].order.side == SIDE_SELL
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_STP
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_DAY
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_SELL
     
     def new_order_request_BUY_STL_DAY_TRAIL_QT(self,
                                                scaled_stop_price: int,
@@ -286,15 +295,15 @@ class NewOrderCases(object):
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_STL,
-            "duration": DURATION_DAY, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_STL,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_BUY,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
             "scaled_limit_price" : SL_price_offset+SL_price_offset,
             "scaled_stop_price" : SL_price_offset,
-           " exec_instructions" : EXEC_INSTRUCTION_TRAIL,
+           " exec_instructions" : ExecInstruction.EXEC_INSTRUCTION_TRAIL,
             "scaled_trail_offset": scaled_trail_offset
             }
     
@@ -306,21 +315,22 @@ class NewOrderCases(object):
                                   request_details = request_details)
     
         # 29. Receive OrderStatus.
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_STL
-        assert server_msg.order_statuses[-1].order.duration == DURATION_DAY
-        assert server_msg.order_statuses[-1].order.side == SIDE_BUY
-        assert server_msg.order_statuses[-1].order.exec_instructions[0] == EXEC_INSTRUCTION_TRAIL
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_STL
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_DAY
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_BUY
+        assert server_msg.order_statuses[-1].order.exec_instructions[0] == ExecInstruction.EXEC_INSTRUCTION_TRAIL
     
     
     def new_order_request_SELL_STL_GTD(self,
                                        scaled_stop_price: int,
                                        SL_price_offset: int = 300) -> None:
+        GOOD_THRU_DATE = None
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_STL,
-            "duration": DURATION_GTD, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_STL,
+            "duration": Duration.DURATION_GTD, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 2, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -337,9 +347,9 @@ class NewOrderCases(object):
                                   request_details = request_details)
     
             
-        assert server_msg.order_statuses[-1].order.order_type == ORDER_TYPE_STL
-        assert server_msg.order_statuses[-1].order.duration == DURATION_GTD
-        assert server_msg.order_statuses[-1].order.side == SIDE_SELL
+        assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_STL
+        assert server_msg.order_statuses[-1].order.duration == Duration.DURATION_GTD
+        assert server_msg.order_statuses[-1].order.side == Side.SIDE_SELL
         
     def run_all(self, 
                 scaled_limit_price: int, 
@@ -388,7 +398,7 @@ class ModifyOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
                                   request_details = modify_request_details)
 
-        assert server_msg.order_statuses[-1].status == FILLED
+        assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
     
     def modify_order_LMT_price(self, order_id: int, 
                                new_LMT_price: int) -> None:
@@ -406,7 +416,7 @@ class ModifyOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
                                   request_details = modify_request_details)
 
-        assert server_msg.order_statuses[-1].status == FILLED
+        assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
 
     def modify_order_STP_price(self, order_id: int, 
                                new_STP_price: int) -> None:
@@ -414,7 +424,7 @@ class ModifyOrderCases(object):
             "order_id": order_id,
             "cl_order_id": random_string(length=10),
             "orig_cl_order_id": self.orig_cl_order_id,
-            "scaled_stop_price": scaled_stop_price
+            "scaled_stop_price": new_STP_price
             }
 
         CLOrder = CQGLiveOrder(self.connect, 
@@ -424,7 +434,7 @@ class ModifyOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
                                   request_details = modify_request_details)
 
-        assert server_msg.order_statuses[-1].status == FILLED
+        assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
 
     def run_all(self, 
                 old_LMT_price: int, 
@@ -437,9 +447,9 @@ class ModifyOrderCases(object):
         initial_request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_MKT,
-            "duration": DURATION_GTC, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_MKT,
+            "duration": Duration.DURATION_GTC, 
+            "side": Side.SIDE_BUY,
             "qty_significant": old_qty, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -486,16 +496,16 @@ class CancelOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.CANCEL_ORDER, 
                                   request_details = cancel_request_details)
 
-        assert server_msg.order_statuses[-1].status == FILLED
+        assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
         
     def run_all(self, scaled_limit_price: int) -> None:
         # Send a new order first
         initial_request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_LMT,
-            "duration": DURATION_DAY, 
-            "side": SIDE_BUY,
+            "order_type": OrderType.ORDER_TYPE_LMT,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_BUY,
             "qty_significant": 1, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -541,7 +551,7 @@ class ActivateOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.ACRIVATE_ORDER, 
                                   request_details = activate_request_details)
 
-        assert server_msg.order_statuses[-1].status == FILLED
+        assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
  
     
     def run_all(self):
@@ -549,9 +559,9 @@ class ActivateOrderCases(object):
         initial_request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_MKT,
-            "duration": DURATION_DAY, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_MKT,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 1, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -564,7 +574,7 @@ class ActivateOrderCases(object):
         server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details)
 
-        assert server_msg_SELL_MKT_DAY.order_statuses[0].status == SUSPENDED
+        assert server_msg.order_statuses[0].status == OrderStatus.SUSPENDED
         ORDER_ID = server_msg.order_statuses[0].order_id
         self.orig_cl_order_id = initial_request_details['cl_order_id']
 
@@ -587,7 +597,6 @@ class GoFlatOrderCases(object):
         
     def goflat_order(self):
         activate_request_details = {
-            "order_id": order_id, 
             "orig_cl_order_id": self.orig_cl_order_id,
             "cl_order_id": random_string(length=10),
             }
@@ -605,9 +614,9 @@ class GoFlatOrderCases(object):
         initial_request_details_1 = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_MKT,
-            "duration": DURATION_DAY, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_MKT,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 1, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -617,16 +626,16 @@ class GoFlatOrderCases(object):
                                symbol_name = initial_request_details_1['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg_1 = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg_1 = CLOrder_1.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details_1)
         
         # Send a new LMT order
         initial_request_details_2 = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
-            "order_type": ORDER_TYPE_LMT,
-            "duration": DURATION_DAY, 
-            "side": SIDE_SELL,
+            "order_type": OrderType.ORDER_TYPE_LMT,
+            "duration": Duration.DURATION_DAY, 
+            "side": Side.SIDE_SELL,
             "qty_significant": 1, # make sure qty are in Decimal (int) not float
             "qty_exponent": 0, 
             "is_manual": False,
@@ -637,7 +646,7 @@ class GoFlatOrderCases(object):
                                 symbol_name = initial_request_details_2['symbol_name'], 
                                 request_id = int(random_string(length=10)), 
                                 account_id = self.account_id)
-        server_msg_2 = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg_2 = CLOrder_2.send(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details_2)
         
         # Send GoFlat Order, check if there are any remaining orders left

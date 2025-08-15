@@ -12,7 +12,13 @@ from EC_API.payload.safety import (
     isnot_null, 
     is_correct_type
     )
-from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
+from EC_API.ordering.enums import (
+    Side, 
+    Duration, 
+    OrderType,
+    ExecInstruction
+    )
+#from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
 
 ASSETS_SAFETY_RANGE = {
@@ -54,14 +60,15 @@ class CQGFormatCheck(PayloadFormatCheck):
         match self.order_request_type:
             case RequestType.NEW_ORDER:
                 acceptable_request_specific_fields = {
+                    "symbol_name": str,
                     'cl_order_id': str, 
-                    "order_type": Ord.OrderType,
-                    "duration": Ord.Duration,
-                    "side": Ord.Side,
+                    "order_type": OrderType,
+                    "duration": Duration,
+                    "side": Side,
                     "qty_significant": int,
                     "qty_exponent": int,
                     "is_manual": bool,
-                    "exec_instructions": Ord.ExecInstruction, 
+                    "exec_instructions": ExecInstruction, 
                     "good_thru_date": datetime.datetime,
                     "scaled_limit_price": int,
                     "scaled_stop_price": int,
@@ -73,9 +80,9 @@ class CQGFormatCheck(PayloadFormatCheck):
                 
                 essentials_request_specific_field_types = {
                     'cl_order_id': str, 
-                    'duration': Ord.Duration,
-                    'order_type': Ord.OrderType, 
-                    'side': Ord.Side, 
+                    'order_type': OrderType, 
+                    'duration': Duration,
+                    'side': Side, 
                     'qty_significant': int,
                     }
                 
@@ -87,6 +94,7 @@ class CQGFormatCheck(PayloadFormatCheck):
             case RequestType.MODIFY_ORDER:
                 # ORDER_ID, status is not filled
                 acceptable_request_specific_fields = {
+                    "symbol_name": str,
                     'orig_cl_order_id': str,
                     "cl_order_id": str, 
                     'when_utc_timestamp': datetime.datetime,
@@ -95,7 +103,7 @@ class CQGFormatCheck(PayloadFormatCheck):
                     'scaled_stop_price': int,
                     'remove_activation_time': bool,
                     'remove_suspension_utc_time': bool,
-                    'duration': Ord.Duration, 
+                    'duration': Duration, 
                     'good_thru_date': None,
                     'good_thru_utc_timestamp': datetime.datetime, 
                     'activation_utc_timestamp': datetime.datetime,
@@ -115,6 +123,7 @@ class CQGFormatCheck(PayloadFormatCheck):
             case RequestType.CANCEL_ORDER:
                 # ORDER_ID, status is not filled
                 acceptable_request_specific_fields = {
+                    "symbol_name": str,
                     'orig_cl_order_id': str,
                     "cl_order_id": str, 
                     'when_utc_timestamp': int
@@ -130,9 +139,10 @@ class CQGFormatCheck(PayloadFormatCheck):
                 is_correct_type(essentials_request_specific_field_types, 
                                 self.order_info) # Type checks
 
-            case RequestType.ACRIVATE_ORDER:
+            case RequestType.ACTIVATE_ORDER:
                 # ORDER_ID, status is suspend
                 acceptable_request_specific_fields = {
+                    "symbol_name": str,
                     'orig_cl_order_id': str,
                     "cl_order_id": str, 
                     'when_utc_timestamp': int
@@ -150,11 +160,13 @@ class CQGFormatCheck(PayloadFormatCheck):
 
             case RequestType.CANCELALL_ORDER:
                 acceptable_request_specific_fields = {
+                    "symbol_name": str,
                     'cl_order_id': str,
                     'when_utc_timestamp': int
                     }
                 
                 essentials_request_specific_field_types = {
+                    "symbol_name": str,
                     "cl_order_id": str, 
                     }
                 
@@ -165,6 +177,7 @@ class CQGFormatCheck(PayloadFormatCheck):
 
             case RequestType.LIQUIDATEALL_ORDER:
                 acceptable_request_specific_fields = {
+                    "symbol_name": str,
                     'when_utc_timestamp': datetime.datetime,
                     'is_short': bool,
                     'current_day_only': bool
@@ -172,15 +185,20 @@ class CQGFormatCheck(PayloadFormatCheck):
 
             case RequestType.GOFLAT_ORDER:
                 acceptable_request_specific_fields = {
+                    "symbol_name": str,
                     'when_utc_timestamp': datetime.datetime,
                     'execution_source_code': bool, 
                     'speculation_type': bool
                     }
 
-        for key, _ in self.order_info:
+        for key in self.order_info:
             if key not in list(acceptable_request_specific_fields.keys()):
                 raise AttributeError(f"{key} is not an acceptable field for\
                                      {self.order_request_type} request.")
+            elif key in list(acceptable_request_specific_fields.keys()):
+                if type(self.order_info[key]) != acceptable_request_specific_fields[key]:
+                    raise TypeError(f"Type Error, {key} must be: {acceptable_request_specific_fields[key].__name__}.")
+
                                      
     def check_order_specific_essential_fields(self) -> None:
         # This function check the essential fields for particular order options
@@ -194,23 +212,23 @@ class CQGFormatCheck(PayloadFormatCheck):
 
         ## Order types check
         # For LMT orders
-        if self.order_info['order_type'] is Ord.OrderType.ORDER_TYPE_LMT:
+        if self.order_info['order_type'] is OrderType.ORDER_TYPE_LMT:
             isnot_null(LMT_order_field_types, self.order_info)
             is_correct_type(LMT_order_field_types, self.order_info)
             
         # For STP orders
-        elif self.order_info['order_type'] is Ord.OrderType.ORDER_TYPE_STP: 
+        elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STP: 
             isnot_null(STP_order_field_types, self.order_info)
             is_correct_type(STP_order_field_types, self.order_info)
 
-        elif self.order_info['order_type'] is Ord.OrderType.ORDER_TYPE_STL:
+        elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STL:
             isnot_null(STL_order_field_types, self.order_info)
             is_correct_type(STL_order_field_types, self.order_info)
                     
         ### Duration GTD case check
         duration_GTD_field_types = {"good_thru_date": int}
 
-        if self.order_info['duration'] is Ord.Duration.GTD:
+        if self.order_info['duration'] is Duration.GTD:
             isnot_null(duration_GTD_field_types, self.order_info)
             is_correct_type(duration_GTD_field_types, self.order_info)
 
@@ -218,7 +236,7 @@ class CQGFormatCheck(PayloadFormatCheck):
         ### Execution instruction case Check
         execution_Trail_field_types = {"scaled_trail_offset": int}
         if self.order_info['exec_instructions'] is\
-            Ord.ExecInstruction.EXEC_INSTRUCTION_TRAIL:
+            ExecInstruction.EXEC_INSTRUCTION_TRAIL:
             isnot_null(execution_Trail_field_types, self.order_info)
             is_correct_type(execution_Trail_field_types, self.order_info)
 
@@ -227,7 +245,7 @@ class CQGFormatCheck(PayloadFormatCheck):
         # Call the relevant dictionary that store all the safety prarmeters
         range_mapping = self.asset_safty_range[self.order_info['symbol_name']]
         
-        for key, value in range_mapping:
+        for key in range_mapping:
             if self.order_info.get(key) is not None:
                 up_bound = range_mapping[key]['upper_limit']
                 low_bound = range_mapping[key]['lower_limit']
@@ -238,7 +256,7 @@ class CQGFormatCheck(PayloadFormatCheck):
     
     def run(self) -> None:
         self.check_crendential()
-        #self.check_request_specific_fields()
+        self.check_request_specific_fields()
         #self.check_order_specific_essential_fields()
         #self.check_valid_value()
         

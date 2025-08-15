@@ -19,12 +19,13 @@ def is_correct_type(reference_dict: dict[str, Any],
                     target_dict: dict[str, Any]) -> None:
     # Return nothing if type exist in target_dict, else raise key error
     for key in reference_dict:
+        #print(type(target_dict[key]), reference_dict[key])
         if type(target_dict[key]) != reference_dict[key]:
             raise TypeError(f"Type Error, {key} must be: {reference_dict[key].__name__}.")
             
 class PayloadFormatCheck(Protocol):
     """
-    Protocol class for checking Payload formats
+    Protocol class for checking Payload formats.
     """
     def __init__(self,                  
                  order_request_type: RequestType, 

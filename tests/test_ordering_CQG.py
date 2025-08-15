@@ -8,11 +8,21 @@ Created on Wed Jul 30 10:41:19 2025
 import logging
 import pytest        
 
-from EC_API.ext.WebAPI.trade_routing_2_pb2 import PositionStatus
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import (
+    PositionStatus,
+    CollateralStatus,
+    AccountSummaryStatus
+    )
 from EC_API.connect.base import ConnectCQG
 from EC_API.utility.base import random_string
 from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
-from EC_API.ordering.enums import *
+from EC_API.ordering.enums import (
+    SubScope,
+    OrderType,
+    Duration,
+    Side,
+    RequestType
+    )
 from tests.ordering_cases import (
     NewOrderCases, 
     ModifyOrderCases, 
@@ -116,9 +126,9 @@ def test_success_pos_status_requests(symbol_name: str) -> None:
     request_details = {
         "symbol_name": symbol_name,
         "cl_order_id": random_string(length=10),
-        "order_type": ORDER_TYPE_MKT,
-        "duration": DURATION_DAY, 
-        "side": SIDE_BUY,
+        "order_type": OrderType.ORDER_TYPE_MKT,
+        "duration": Duration.DURATION_DAY, 
+        "side": Side.SIDE_BUY,
         "qty_significant": 1, # make sure qty are in Decimal (int) not float
         "qty_exponent": 0, 
         "is_manual": False,
@@ -128,7 +138,7 @@ def test_success_pos_status_requests(symbol_name: str) -> None:
                            symbol_name = request_details['symbol_name'], 
                            request_id = int(random_string(length=10)), 
                            account_id = ACCOUNT_ID,
-                           sub_scope = SUBSCRIPTION_SCOPE_POSITIONS)
+                           sub_scope = SubScope.SUBSCRIPTION_SCOPE_POSITIONS)
     server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                               request_details = request_details)
 
@@ -143,9 +153,9 @@ def test_success_collateral_status_requests(symbol_name: str) -> None:
     request_details = {
         "symbol_name": symbol_name,
         "cl_order_id": random_string(length=10),
-        "order_type": ORDER_TYPE_MKT,
-        "duration": DURATION_DAY, 
-        "side": SIDE_BUY,
+        "order_type": OrderType.ORDER_TYPE_MKT,
+        "duration": Duration.DURATION_DAY, 
+        "side": Side.SIDE_BUY,
         "qty_significant": 1, # make sure qty are in Decimal (int) not float
         "qty_exponent": 0, 
         "is_manual": False,
@@ -155,7 +165,7 @@ def test_success_collateral_status_requests(symbol_name: str) -> None:
                            symbol_name = request_details['symbol_name'], 
                            request_id = int(random_string(length=10)), 
                            account_id = ACCOUNT_ID,
-                           sub_scope = SUBSCRIPTION_SCOPE_COLLATERAL)
+                           sub_scope = SubScope.SUBSCRIPTION_SCOPE_COLLATERAL)
     server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                               request_details = request_details)
 
@@ -169,9 +179,9 @@ def test_account_summary_status_requests(symbol_name: str) -> None:
     request_details = {
         "symbol_name": symbol_name,
         "cl_order_id": random_string(length=10),
-        "order_type": ORDER_TYPE_MKT,
-        "duration": DURATION_DAY, 
-        "side": SIDE_BUY,
+        "order_type": OrderType.ORDER_TYPE_MKT,
+        "duration": Duration.DURATION_DAY, 
+        "side": Side.SIDE_BUY,
         "qty_significant": 1, # make sure qty are in Decimal (int) not float
         "qty_exponent": 0, 
         "is_manual": False,
@@ -181,7 +191,7 @@ def test_account_summary_status_requests(symbol_name: str) -> None:
                            symbol_name = request_details['symbol_name'], 
                            request_id = int(random_string(length=10)), 
                            account_id = ACCOUNT_ID,
-                           sub_scope = SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY)
+                           sub_scope = SubScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY)
     server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
                               request_details = request_details)
 

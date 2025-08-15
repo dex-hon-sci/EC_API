@@ -47,17 +47,22 @@ To send a new order request directly via `EC_API` native functions
 from datetime import timezone, datetime, timedelta
 from EC_API.utility.base import random_string
 from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
+from EC_API.ordering.enums import (
+    OrderType, Duration, Side,
+    ExecInstruction,
+    RequestType
+    )
 new_order_details =  { 
     "symbol_name": "CLEV25",
     "cl_order_id": "1231314",
-    "order_type": ORDER_TYPE_LMT,  # For Limit orders
-    "duration": DURATION_GTC,      # With a Duration of Good-till-Cancel
-    "side": SIDE_BUY,              # Buy order
+    "order_type": OrderType.ORDER_TYPE_LMT,  # For Limit orders
+    "duration": Duration.DURATION_GTC,      # With a Duration of Good-till-Cancel
+    "side": Side.SIDE_BUY,              # Buy order
     "qty_significant": 2,
     "qty_exponent": 0, 
     "scaled_limit_price": 1000,
     "good_thru_date": datetime(2025,9,9),
-    "exec_instructions": EXEC_INSTRUCTION_AON
+    "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
     }
                       
 try:
@@ -79,10 +84,9 @@ To send a modify order request in a similar fashion
 
 modify_order_details =  { 
     "symbol_name": "CLEV25",
-    "order_id": ORDER_ID, 
     "ogri_cl_order_id": "1231314", # The original cl_order_id
     "cl_order_id": "1231315", # new cl_order_id
-    "duration": DURATION_GTD, # Change from GTC to GTD
+    "duration": Duration.DURATION_GTD, # Change from GTC to GTD
     "qty": 10, # change qty to from 2 to 10
     "scaled_limit_price": 1100, # change LMT proce from 1000 to 1100
     }
@@ -106,18 +110,23 @@ To send orders with `Payload`, you can use this:
 ```python 
 from EC_API.payload.base import Payload, ExecutePayload_CQG
 from EC_API.payload.CQG_safety import CQGFormatCheck
+from EC_API.ordering.enums import (
+    OrderType, Duration, Side,
+    ExecInstruction,
+    RequestType
+    )
 ORDER_INFO = {
    "symbol_name": "CLEV25",
    "cl_order_id": "1231314",
-   "order_type": ORDER_TYPE_LMT, 
-   "duration": DURATION_GTC, 
-   "side": SIDE_BUY,
+   "order_type": OrderType.ORDER_TYPE_LMT, 
+   "duration": Duration.DURATION_GTC, 
+   "side": Side.SIDE_BUY,
    "qty_significant": 2,
    "qty_exponent": 0, 
    "is_manual": False,
    "scaled_limit_price": 1000,
    "good_thru_date": datetime(2025,9,9),
-   "exec_instructions": EXEC_INSTRUCTION_AON
+   "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
     }
 
 # Construct Payload object

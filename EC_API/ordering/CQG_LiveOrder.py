@@ -12,7 +12,12 @@ from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.base import ConnectCQG
 from EC_API.connect.hearback import hearback, get_contract_metadata
-from EC_API.ordering.enums import *
+from EC_API.ordering.enums import (
+    SubScope,
+    OrderType,
+    Duration,
+    RequestType
+    )
 from EC_API.ordering.base import LiveOrder
 from EC_API.utility.base import random_string
 
@@ -24,7 +29,7 @@ class CQGLiveOrder(LiveOrder):
                  symbol_name: str, 
                  request_id: int, 
                  account_id: int,
-                 sub_scope: int = SUBSCRIPTION_SCOPE_ORDERS,
+                 sub_scope: int = SubScope.SUBSCRIPTION_SCOPE_ORDERS,
                  msg_id: int = int(random_string(length=10)), # For symbol resolutions
                  trade_subscription_id: int = int(random_string(length=10)) # For trade_sub
                  ):
@@ -69,7 +74,7 @@ class CQGLiveOrder(LiveOrder):
         trade_sub_request.skip_orders_snapshot = skip_orders_snapshot
         #trade_sub_request.last_order_update_utc_timestamp = last_order_update_utc_timestamp
         
-        if self.sub_scope == SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY:
+        if self.sub_scope == SubScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY:
             account_summary_parameters = trade_sub_request.account_summary_parameters
             # 8 means purchasing_power, 15 means current_balance, 16 means profit_loss
             account_summary_parameters.requested_fields.extend([8,15,16])
@@ -82,8 +87,8 @@ class CQGLiveOrder(LiveOrder):
     def new_order_request(self, 
                           contract_id: int = 0, # Get this from contractmetadata
                           cl_order_id: str = "", 
-                          order_type: Ord.OrderType = ORDER_TYPE_MKT, 
-                          duration: Ord.Duration = DURATION_DAY, 
+                          order_type: OrderType = OrderType.ORDER_TYPE_MKT, 
+                          duration: Duration = Duration.DURATION_DAY, 
                           side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
                           qty_significant: int = 0, # make sure qty are in Decimal (int) not float
                           qty_exponent: int = 0, 
@@ -283,6 +288,7 @@ class CQGLiveOrder(LiveOrder):
     @hearback 
     def liquidateall_order_request(self, 
                                    contract_id: int = 0,
+                                   cl_order_id: str = "",
                                    **kwargs) -> ServerMsg:
         default_kwargs = {
             'when_utc_timestamp': datetime.datetime.now(timezone.utc),
