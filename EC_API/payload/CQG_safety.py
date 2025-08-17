@@ -22,10 +22,10 @@ from EC_API.ordering.enums import (
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
 
 ASSETS_SAFETY_RANGE = {
-    "CLE": {'scaled_limit_price': {'upper_limit': 0, 
-                                   'lower_limit': 0},
-            'scaled_stop_price': {'upper_limit': 0,
-                                  'lower_limit': 0},
+    "CLE": {'scaled_limit_price': {'upper_limit': 10000, 
+                                   'lower_limit': 100},
+            'scaled_stop_price': {'upper_limit': 15000,
+                                  'lower_limit': 100},
             'qty': {'upper_limit': 10,
                     'lower_limit': 1},
             'qty_significant': {'upper_limit': 9,
@@ -193,8 +193,7 @@ class CQGFormatCheck(PayloadFormatCheck):
 
         for key in self.order_info:
             if key not in list(acceptable_request_specific_fields.keys()):
-                raise AttributeError(f"{key} is not an acceptable field for\
-                                     {self.order_request_type} request.")
+                raise AttributeError(f"{key} is not an acceptable field for {self.order_request_type} request.")
             elif key in list(acceptable_request_specific_fields.keys()):
                 if type(self.order_info[key]) != acceptable_request_specific_fields[key]:
                     raise TypeError(f"Type Error, {key} must be: {acceptable_request_specific_fields[key].__name__}.")
@@ -204,60 +203,61 @@ class CQGFormatCheck(PayloadFormatCheck):
         # This function check the essential fields for particular order options
         # Such as LMT order needs to have the field scaled_limit_price
         
-        # Specific requirements check
-        LMT_order_field_types = {"scaled_limit_price": int}
-        STP_order_field_types = {"scaled_stop_price": int}
-        STL_order_field_types = {"scaled_limit_price": int,
-                                 "scaled_stop_price": int}
-
-        ## Order types check
-        # For LMT orders
-        if self.order_info['order_type'] is OrderType.ORDER_TYPE_LMT:
-            isnot_null(LMT_order_field_types, self.order_info)
-            is_correct_type(LMT_order_field_types, self.order_info)
-            
-        # For STP orders
-        elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STP: 
-            isnot_null(STP_order_field_types, self.order_info)
-            is_correct_type(STP_order_field_types, self.order_info)
-
-        elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STL:
-            isnot_null(STL_order_field_types, self.order_info)
-            is_correct_type(STL_order_field_types, self.order_info)
+        if self.order_info.get('order_type') is not None:
+            # Specific requirements check
+            LMT_order_field_types = {"scaled_limit_price": int}
+            STP_order_field_types = {"scaled_stop_price": int}
+            STL_order_field_types = {"scaled_limit_price": int,
+                                     "scaled_stop_price": int}
+    
+            ## Order types check
+            # For LMT orders
+            if self.order_info['order_type'] is OrderType.ORDER_TYPE_LMT:
+                isnot_null(LMT_order_field_types, self.order_info)
+                is_correct_type(LMT_order_field_types, self.order_info)
+                
+            # For STP orders
+            elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STP: 
+                isnot_null(STP_order_field_types, self.order_info)
+                is_correct_type(STP_order_field_types, self.order_info)
+    
+            elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STL:
+                isnot_null(STL_order_field_types, self.order_info)
+                is_correct_type(STL_order_field_types, self.order_info)
                     
         ### Duration GTD case check
-        duration_GTD_field_types = {"good_thru_date": int}
-
-        if self.order_info['duration'] is Duration.GTD:
-            isnot_null(duration_GTD_field_types, self.order_info)
-            is_correct_type(duration_GTD_field_types, self.order_info)
+        if self.order_info.get('duration') is not None:
+            duration_GTD_field_types = {"good_thru_date": int}
+    
+            if self.order_info['duration'] is Duration.DURATION_GTD:
+                isnot_null(duration_GTD_field_types, self.order_info)
+                is_correct_type(duration_GTD_field_types, self.order_info)
 
                     
         ### Execution instruction case Check
-        execution_Trail_field_types = {"scaled_trail_offset": int}
-        if self.order_info['exec_instructions'] is\
-            ExecInstruction.EXEC_INSTRUCTION_TRAIL:
-            isnot_null(execution_Trail_field_types, self.order_info)
-            is_correct_type(execution_Trail_field_types, self.order_info)
+        if self.order_info.get('exec_instructions') is not None:
+            execution_Trail_field_types = {"scaled_trail_offset": int}
+            if self.order_info['exec_instructions'] is\
+                ExecInstruction.EXEC_INSTRUCTION_TRAIL:
+                isnot_null(execution_Trail_field_types, self.order_info)
+                is_correct_type(execution_Trail_field_types, self.order_info)
 
     def check_valid_value(self) -> None:
         # Check if the value entered is allowed by our safety parameters.  
         # Call the relevant dictionary that store all the safety prarmeters
-        range_mapping = self.asset_safty_range[self.order_info['symbol_name']]
+        range_mapping = self.asset_safty_range[self.order_info['symbol_name'][:3]]
         
         for key in range_mapping:
             if self.order_info.get(key) is not None:
                 up_bound = range_mapping[key]['upper_limit']
                 low_bound = range_mapping[key]['lower_limit']
-                if (self.order_info[key] >= up_bound) or\
-                   (self.order_info[key] <= low_bound):
-                        raise ValueError(f'{key} is outside of the allowed range:\
-                                         [{low_bound}, {up_bound}]')
+                if (self.order_info[key] > up_bound) or (self.order_info[key] < low_bound):
+                        raise ValueError(f'{key} is outside of the allowed range: [{low_bound}, {up_bound}].')
     
     def run(self) -> None:
         self.check_crendential()
         self.check_request_specific_fields()
-        #self.check_order_specific_essential_fields()
-        #self.check_valid_value()
+        self.check_order_specific_essential_fields()
+        self.check_valid_value()
         
 
