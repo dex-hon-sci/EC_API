@@ -162,7 +162,7 @@ To monitor Real-time Data
     │   │   │   └── __init__.py
     │   │   ├── hearback.py                      <- Universal decorators functions for receiving server msg.
     │   │   └── __init__.py
-    │   ├── ext                                  <- External codes.
+    │   ├── ext                                  <- External codes. Service provider's API can be added here.
     │   │   ├── common
     │   │   │   ├── decimal_pb2.py
     │   │   │   ├── __init__.py
