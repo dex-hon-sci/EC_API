@@ -6,11 +6,11 @@ Created on Tue Aug 12 16:18:22 2025
 @author: dexter
 """
 import pytest
-from datetime import datetime,timezone, timedelta
+from datetime import datetime, timezone, timedelta
 from EC_API.payload.base import Payload
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
-from EC_API.payload.CQG_safety import CQGFormatCheck
+from EC_API.payload.cqg.safety import CQGFormatCheck
 from EC_API.ordering.enums import (
     Side, 
     Duration, 

@@ -10,7 +10,7 @@ from datetime import timezone
 
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from EC_API.connect.base import ConnectCQG
+from EC_API.connect.cqg.connect import ConnectCQG
 from EC_API.connect.hearback import hearback, get_contract_metadata
 from EC_API.ordering.enums import (
     SubScope,

@@ -6,7 +6,7 @@ Created on Fri Aug  8 11:02:05 2025
 @author: dexter
 """
 from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus
-from EC_API.connect.base import ConnectCQG
+from EC_API.connect.cqg.connect import ConnectCQG
 from EC_API.utility.base import random_string
 from EC_API.ordering.enums import (
     SubScope,
@@ -17,7 +17,7 @@ from EC_API.ordering.enums import (
     ExecInstruction,
     OrderStatus
     )
-from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
+from EC_API.ordering.cqg.live_order import CQGLiveOrder
 
 
 class NewOrderCases(object):

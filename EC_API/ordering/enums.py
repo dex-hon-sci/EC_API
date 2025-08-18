@@ -7,13 +7,12 @@ Created on Mon Jul 21 17:55:13 2025
 
 This Enum file contain the most relevant enums for ordering.
 """
+# Python imports
 from enum import Enum
-
+# EC_API imports
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
 from EC_API.ext.common.shared_1_pb2 import OrderStatus
-
-
 
 class RequestType(Enum):
     NEW_ORDER = "new_order_request"

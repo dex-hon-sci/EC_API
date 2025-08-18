@@ -6,13 +6,12 @@ Created on Thu Aug  7 10:06:40 2025
 @author: dexter
 """
 import time
-
 # Import EC_API scripts
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from EC_API.connect.base import ConnectCQG
+from EC_API.connect.cqg.connect import ConnectCQG
 from EC_API.monitor.base import Monitor
 
-class MonitorRealTimedata_CQG(Monitor):
+class MonitorRealTimedataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._connection = connection
         self._connection.logon()

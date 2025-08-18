@@ -15,11 +15,11 @@ Signal.actions -> CQGLiveOrder -> Payload
 
 """
 from EC_API.payload.enums import PayloadStatus
-from EC_API.payload.base import Payload, ExecutePayload_CQG
+from EC_API.payload.base import Payload, ExecutePayload
 
 __all__ = [
     "Payload",
-    "ExecutePayload_CQG",
+    "ExecutePayload",
     "PayloadStatus",
     ]
 __pdoc__ = {k: False for k in __all__}

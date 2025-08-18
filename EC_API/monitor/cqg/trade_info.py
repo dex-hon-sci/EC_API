@@ -7,12 +7,12 @@ Created on Thu Aug  7 10:13:43 2025
 """
 import datetime
 from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from EC_API.connect.base import ConnectCQG
+from EC_API.connect.cqg.connect import ConnectCQG
 from EC_API.connect.hearback import hearback
 from EC_API.monitor.base import Monitor
 
 # MonitorActiveOrder/ MonitorActivePosition
-class MonitorTrade_CQG(Monitor):
+class MonitorTradeCQG(Monitor):
     def __init__(self, 
                  connection: ConnectCQG, 
                  account_id: int):

@@ -10,10 +10,8 @@ import datetime
 from datetime import timezone
 from dataclasses import dataclass, field
 # EC_API imports
-from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
-from EC_API.connect.base import ConnectCQG
-from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
-from EC_API.payload.CQG_safety import CQGFormatCheck
+from EC_API.connect.base import Connect
+from EC_API.ordering.base import LiveOrder
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
@@ -38,7 +36,7 @@ class Payload(object):
     end_time: datetime.datetime = datetime.datetime.now(timezone.utc)\
                                     + datetime.timedelta(days=2) # In long text format
     order_info: dict = field(default_factory=dict)
-    check_method: PayloadFormatCheck = CQGFormatCheck
+    check_method: PayloadFormatCheck = PayloadFormatCheck
     
     def __post_init__(self) -> None:
         # Check the order instructions based on the order type
@@ -50,10 +48,10 @@ class Payload(object):
         check_obj.run()
         
 
-class ExecutePayload_CQG(object):
+class ExecutePayload(object):
     # Execution object for CQG trade rounting connection
     def __init__(self, 
-                 connect: ConnectCQG, 
+                 connect: Connect, 
                  payload: Payload,
                  request_id: int,
                  account_id: int):
@@ -61,6 +59,7 @@ class ExecutePayload_CQG(object):
         self._payload = payload
         self.account_id = account_id
         self.sub_scope = 1
+        self.live_order = LiveOrder
         
     def change_payload_status(server_msg) -> None:
         pass
@@ -72,7 +71,7 @@ class ExecutePayload_CQG(object):
         """
         # Only send payload that is pending.
         if self._payload.status == PayloadStatus.PENDING:
-            CLOrder = CQGLiveOrder(self._connect, 
+            CLOrder = self.live_order(self._connect, 
                                    symbol_name = self._payload.order_info['symbol_name'], 
                                    request_id = self._payload.request_id, 
                                    account_id = self.account_id,
