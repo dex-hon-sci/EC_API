@@ -29,7 +29,7 @@ We use CQG connection as an example in this demostration.
 
 To facilitate a connection, 
 ```python
-from EC_API.connect.base import ConnectCQG
+from EC_API.connect.cqg.connect import ConnectCQG
 
 HOST_NAME = 'wss://demo.traderoute.com:000'
 USR_NAME = 'USR_NAME'
@@ -45,8 +45,7 @@ To send a new order request directly via `EC_API` native functions
 
 ```python
 from datetime import timezone, datetime, timedelta
-from EC_API.utility.base import random_string
-from EC_API.ordering.CQG_LiveOrder import CQGLiveOrder
+from EC_API.ordering.cqg.live_order import CQGLiveOrder
 from EC_API.ordering.enums import (
     OrderType, Duration, Side,
     ExecInstruction,
@@ -73,10 +72,6 @@ try:
   # Specify the request type as you send the order
   CLOrder1.send(request_type = RequestType.NEW_ORDER, 
                 request_details = new_order_details)  
-```
-Result:
-```plaintext
-
 ```
 
 To send a modify order request in a similar fashion
@@ -108,8 +103,8 @@ checking and safety regulation for the input parameters.
 To send orders with `Payload`, you can use this:
 
 ```python 
-from EC_API.payload.base import Payload, ExecutePayload_CQG
-from EC_API.payload.CQG_safety import CQGFormatCheck
+from EC_API.payload.base import Payload, ExecutePayload
+from EC_API.payload.cqg.safety import CQGFormatCheck # Import safety standard specific to cqg
 from EC_API.ordering.enums import (
     OrderType, Duration, Side,
     ExecInstruction,
@@ -144,13 +139,10 @@ PL1 = Payload(
 
 # ExecutePayload 
 try:
-  EP = ExecutePayload_CQG(CONNECT, PL1, ACCOUNT_ID).unload()
+  EP = ExecutePayload(CONNECT, PL1, ACCOUNT_ID).unload()
 
 ```
-Result:
-```plaintext
 
-```
 To monitor Position,
 ```python
 ```
@@ -165,6 +157,9 @@ To monitor Real-time Data
     ├── EC_API
     │   ├── connect                              <- In charge of server connections and authetications.
     │   │   ├── base.py
+    │   │   ├── cqg                              <- cqg specfic codes in each modules. Patches and new service can be added easily.
+    │   │   │   ├── connect.py                      
+    │   │   │   └── __init__.py
     │   │   ├── hearback.py                      <- Universal decorators functions for receiving server msg.
     │   │   └── __init__.py
     │   ├── ext                                  <- External codes.
@@ -201,29 +196,34 @@ To monitor Real-time Data
     │   ├── monitor                              <- All functions related to monitoring.
     │   │   ├── base.py
     │   │   ├── cqg
-    │   │   ├── CQG_realtime_data.py
-    │   │   ├── CQG_trade_info.py
-    │   │   ├── CQG_trade_subscription.py
+    │   │   │   ├── realtime_data.py
+    │   │   │   ├── trade_info.py
+    │   │   │   └── __init__.py
     │   │   ├── __init__.py
     │   ├── msg_validation                       <- In charge of validating server message.
     │   │   ├── base.py
     │   │   ├── cqg
-    │   │   ├── CQG_connect_enums.py
-    │   │   ├── CQG_historical_enums.py
-    │   │   ├── CQG_mapping.py                   <- CQG-specific valid client-server msg mappings.
-    │   │   ├── CQG_market_data_enums.py
-    │   │   ├── CQG_meta_enums.py
-    │   │   ├── CQG_trade_enums.py
-    │   │   ├── CQG_valid_msg_check.py
+    │   │   │   ├── connect_enums.py
+    │   │   │   ├── historical_enums.py
+    │   │   │   ├── mapping.py                   <- CQG-specific valid client-server msg mappings.
+    │   │   │   ├── market_data_enums.py
+    │   │   │   ├── meta_enums.py
+    │   │   │   ├── trade_enums.py
+    │   │   │   ├── valid_msg_check.py
+    │   │   │   └── __init__.py
     │   │   ├── __init__.py
     │   ├── ordering                             <- In charge of sending orders to the exchanges.
     │   │   ├── base.py
-    │   │   ├── CQG_LiveOrder.py
+    │   │   ├── cqg
+    │   │   │   ├── live_order.py
+    │   │   │   └── __init__.py
     │   │   ├── enums.py
     │   │   ├── __init__.py
     │   ├── payload                              <- Define the unified payload format for order requests.
     │   │   ├── base.py
-    │   │   ├── CQG_safety.py                    <- CQG-specific safety parameters and format checks.
+    │   │   ├── cqg
+    │   │   │   ├── safety.py                    <- CQG-specific safety parameters and format checks.
+    │   │   │   └── __init__.py    
     │   │   ├── enums.py
     │   │   ├── __init__.py
     │   │   └── safety.py
