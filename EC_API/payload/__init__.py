@@ -14,8 +14,8 @@ Signal.actions -> CQGLiveOrder -> Payload
 
 
 """
-from EC_API.payload.enums import PayloadStatus
-from EC_API.payload.base import Payload, ExecutePayload
+from .enums import PayloadStatus
+from .base import Payload, ExecutePayload
 
 __all__ = [
     "Payload",

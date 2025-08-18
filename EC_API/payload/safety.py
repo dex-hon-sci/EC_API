@@ -6,7 +6,7 @@ Created on Mon Aug 11 20:40:59 2025
 @author: dexter
 """
 from typing import Protocol, Any
-from EC_API.ordering.enums import RequestType
+from ..ordering.enums import RequestType
 
 def isnot_null(reference_dict: dict[str, Any], 
                target_dict: dict[str, Any]) -> None:

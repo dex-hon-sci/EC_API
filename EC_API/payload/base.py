@@ -10,11 +10,11 @@ import datetime
 from datetime import timezone
 from dataclasses import dataclass, field
 # EC_API imports
-from EC_API.connect.base import Connect
-from EC_API.ordering.base import LiveOrder
-from EC_API.payload.enums import PayloadStatus
-from EC_API.ordering.enums import RequestType
-from EC_API.payload.safety import PayloadFormatCheck
+from ..connect.base import Connect
+from ..ordering.base import LiveOrder
+from .enums import PayloadStatus
+from ..ordering.enums import RequestType
+from .safety import PayloadFormatCheck
 
 @dataclass
 class Payload(object):

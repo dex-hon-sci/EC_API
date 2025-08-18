@@ -7,8 +7,8 @@ Created on Tue Jul 29 13:19:48 2025
 """
 from typing import Protocol
 
-from EC_API.ordering.enums import RequestType
-from EC_API.connect.base import Connect
+from .enums import RequestType
+from ..connect.base import Connect
 
 class LiveOrder(Protocol):
     def __init__(self, 

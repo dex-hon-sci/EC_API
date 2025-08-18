@@ -6,7 +6,7 @@ Created on Wed Jul 30 09:39:58 2025
 @author: dexter
 """
 
-from EC_API.msg_validation.base import ValidMsgCheck
+from .base import ValidMsgCheck
 
 __all__ = [
     "ValidMsgCheck", 
