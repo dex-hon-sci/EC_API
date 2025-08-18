@@ -13,7 +13,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     5,
     29,
-    3,
+    2,
     '',
     'WebAPI/strategy_2.proto'
 )
@@ -22,10 +22,10 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from EC_API.ext.WebAPI import metadata_2_pb2 as WebAPI_dot_metadata__2__pb2
-from EC_API.ext.WebAPI import strategy_definition_2_pb2 as WebAPI_dot_strategy__definition__2__pb2
-from EC_API.ext.common import decimal_pb2 as common_dot_decimal__pb2
-from EC_API.ext.common import shared_1_pb2 as common_dot_shared__1__pb2
+from . import metadata_2_pb2 as WebAPI_dot_metadata__2__pb2
+from . import strategy_definition_2_pb2 as WebAPI_dot_strategy__definition__2__pb2
+from ..common import decimal_pb2 as common_dot_decimal__pb2
+from ..common import shared_1_pb2 as common_dot_shared__1__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 

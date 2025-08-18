@@ -13,7 +13,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     5,
     29,
-    3,
+    2,
     '',
     'WebAPI/rules_1.proto'
 )
@@ -22,7 +22,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from EC_API.ext.common import shared_1_pb2 as common_dot_shared__1__pb2
+from ..common import shared_1_pb2 as common_dot_shared__1__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 

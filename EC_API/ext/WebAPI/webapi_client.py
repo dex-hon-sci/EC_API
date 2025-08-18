@@ -1,5 +1,5 @@
-from EC_API.ext.WebAPI import websocket
-from EC_API.ext.WebAPI.webapi_2_pb2 import *
+from . import websocket
+from .webapi_2_pb2 import *
 
 
 class WebApiClient:

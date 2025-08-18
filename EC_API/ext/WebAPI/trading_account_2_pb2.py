@@ -13,7 +13,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     5,
     29,
-    3,
+    2,
     '',
     'WebAPI/trading_account_2.proto'
 )

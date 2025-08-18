@@ -13,7 +13,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     5,
     29,
-    3,
+    2,
     '',
     'WebAPI/user_attribute_2.proto'
 )
