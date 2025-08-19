@@ -143,8 +143,17 @@ try:
 
 ```
 
-To monitor Position,
+To monitor Open Orders in your account,
 ```python
+from EC_API.monitor.cqg.trade_info import MonitorTradeCQG
+
+to_date = datetime.now(timezone.utc) - timedelta(hours=1)
+from_date = datetime.now(timezone.utc) - - timedelta(hours=10)
+
+# Check open orders for the past 9 hours
+Mon = MonitorTradeCQG(CONNECT, ACCOUNT_ID)
+Mon.request_historical_orders(from_date, to_date)
+
 ```
 
 To monitor Real-time Data
