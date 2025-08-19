@@ -18,6 +18,7 @@ WebSocket and TSL layers.
 | `ext` | External codes. Trade routing API codes are in here.  |
 | `monitor` | Monitor module takes care of information request, open-order<br>tracking, and real-time data request. |
 | `msg_validation` | It is in charge of server message validation. After sending<br>a client request, the server repsonse message goes through<br>message validation process in this module. The functions match<br>the message ID and map them with the acceptable message type<br>to ensure accurate pairing between client-server messages. |
+| `ops_strategy` | It defines the format for operational strategy. Specify<br>data feed input for strategy here.|
 | `ordering` | It handles `LiveOrder` type objects and how we send order request<br>to the exchanges. |
 | `payload` | It contains the `Payload` class where parameters validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
 | `utility` | It contains utility functions for the package.  |
@@ -110,6 +111,7 @@ from EC_API.ordering.enums import (
     ExecInstruction,
     RequestType
     )
+from EC_API.ordering.cqg.live_order import CQGLiverOrder
 ORDER_INFO = {
    "symbol_name": "CLEV25",
    "cl_order_id": "1231314",
@@ -138,8 +140,8 @@ PL1 = Payload(
   )
 
 # ExecutePayload 
-try:
-  EP = ExecutePayload(CONNECT, PL1, ACCOUNT_ID).unload()
+try: # Specify the type of live order we are using here.
+  EP = ExecutePayload(CONNECT, PL1, ACCOUNT_ID, live_order=CQGLiveOrder).unload()
 
 ```
 
@@ -147,37 +149,38 @@ To monitor Open Orders in your account,
 ```python
 from EC_API.monitor.cqg.trade_info import MonitorTradeCQG
 
-to_date = datetime.now(timezone.utc) - timedelta(hours=1)
-from_date = datetime.now(timezone.utc) - - timedelta(hours=10)
-
 # Check open orders for the past 9 hours
+to_date = datetime.now(timezone.utc) - timedelta(hours=1)
+from_date = datetime.now(timezone.utc) - timedelta(hours=10)
+
 Mon = MonitorTradeCQG(CONNECT, ACCOUNT_ID)
 Mon.request_historical_orders(from_date, to_date)
 
 ```
 
-To monitor Real-time Data
+To monitor Real-time Data (WIP)
 ```python
+
 ```
 
 
-## Project Organization (under construction)
+## Project Structure
 -----------------------
     ├── EC_API
-    │   ├── connect                              <- In charge of server connections and authetications.
+    │   ├── connect                   <- In charge of server connections and authetications.
     │   │   ├── base.py
-    │   │   ├── cqg                              <- cqg specfic codes in each modules. Patches and new service can be added easily.
+    │   │   ├── cqg                   <- cqg specfic codes in each modules. Patches and new service can be added easily.
     │   │   │   ├── connect.py                      
     │   │   │   └── __init__.py
-    │   │   ├── hearback.py                      <- Universal decorators functions for receiving server msg.
+    │   │   ├── hearback.py           <- Universal decorators functions for receiving server msg.
     │   │   └── __init__.py
-    │   ├── ext                                  <- External codes. Service provider's API can be added here.
+    │   ├── ext                       <- External codes. Service provider's API can be added here.
     │   │   ├── common
     │   │   │   ├── decimal_pb2.py
     │   │   │   ├── __init__.py
     │   │   │   └── shared_1_pb2.py
     │   │   ├── __init__.py
-    │   │   └── WebAPI                            <- Generated format files from CQG WebAPI protocol buffer.
+    │   │   └── WebAPI                <- Generated format files from CQG WebAPI protocol buffer.
     │   │       ├── account_authorization_2_pb2.py
     │   │       ├── api_limit_2_pb2.py
     │   │       ├── economic_calendar_2_pb2.py
@@ -202,36 +205,40 @@ To monitor Real-time Data
     │   │       ├── webapi_client.py
     │   │       └── websocket.py
     │   ├── __init__.py
-    │   ├── monitor                              <- All functions related to monitoring.
+    │   ├── monitor                   <- All functions related to monitoring.
     │   │   ├── base.py
     │   │   ├── cqg
     │   │   │   ├── realtime_data.py
     │   │   │   ├── trade_info.py
     │   │   │   └── __init__.py
     │   │   ├── __init__.py
-    │   ├── msg_validation                       <- In charge of validating server message.
+    │   ├── msg_validation            <- In charge of validating server message.
     │   │   ├── base.py
     │   │   ├── cqg
     │   │   │   ├── connect_enums.py
     │   │   │   ├── historical_enums.py
-    │   │   │   ├── mapping.py                   <- CQG-specific valid client-server msg mappings.
+    │   │   │   ├── mapping.py        <- CQG-specific valid client-server msg mappings.
     │   │   │   ├── market_data_enums.py
     │   │   │   ├── meta_enums.py
     │   │   │   ├── trade_enums.py
     │   │   │   ├── valid_msg_check.py
     │   │   │   └── __init__.py
     │   │   ├── __init__.py
-    │   ├── ordering                             <- In charge of sending orders to the exchanges.
+    │   ├── ops_strategy              <- In charge of operation strategy (Service Agnostic).
+    │   │   ├── base.py
+    │   │   └── __init__.py
+    │   │ 
+    │   ├── ordering                  <- In charge of sending orders to the exchanges.
     │   │   ├── base.py
     │   │   ├── cqg
     │   │   │   ├── live_order.py
     │   │   │   └── __init__.py
     │   │   ├── enums.py
     │   │   ├── __init__.py
-    │   ├── payload                              <- Define the unified payload format for order requests.
+    │   ├── payload                   <- Define the unified payload format for order requests (Service Agnostic).
     │   │   ├── base.py
     │   │   ├── cqg
-    │   │   │   ├── safety.py                    <- CQG-specific safety parameters and format checks.
+    │   │   │   ├── safety.py         <- CQG-specific safety parameters and format checks.
     │   │   │   └── __init__.py    
     │   │   ├── enums.py
     │   │   ├── __init__.py

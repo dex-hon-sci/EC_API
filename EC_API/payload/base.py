@@ -6,15 +6,14 @@ Created on Mon Jul 14 19:37:54 2025
 @author: dexter
 """
 # Python imports
-import datetime
-from datetime import timezone
+from datetime import timezone, datetime, timedelta
 from dataclasses import dataclass, field
 # EC_API imports
-from ..connect.base import Connect
-from ..ordering.base import LiveOrder
-from .enums import PayloadStatus
-from ..ordering.enums import RequestType
-from .safety import PayloadFormatCheck
+from EC_API.connect.base import Connect
+from EC_API.ordering.base import LiveOrder
+from EC_API.payload.enums import PayloadStatus
+from EC_API.ordering.enums import RequestType
+from EC_API.payload.safety import PayloadFormatCheck
 
 @dataclass
 class Payload(object):
@@ -31,10 +30,10 @@ class Payload(object):
     request_id: int = 0
     status: PayloadStatus = PayloadStatus.PENDING
     order_request_type: RequestType = RequestType.NEW_ORDER
-    start_time: datetime.datetime = datetime.datetime.now(timezone.utc)\
-                                    + datetime.timedelta(days=1)# In long text format
-    end_time: datetime.datetime = datetime.datetime.now(timezone.utc)\
-                                    + datetime.timedelta(days=2) # In long text format
+    start_time: datetime = datetime.now(timezone.utc)\
+                                    + timedelta(days=1)# In long text format
+    end_time: datetime = datetime.now(timezone.utc)\
+                                    + timedelta(days=2) # In long text format
     order_info: dict = field(default_factory=dict)
     check_method: PayloadFormatCheck = PayloadFormatCheck
     
