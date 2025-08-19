@@ -6,9 +6,8 @@ Created on Fri Aug  1 09:28:22 2025
 @author: dexter
 """
 from google.protobuf.descriptor import FieldDescriptor
-from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.msg_validation.base import ValidMsgCheck
-from EC_API.msg_validation.cqg.mapping import (
+from .mapping import (
     MAP_STATUS_ENUMS, 
     MAP_RESPONSES_TYPES_STR,
     map_result_code_client2server_msg,
@@ -16,6 +15,7 @@ from EC_API.msg_validation.cqg.mapping import (
     extract_IDs_from_client_msg,
     extract_IDs_from_server_msg
     )
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
 
 def get_CQG_msg_type(msg: ClientMsg|ServerMsg) ->\

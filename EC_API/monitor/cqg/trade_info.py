@@ -5,7 +5,7 @@ Created on Thu Aug  7 10:13:43 2025
 
 @author: dexter
 """
-import datetime
+from datetime import datetime
 from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.connect import ConnectCQG
 from EC_API.connect.hearback import hearback
@@ -21,8 +21,8 @@ class MonitorTradeCQG(Monitor):
 
     @hearback
     def request_historical_orders(self,
-                                  from_date: datetime.datetime, 
-                                  to_date: datetime.datetime) -> ServerMsg:
+                                  from_date: datetime, 
+                                  to_date: datetime) -> ServerMsg:
         
         from_date_timestamp = from_date.timestamp()
         to_date_timestamp = to_date.timestamp()

@@ -9,7 +9,7 @@ import time
 from typing import Callable
 from google.protobuf import json_format
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from EC_API.msg_validation.cqg.cqg.valid_msg_check import CQGValidMsgCheck
+from EC_API.msg_validation.cqg.valid_msg_check import CQGValidMsgCheck
 
         
 def hearback(func: Callable[str, int]): 

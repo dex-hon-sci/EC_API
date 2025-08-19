@@ -38,12 +38,6 @@ ACCOUNT_ID = 00000
 
 # Define logger object
 logger = logging.getLogger(__name__)
-# =============================================================================
-# logging.basicConfig(filename='./log/test_run_order.log', 
-#                     level=logging.INFO,
-#                     format="%(asctime) s%(levelname)s %(message)s",
-#                     datefmt="%Y-%m-%d %H:%M:%S")
-# =============================================================================
 logging.basicConfig(filename='./log/temp.log', 
                     level=logging.INFO,
                     format="%(asctime) s%(levelname)s %(message)s",

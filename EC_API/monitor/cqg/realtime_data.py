@@ -117,7 +117,7 @@ class MonitorRealTimedataCQG(Monitor):
                 if recv_contract_id == contract_id and status == 0:
                     return 
     
-    def run(self) -> dict[str|int|float]:
+    async def run(self) -> dict[str|int|float]:
         # Get contract_id from resolve symbol
         
         self.request_real_time() # Request real-time data
