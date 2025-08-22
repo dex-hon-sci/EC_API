@@ -18,8 +18,6 @@ from EC_API.ordering.enums import (
     OrderType,
     ExecInstruction
     )
-#from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
-from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
 
 ASSETS_SAFETY_RANGE = {
     "CLE": {'scaled_limit_price': {'upper_limit': 10000, 

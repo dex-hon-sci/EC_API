@@ -9,6 +9,7 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
+from EC_API.connect.enum import ConnectionState
 
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
@@ -16,25 +17,31 @@ class ConnectCQG(Connect):
     def __init__(self, 
                  host_name: str, 
                  user_name: str, 
-                 password: str):
+                 password: str,
+                 immediate_connect: bool = True):
         
         self._host_name = host_name
         self._user_name = user_name
         self._password = password
+        self._state: ConnectionState = ConnectionState.UNKNOWN
     
-        self.session_token = None
-        self.client_app_id = None
-        self.protocol_version_major = None
-        self.protocol_version_minor = None
-        
-        # immediate connect to the server as we create the object
+        self.session_token: str = None
+        self.client_app_id: str = None
+        self.protocol_version_major: int = None
+        self.protocol_version_minor: int = None
+        # Define client
         self._client = webapi_client.WebApiClient()
-        self._client.connect(self._host_name)
 
-        
+        if immediate_connect:
+            self._client.connect(self._host_name)
+
+    @property
     def client(self):
         # return client connection object
         return self._client
+    
+    def connect(self):
+        self._client.connect(self._host_name)
 
     def logon(self, 
               client_app_id: str ='WebApiTest', 
@@ -63,6 +70,7 @@ class ConnectCQG(Connect):
         server_msg = self._client.receive_server_message()
         if server_msg.logon_result.result_code == LogonResult.ResultCode.RESULT_CODE_SUCCESS:
             
+            # Save successful Logon information
             self.session_token = server_msg.logon_result.session_token
             self.client_app_id = client_app_id
             self.client_version = client_version
@@ -71,6 +79,7 @@ class ConnectCQG(Connect):
             
             print("Logon Successful")
             return server_msg
+        
         else:
             # the text_message contains the reason why user cannot login.
             raise Exception("Can't login: " + server_msg.logon_result.text_message)
