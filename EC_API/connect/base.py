@@ -22,7 +22,7 @@ class Connect(Protocol):
         self._host_name = host_name
         self._user_name = user_name
         self._password = password       
-        self._state = ConnectionState.UNKNOWN
+        self.state = ConnectionState.UNKNOWN
     
     @property
     def client(self):

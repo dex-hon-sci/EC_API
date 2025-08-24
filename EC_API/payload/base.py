@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 # EC_API imports
 from EC_API.connect.base import Connect
 from EC_API.ordering.base import LiveOrder
+from EC_API.ordering.enums import SubScope
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
@@ -53,12 +54,13 @@ class ExecutePayload(object):
                  connect: Connect, 
                  payload: Payload,
                  request_id: int,
-                 account_id: int):
+                 account_id: int,
+                 live_order: LiveOrder = LiveOrder):
         self._connect = connect 
         self._payload = payload
         self.account_id = account_id
-        self.sub_scope = 1
-        self.live_order = LiveOrder
+        self.live_order = live_order # LiveOrder class, changable by users.
+        self.sub_scope: SubScope = SubScope.SUBSCRIPTION_SCOPE_ORDERS
         
     def change_payload_status(server_msg) -> None:
         pass
