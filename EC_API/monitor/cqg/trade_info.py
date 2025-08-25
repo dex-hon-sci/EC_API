@@ -6,7 +6,7 @@ Created on Thu Aug  7 10:13:43 2025
 @author: dexter
 """
 from datetime import datetime
-from WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.connect.hearback import hearback
 from EC_API.monitor.base import Monitor

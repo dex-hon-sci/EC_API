@@ -9,7 +9,7 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
-from EC_API.connect.enum import ConnectionState
+from EC_API.connect.enums import ConnectionState
 
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
@@ -118,7 +118,7 @@ class ConnectCQG(Connect):
             if len(server_msg_restore.restore_or_join_session_result)>0:
                 return server_msg_restore
             
-    def pong():
+    def ping():
         return 
     
     def resolve_symbol(self, 

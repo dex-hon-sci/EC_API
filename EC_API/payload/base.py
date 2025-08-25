@@ -17,7 +17,7 @@ from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
 
 @dataclass
-class Payload(object):
+class Payload:
     # An object ready to send out to the trade engine
     # Only the Trade Engine can read the Payload object
     # The Payload Object should contains all the necessary information for 
@@ -48,7 +48,7 @@ class Payload(object):
         check_obj.run()
         
 
-class ExecutePayload(object):
+class ExecutePayload:
     # Execution object for CQG trade rounting connection
     def __init__(self, 
                  connect: Connect, 
