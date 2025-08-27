@@ -18,9 +18,10 @@ class MonitorTradeCQG(Monitor):
                  account_id: int):
         self._connection = connection
         self.account_id = account_id
+        self._msg_id = 100
 
     @hearback
-    def request_historical_orders(self,
+    async def request_historical_orders(self,
                                   from_date: datetime, 
                                   to_date: datetime) -> ServerMsg:
         
@@ -38,18 +39,16 @@ class MonitorTradeCQG(Monitor):
         self._connection._client.send_client_message(client_msg)
         return
     
-    def reset_tracker() -> ServerMsg:
+    async def reset_tracker() -> ServerMsg:
         
         return
 
 
-    def run():
         
         # Get history open position request
         # Turn that into Json format
         # reset tracker
         # Return Json file, to be posted with prometheus and Grafana
-        return 
     
     # def get_history_orders():
     #     

@@ -11,16 +11,6 @@ from typing import Protocol
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.connect.base import Connect
 
-# Monitor live-data
-# Monitor our own trading routing related info (position, summary)
-
-class DataBuffer(object):
-    # A customisable buffer class that take-in data if it is within a 
-    # predefined time-frame, 
-    def __int__(self, time_size):
-        pass
-
-
 class Monitor(Protocol):
     # An Object incharge of 
     def __init__(self, connection: Connect):
