@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 # EC_API imports
 from EC_API.connect.base import Connect
 from EC_API.ordering.base import LiveOrder
-from EC_API.ordering.enums import SubScope
+from EC_API.ordering.enums import SubScope, OrderStatus
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
@@ -57,23 +57,34 @@ class ExecutePayload:
                  account_id: int,
                  live_order: LiveOrder = LiveOrder):
         self._connect = connect 
-        self._payload = payload
+        self.payload = payload
         self.account_id = account_id
         self.live_order = live_order # LiveOrder class, changable by users.
         self.sub_scope: SubScope = SubScope.SUBSCRIPTION_SCOPE_ORDERS
+        # Choose what enums are used for match cases in change payload status
+        self.ordering_enums: OrderStatus = OrderStatus
+        
         
     def change_payload_status(self, server_msg) -> None:
+        SENT_CASES = (OrderStatus.WORKING | OrderStatus.IN_TRANSIT | \
+                     OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY |\
+                     OrderStatus.ACTIVEAT)
+        FILL_CASES = (OrderStatus.CANCELLED | OrderStatus.FILLED |\
+                      OrderStatus.SUSPENDED)
+        VOID_CASES = (OrderStatus.DISCONNECTED | OrderStatus.REJECTED)
         
         match server_msg.status:
-            case "Accepted":
-                self._payload.status = PayloadStatus.SENT
-            case "Filled":
-                self._payload.status = PayloadStatus.FILLED
-                # After Filled, add Order_ID to self.order_info
-            case "cancelled":
-                self._payload.status = PayloadStatus.VOID
+            case SENT_CASES:
+                self.payload.status = PayloadStatus.SENT
+            case FILL_CASES:
+                self.payload.status = PayloadStatus.FILLED
+                # After Filled, add Order_ID to self.order_info <-- add different order status types here
+                ORDER_ID = server_msg.order_statuses[0].order_id
+                self.payload.order_info['order_id'] = ORDER_ID
+            case VOID_CASES:
+                self.payload.status = PayloadStatus.VOID
             case _:
-                self._payload.status = PayloadStatus.ARCHIVED
+                self.payload.status = PayloadStatus.ARCHIVED
     
     def unload(self) -> None:
         """
@@ -83,12 +94,12 @@ class ExecutePayload:
         # Only send payload that is pending.
         if self._payload.status == PayloadStatus.PENDING:
             CLOrder = self.live_order(self._connect, 
-                                      symbol_name = self._payload.order_info['symbol_name'], 
-                                      request_id = self._payload.request_id, 
+                                      symbol_name = self.payload.order_info['symbol_name'], 
+                                      request_id = self.payload.request_id, 
                                       account_id = self.account_id,
                                       sub_scope = self.sub_scope)
-            server_msg = CLOrder.send(request_type = self._payload.order_request_type, 
-                                      request_details = self._payload.order_info)
+            server_msg = CLOrder.send(request_type = self.payload.order_request_type, 
+                                      request_details = self.payload.order_info)
 
             self.change_payload_status(server_msg)
             
