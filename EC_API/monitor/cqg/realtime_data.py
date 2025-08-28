@@ -6,38 +6,47 @@ Created on Thu Aug  7 10:06:40 2025
 @author: dexter
 """
 import time
+import asyncio
 # Import EC_API scripts
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.base import Monitor
+from EC_API.monitor.data_feed import Tick, TickBuffer, TickBufferStat
 
 class MonitorRealTimedataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._connection = connection
-        self._connection.logon()
-        self._msg_id = 200 # just a starting number for message id
-        self.buffer = []
- 
+        #self._connection.logon()
+        self._msg_id: int = 200 # just a starting number for message id
+        self.symbols: list = [str]
+        self.data_buffers: dict[str, TickBuffer] = {}
+        
+        self._contract_ids = {
+            f'{sym}': self._connection.resolve_symbol(sym, 1).contract_id 
+                             for sym in self.symbols
+            }
+        self._contract_metadata = {
+            f'{sym}': self._connection.resolve_symbol(sym, 1)
+                                   for sym in self.symbols
+            }     
+        
+        self.total_recv_cycle: int = 20
+        self.total_send_cycle: int = 2
+        self.recv_cycle_delay: int = 0
+        self.send_cycle_delay: int = 0
+
     def connection(self):
         return self._connection
     
-    @property
-    def msg_id(self):
-        # msg_id updates every time it is called. 
-        # This ID is shared by the entire Monitor object.
-        self._msg_id += 1
-        return self._msg_id 
+    def _resolve_symbol():
+        return 
     
     async def request_real_time(self, 
                                 contract_id:int, 
-                                level:int=1, 
-                                total_recv_cycle:int = 20, 
-                                total_send_cycle: int =2,
-                                recv_cycle_delay: int =0, 
-                                send_cycle_delay: int = 0,
+                                level: int = 1, 
                                 default_timestamp: float | int = 9, 
                                 default_price: float | int = 9, 
-                                default_volume: float | int =9) -> ServerMsg:
+                                default_volume: float | int = 9) -> ServerMsg:
         # Two loop approach: Not the most sophisticated but will do for now.
         # Could Use continuous scrapping with a buffer. Send all requests, recv
         # msg, scrap them and bank them in our buffer. Then we post it on the TSDB
@@ -45,7 +54,7 @@ class MonitorRealTimedataCQG(Monitor):
         # Send request msg and rev response, stop the func when we get the three
         # condition correct: 1) recv real_time_market_data, 2) right ID, 3) recv
         # quote data.
-        for attempt in range(total_send_cycle):
+        for attempt in range(self.total_send_cycle):
             client_msg = ClientMsg()
             subscription = client_msg.market_data_subscriptions.add()
             subscription.contract_id = contract_id
@@ -58,7 +67,7 @@ class MonitorRealTimedataCQG(Monitor):
             #print('request_real_time')
             i = 0
             #while True:
-            while i < total_recv_cycle:
+            while i < self.total_recv_cycle:
                 print(f"Trial {i}: msg_id: {subscription.request_id}")
                 server_msg = self._connection._client.receive_server_message()
                 #print(server_msg)
@@ -80,21 +89,22 @@ class MonitorRealTimedataCQG(Monitor):
                         timestamp = server_msg.real_time_market_data[0].quotes[0].quote_utc_time
                         price = server_msg.real_time_market_data[0].quotes[0].scaled_price
                         volume = server_msg.real_time_market_data[0].quotes[0].volume.significand
-                    
+                        
+                        T = Tick(price, volume, timestamp)
                         #print(timestamp, price, volume) 
                         return timestamp, price, volume
                     
                 # Delay x seconds for each receive message attempt
-                time.sleep(recv_cycle_delay)
+                await asyncio.sleep(self.recv_cycle_delay)
 
             # Delay x seconds for each send message attempt
-            time.sleep(send_cycle_delay)
+            await asyncio.sleep(self.send_cycle_delay)
         # return Default values if no correct quote message was caught
         return default_timestamp, default_price, default_volume
     
     async def reset_tracker(self, 
                             contract_id: int, 
-                            total_recv_cycle: int = 5) -> ServerMsg:
+                            ) -> ServerMsg:
         # A function to cancel subscription for the real-time data
         client_msg = ClientMsg()
         subscription = client_msg.market_data_subscriptions.add()
@@ -104,7 +114,7 @@ class MonitorRealTimedataCQG(Monitor):
         self._connection._client.send_client_message(client_msg)
         i = 0
         #while True:
-        while i < total_recv_cycle:
+        while i < self.total_recv_cycle:
             #print(f"Trial {i}: msg_id: {subscription.request_id}")
             server_msg = self._connection._client.receive_server_message()
             i+=1
