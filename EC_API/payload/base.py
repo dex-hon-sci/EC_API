@@ -62,8 +62,18 @@ class ExecutePayload:
         self.live_order = live_order # LiveOrder class, changable by users.
         self.sub_scope: SubScope = SubScope.SUBSCRIPTION_SCOPE_ORDERS
         
-    def change_payload_status(server_msg) -> None:
-        pass
+    def change_payload_status(self, server_msg) -> None:
+        
+        match server_msg.status:
+            case "Accepted":
+                self._payload.status = PayloadStatus.SENT
+            case "Filled":
+                self._payload.status = PayloadStatus.FILLED
+                # After Filled, add Order_ID to self.order_info
+            case "cancelled":
+                self._payload.status = PayloadStatus.VOID
+            case _:
+                self._payload.status = PayloadStatus.ARCHIVED
     
     def unload(self) -> None:
         """
@@ -73,16 +83,14 @@ class ExecutePayload:
         # Only send payload that is pending.
         if self._payload.status == PayloadStatus.PENDING:
             CLOrder = self.live_order(self._connect, 
-                                   symbol_name = self._payload.order_info['symbol_name'], 
-                                   request_id = self._payload.request_id, 
-                                   account_id = self.account_id,
-                                   sub_scope = self.sub_scope)
+                                      symbol_name = self._payload.order_info['symbol_name'], 
+                                      request_id = self._payload.request_id, 
+                                      account_id = self.account_id,
+                                      sub_scope = self.sub_scope)
             server_msg = CLOrder.send(request_type = self._payload.order_request_type, 
                                       request_details = self._payload.order_info)
-            # Check if the order is successfuly sent
-            #if server_msg #If it is in accept status, change payload status to 
-            # SENT, if not, ARCHIEVED
-            # After Filled, add Order_ID to self.order_info
+
+            self.change_payload_status(server_msg)
             
         else:
             raise Exception("Only pending payloads can be unloaded.")
