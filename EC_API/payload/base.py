@@ -26,7 +26,7 @@ class Payload:
     # it does not tell you the order status (filled or not)
     # Payload check the format coming from Signals
     # One Payload is suppose to be one order request 
-    # (New, modify, cancel, activate, cancelall,liquateall, goflat)
+    # (New, modify, cancel, activate, cancelall, liquateall, goflat)
     account_id: int = 0
     request_id: int = 0
     status: PayloadStatus = PayloadStatus.PENDING
@@ -66,22 +66,19 @@ class ExecutePayload:
         
         
     def change_payload_status(self, server_msg) -> None:
-        SENT_CASES = (OrderStatus.WORKING | OrderStatus.IN_TRANSIT | \
-                     OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY |\
-                     OrderStatus.ACTIVEAT)
-        FILL_CASES = (OrderStatus.CANCELLED | OrderStatus.FILLED |\
-                      OrderStatus.SUSPENDED)
-        VOID_CASES = (OrderStatus.DISCONNECTED | OrderStatus.REJECTED)
+        #SENT_CASES = ()
+        #FILL_CASES = ()
+        #VOID_CASES = ()
         
         match server_msg.status:
-            case SENT_CASES:
+            case OrderStatus.WORKING | OrderStatus.IN_TRANSIT | OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY | OrderStatus.ACTIVEAT:
                 self.payload.status = PayloadStatus.SENT
-            case FILL_CASES:
+            case OrderStatus.CANCELLED | OrderStatus.FILLED | OrderStatus.SUSPENDED:
                 self.payload.status = PayloadStatus.FILLED
                 # After Filled, add Order_ID to self.order_info <-- add different order status types here
                 ORDER_ID = server_msg.order_statuses[0].order_id
                 self.payload.order_info['order_id'] = ORDER_ID
-            case VOID_CASES:
+            case OrderStatus.DISCONNECTED | OrderStatus.REJECTED:
                 self.payload.status = PayloadStatus.VOID
             case _:
                 self.payload.status = PayloadStatus.ARCHIVED
