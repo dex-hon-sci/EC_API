@@ -11,6 +11,7 @@ import time
 import numpy as np
 import asyncio
 
+@dataclass
 class Tick:
     price: int
     volume: int

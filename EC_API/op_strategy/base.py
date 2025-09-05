@@ -10,16 +10,16 @@ Operational Strategy module
 from typing import Protocol
 from enums import Enum
 
-class OpsSignalStatus(Enum):
+class OpSignalStatus(Enum):
     pass
 
-class OpsSignal(Protocol):
+class OpSignal(Protocol):
     """
-    OpsSignal contain the cool-down mechanism.
+    OpSignal contain the cool-down mechanism.
     """
     pass
 
-class OpsStrategy(Protocol):
+class OpStrategy(Protocol):
     """
     Base class of Operational Strategy
     
@@ -31,4 +31,8 @@ class OpsStrategy(Protocol):
         pass
     
     def make_payloads(self):
+        pass
+    
+    def insert_payload(self):
+        """Insert Payload into Storage Table of the DB."""
         pass
