@@ -5,32 +5,32 @@ Created on Mon Aug 25 18:58:16 2025
 
 @author: dexter
 """
-from collections import deque
-from dataclasses import dataclass
-import time
-import numpy as np
-import asyncio
+
 # EC_API imports
-from EC_API.monitor.tick import TickBuffer, TickBufferStat
+from EC_API.monitor.tick import TickBuffer
+from EC_API.monitor.tick_stats import TickBufferStat
     
-class DataFeed: # WIP
+class DataFeed:
     """ 
+    DataFeed is a container class. It does not modify the behaviours/data of ticks.
+    
     Standard: One Data Feed object contains only one TickBuffer and one set of 
-    Stats. This is mainly a forat class.
+    Stats. This is mainly a format class.
     
     Monitor object modify tickbuffer and tickbuffer stat. The DataFeed is a 
     container class. So the tick_buffer attributes will change accordingly.
-    
     
     DataFeed is meant to be taken by OpStrategy for trade logic calculation.
     """
     def __init__(self, 
                  tick_buffer: TickBuffer,
-                 symbol: str = ""):
+                 tick_buffer_stat: TickBufferStat,
+                 symbol: str = "",
+                 ):
         self.tick_buffer: TickBuffer = tick_buffer
-        self.tick_buffer_stat: dict = TickBufferStat().compute(self.tick_buffer)
+        self.tick_buffer_stat: dict = tick_buffer_stat.compute(self.tick_buffer)
         self.symbol: str = symbol
-    
+
 
 class CrossDataFeed: # WIP
     """

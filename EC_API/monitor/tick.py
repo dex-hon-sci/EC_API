@@ -10,7 +10,6 @@ from dataclasses import dataclass
 import time
 import numpy as np
 import asyncio
-from EC_API.monitor.tick_stats import ALL_STATS
 
 @dataclass
 class Tick:

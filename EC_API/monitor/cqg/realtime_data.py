@@ -5,15 +5,16 @@ Created on Thu Aug  7 10:06:40 2025
 
 @author: dexter
 """
-import time
 import asyncio
 # Import EC_API scripts
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.base import Monitor
-from EC_API.monitor.data_feed import Tick, TickBuffer, TickBufferStat
+from EC_API.monitor.tick import TickBuffer
+from EC_API.monitor.tick_stats import TickBufferStat
+from EC_API.monitor.data_feed import DataFeed
 
-class MonitorRealTimedataCQG(Monitor):
+class MonitorRealTimeDataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._connection = connection
         #self._connection.logon()
