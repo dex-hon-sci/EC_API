@@ -8,16 +8,8 @@ Created on Mon Aug 18 12:52:55 2025
 Operational Strategy module
 """
 from typing import Protocol
-from enums import Enum
-
-class OpSignalStatus(Enum):
-    pass
-
-class OpSignal(Protocol):
-    """
-    OpSignal contain the cool-down mechanism.
-    """
-    pass
+# EC_APi imports
+from EC_API.monitor.data_feed import DataFeed
 
 class OpStrategy(Protocol):
     """
@@ -25,14 +17,11 @@ class OpStrategy(Protocol):
     
     Input: Monitor info, specify data type, sizes and x.
     DB_address: somewhere to save the outputs
-    Output: Signal/Payload. 
+    Output: OpSignal/Payload. 
     """
-    def __init__(self):
-        pass
-    
-    def make_payloads(self):
-        pass
-    
-    def insert_payload(self):
-        """Insert Payload into Storage Table of the DB."""
-        pass
+    def __init__(self,
+                 datafeed_pool: list[DataFeed],
+                 payload_pool: list[DataFeed]):
+        self.datafeed_pool = datafeed_pool
+        self.payload_pool = payload_pool
+        
