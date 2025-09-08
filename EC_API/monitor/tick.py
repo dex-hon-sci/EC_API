@@ -79,36 +79,3 @@ class TickBuffer:
         else:
             self.buffers[tf].clear()
             
-
-class TickBufferStat:
-    def __init__(self):
-        self.stats: dict = {}
-        
-    def add_item(self, stat_name: str, method = None) -> None:
-        self.stats[stat_name] =  method
-    
-    def compute(self, ticks: deque[list[Tick]]) -> dict[str, float]:
-        """
-        Compute statistics for a list of Tick objects.
-        Returns a dictionary of stats.
-        """
-        if not ticks:
-            return {}
-
-        prices = np.array([t.price for t in ticks])
-        volumes = np.array([t.volume for t in ticks])
-
-        stats = {
-            "mean_price": float(np.mean(prices)),
-            "std_price": float(np.std(prices, ddof=1)) if len(prices) > 1 else 0.0,
-            "ohlc": {
-                "open": float(prices[0]),
-                "high": float(np.max(prices)),
-                "low": float(np.min(prices)),
-                "close": float(prices[-1])
-                },
-            "mean_volume": float(np.mean(volumes)),
-            "std_volume": float(np.std(volumes, ddof=1)) if len(volumes) > 1 else 0.0,
-            "vwap": float(np.sum(prices * volumes) / np.sum(volumes)) if np.sum(volumes) > 0 else 0.0,
-            }
-        return stats

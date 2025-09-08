@@ -10,7 +10,7 @@ from collections import deque
 # EC_API imports
 from EC_API.monitor.tick import Tick
 
-ALL_STATS = {
+ALL_STATS = { # Add more functions in the future
     "mean_price": lambda prices: float(np.mean(prices)),
     "std_price": lambda prices: float(np.std(prices, ddof=1)) if len(prices) > 1 else 0.0,
     "ohlc": lambda prices: {
@@ -33,8 +33,15 @@ class TickBufferStat:
         self.volume_stats: dict = {}
         self.cross_stats: dict = {}
         
+        # Build master dictionary with custom Stats drawn from ALL_STATS
         for keyword in keywords:
-            self.price_stats[keyword] =  ALL_STATS[keyword]
+             if ALL_STATS.get(keyword) is not None:
+                 if "price" in keyword:
+                     self.price_stats[keyword] = ALL_STATS[keyword]
+                 elif "volume" in keyword:
+                     self.volume_stats[keyword] = ALL_STATS[keyword]
+                 else:
+                     self.cross_stats[keyword] = ALL_STATS[keyword]
     
     def compute(self, ticks: deque[list[Tick]]) -> dict[str, float]:
         """
@@ -46,6 +53,11 @@ class TickBufferStat:
 
         prices = np.array([t.price for t in ticks])
         volumes = np.array([t.volume for t in ticks])
+        cross = np.array([(price, volume) for price, volume in zip(prices, volumes)])
 
-        stats = {method(prices) for method in self.stats}
+        price_stats = {method(prices) for method in self.price_stats}
+        volume_stats = {method(volumes) for method in self.volume_stats}
+        cross_stats = {method(cross) for method in self.cross_stats}
+        
+        stats = {**price_stats, **volume_stats, **cross_stats}
         return stats
