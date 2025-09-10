@@ -32,7 +32,7 @@ ASSETS_SAFETY_RANGE = {
                              'lower_limit': 0},
             },
     "HOE": {}
-    } # example dict
+    } # example dict # Need to make a control function for this
 
 class CQGFormatCheck(PayloadFormatCheck):
     """

@@ -10,8 +10,9 @@ import asyncio
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import Connect
 from EC_API.monitor.base import Monitor
-from EC_API.monitor.tick import TickBuffer
+from EC_API.monitor.tick import TickBuffer, Tick
 from EC_API.monitor.tick_stats import TickBufferStat
+from EC_API.monitor.data_feed import DataFeed
 
 
 class MonitorRealTimeData(Monitor):
@@ -23,22 +24,17 @@ class MonitorRealTimeData(Monitor):
     DataFeed objects are fed into OpStrategy.
     
     """
-    def __init__(self, connection: Connect):
+    def __init__(self, 
+                 connection: Connect,
+                 symbols: set):
         self._connection = connection
         #self._connection.logon()
         self._msg_id: int = 200 # just a starting number for message id
-        self.symbols: list = [str]
+        self.symbols: set = symbols
+        self.symbol_count: int = len(symbols)
         self.datafeed_pool: dict[str, TickBuffer] = {}
         
-        self._contract_ids = {
-            f'{sym}': self._connection.resolve_symbol(sym, 1).contract_id 
-                             for sym in self.symbols
-            }
-        self._contract_metadata = {
-            f'{sym}': self._connection.resolve_symbol(sym, 1)
-                                   for sym in self.symbols
-            }     
-        
+        # 
         self.total_recv_cycle: int = 20
         self.total_send_cycle: int = 2
         self.recv_cycle_delay: int = 0
@@ -47,15 +43,26 @@ class MonitorRealTimeData(Monitor):
     def connection(self):
         return self._connection
     
-    def _resolve_symbol():
-        return 
-    
-    def _build_datafeed():
+    async def _resolve_symbol(self) -> None:
+        # Set up contract_id and metadata for references
+        for symbol in self.symbols:
+            if symbol not in self._contract_ids:
+                self._contract_ids[symbol] = self._connection.resolve_symbol(symbol, 1).contract_id 
+                self._contract_metadata = self._connection.resolve_symbol(symbol, 1)
+
+    async def _build_datafeed(self) -> None:
         # Set up a pool of datafeed before running monitoring functions
+        for symbol in self.symbols:
+            if symbol not in self.datafeed_pool: 
+                #Add new datafeed if there is a new symbol
+                DF = DataFeed(tick_buffer = TickBuffer(60), #60 seconds
+                              tick_buffer_stat = TickBufferStat(),
+                              symbol = symbol)
+                self.datafeed_pool[symbol] = DF
         
-        pass
     
     async def request_real_time(self, 
+                                symbol: str,
                                 contract_id:int, 
                                 level: int = 1, 
                                 default_timestamp: float | int = 9, 
@@ -69,44 +76,38 @@ class MonitorRealTimeData(Monitor):
         # condition correct: 1) recv real_time_market_data, 2) right ID, 3) recv
         # quote data.
         for attempt in range(self.total_send_cycle):
-            client_msg = ClientMsg()
-            subscription = client_msg.market_data_subscriptions.add()
-            subscription.contract_id = contract_id
-            subscription.request_id = self.msg_id
-            subscription.level = level
+
             # Send message
-            self._connection._client.send_client_message(client_msg)
             print("----------------------------")
             print(f"contract_id={contract_id}, Attempt: {attempt}, send_request with ID {contract_id}")
             #print('request_real_time')
             i = 0
-            #while True:
             while i < self.total_recv_cycle:
-                print(f"Trial {i}: msg_id: {subscription.request_id}")
                 server_msg = self._connection._client.receive_server_message()
                 #print(server_msg)
                 i+=1
                 # 1) Condition for having receieved a real_time_market_data
                 cond_existence = (len(server_msg.real_time_market_data) > 0) 
                 
-                if cond_existence: #Check for existence of real_market_data
-                    # 2) Condition for having the right ID
-                    cond_ID = (server_msg.real_time_market_data[0].contract_id == contract_id) 
-                    # 3) Condition for having the quote data
-                    cond_quote = (len(server_msg.real_time_market_data[0].quotes)>0) 
-                    print("Conditions Check:")
-                    print("(msg recv, Correct ID, Quote recv):", 
-                          cond_existence, cond_ID, cond_quote, 
-                          'ID recv:', server_msg.real_time_market_data[0].contract_id)
+                # 2) Condition for having the right ID
+                cond_ID = (server_msg.real_time_market_data[0].contract_id == contract_id) 
+                # 3) Condition for having the quote data
+                cond_quote = (len(server_msg.real_time_market_data[0].quotes)>0) 
+                print("Conditions Check:")
+                print("(msg recv, Correct ID, Quote recv):", 
+                      cond_existence, cond_ID, cond_quote, 
+                      'ID recv:', server_msg.real_time_market_data[0].contract_id)
 
-                    if cond_ID and cond_quote: # check for validity of quote
-                        timestamp = server_msg.real_time_market_data[0].quotes[0].quote_utc_time
-                        price = server_msg.real_time_market_data[0].quotes[0].scaled_price
-                        volume = server_msg.real_time_market_data[0].quotes[0].volume.significand
-                        
-                        T = Tick(price, volume, timestamp)
-                        #print(timestamp, price, volume) 
-                        return timestamp, price, volume
+                if cond_ID and cond_quote: # check for validity of quote
+                    timestamp = server_msg.real_time_market_data[0].quotes[0].quote_utc_time
+                    price = server_msg.real_time_market_data[0].quotes[0].scaled_price
+                    volume = server_msg.real_time_market_data[0].quotes[0].volume.significand
+                    
+                    # Add a Tick to the correct datafeed tick_buffer
+                    self.datafeed_pool[symbol].tick_buffer.add_tick(price, 
+                                                                    volume, 
+                                                                    timestamp)
+                    return
                     
                 # Delay x seconds for each receive message attempt
                 await asyncio.sleep(self.recv_cycle_delay)
@@ -120,33 +121,19 @@ class MonitorRealTimeData(Monitor):
                             contract_id: int, 
                             ) -> ServerMsg:
         # A function to cancel subscription for the real-time data
-        client_msg = ClientMsg()
-        subscription = client_msg.market_data_subscriptions.add()
-        subscription.contract_id = contract_id
-        subscription.request_id = self.msg_id
-        subscription.level = 0
-        self._connection._client.send_client_message(client_msg)
-        i = 0
-        #while True:
-        while i < self.total_recv_cycle:
-            #print(f"Trial {i}: msg_id: {subscription.request_id}")
-            server_msg = self._connection._client.receive_server_message()
-            i+=1
-            
-            if len(server_msg.market_data_subscription_statuses)>0:
-                status = server_msg.market_data_subscription_statuses[0].status_code
-                recv_contract_id = server_msg.market_data_subscription_statuses[0].contract_id
-                # Return nothing when we recieve the correct ID with status code
-                # success
-                if recv_contract_id == contract_id and status == 0:
-                    return 
+        pass
     
     async def run(self) -> dict[str|int|float]:
-        # Get contract_id from resolve symbol
         
-        # Setup data feed
-        
-        self.request_real_time() # Request real-time data
-        
+        if self.symbol_count < len(self.symbols):  
+            try: # If there are more symbols than the 
+                await self._resolve_symbol() # Get contract_id from resolve symbol
+                await self._build_datafeed() # Setup data feed
+                # Add 
+                self.symbol_count +=len(self.symbols) - self.symbol_count
+            except:
+                print("Unable to resolve symbol and build a new DataFeed for\
+                      the new symbol.")
+                      
+        await self.request_real_time() # Request real-time data
         await self.reset_tracker() # Reset tracker
-        # get the data from  other symbols

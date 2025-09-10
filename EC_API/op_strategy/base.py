@@ -17,11 +17,17 @@ class OpStrategy(Protocol):
     
     Input: Monitor info, specify data type, sizes and x.
     DB_address: somewhere to save the outputs
-    Output: OpSignal/Payload. 
+    Output: OpSignal. 
     """
     def __init__(self,
                  datafeed_pool: list[DataFeed],
                  payload_pool: list[DataFeed]):
         self.datafeed_pool = datafeed_pool
         self.payload_pool = payload_pool
+        
+class ActionNode(Protocol):
+    pass
+
+class ActionTree(Protocol):
+    pass
         

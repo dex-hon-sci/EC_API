@@ -39,10 +39,24 @@ class MonitorRealTimeDataCQG(Monitor):
     def connection(self):
         return self._connection
     
-    def _resolve_symbol():
-        return 
+    async def _resolve_symbol(self) -> None:
+        # Set up contract_id and metadata for references
+        for symbol in self.symbols:
+            if symbol not in self._contract_ids:
+                self._contract_ids[symbol] = self._connection.resolve_symbol(symbol, 1).contract_id 
+                self._contract_metadata = self._connection.resolve_symbol(symbol, 1)
+
+    async def _build_datafeed(self) -> None:
+        # Set up a pool of datafeed before running monitoring functions
+        for symbol in self.symbols:
+            if symbol not in self.datafeed_pool: 
+                #Add new datafeed if there is a new symbol
+                DF = DataFeed(tick_buffer = TickBuffer(60), #60 seconds
+                              tick_buffer_stat = TickBufferStat(),
+                              symbol = symbol)
+                self.datafeed_pool[symbol] = DF
     
-    async def request_real_time(self, 
+    async def request_realtime_data(self, 
                                 contract_id:int, 
                                 level: int = 1, 
                                 default_timestamp: float | int = 9, 

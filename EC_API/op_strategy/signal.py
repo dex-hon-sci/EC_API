@@ -8,7 +8,7 @@ Created on Mon Sep  8 11:19:23 2025
 
 from typing import Protocol
 from EC_API.monitor.data_feed import DataFeed
-from EC_API.op_strategy.signal 
+from EC_API.op_strategy.enums import OpSignalStatus
 
 class OpSignal(Protocol):
     """
@@ -21,7 +21,7 @@ class OpSignal(Protocol):
                  payload_pool: list[DataFeed]):
         self.datafeed_pool = datafeed_pool
         self.payload_pool = payload_pool
-        self.status: 
+        self.status: OpSignalStatus = OpSignalStatus.ACTIVE
         
     def _make_payloads(self) -> None:
         pass
@@ -44,4 +44,4 @@ class OpSignal(Protocol):
 
     # start_time, end_time    
     # decay_func, confidence level
-    # 
+    # action: Tree of Payloads with activation conditions
