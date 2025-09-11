@@ -16,6 +16,11 @@ class Monitor(Protocol):
         self._connection = connection
         self._msg_id = 200 # just a starting number for message id
         
+        self.total_recv_cycle: int = 20
+        self.total_send_cycle: int = 2
+        self.recv_cycle_delay: int = 0
+        self.send_cycle_delay: int = 0
+        
     def connection(self):
         return self._connection
     

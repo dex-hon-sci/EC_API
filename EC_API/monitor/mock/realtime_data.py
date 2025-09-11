@@ -31,10 +31,10 @@ class MonitorRealTimeData(Monitor):
         #self._connection.logon()
         self._msg_id: int = 200 # just a starting number for message id
         self.symbols: set = symbols
+        
         self.symbol_count: int = len(symbols)
         self.datafeed_pool: dict[str, TickBuffer] = {}
         
-        # 
         self.total_recv_cycle: int = 20
         self.total_send_cycle: int = 2
         self.recv_cycle_delay: int = 0
@@ -43,14 +43,14 @@ class MonitorRealTimeData(Monitor):
     def connection(self):
         return self._connection
     
-    async def _resolve_symbol(self) -> None:
+    def _resolve_symbol(self) -> None:
         # Set up contract_id and metadata for references
         for symbol in self.symbols:
             if symbol not in self._contract_ids:
                 self._contract_ids[symbol] = self._connection.resolve_symbol(symbol, 1).contract_id 
                 self._contract_metadata = self._connection.resolve_symbol(symbol, 1)
 
-    async def _build_datafeed(self) -> None:
+    def _build_datafeed(self) -> None:
         # Set up a pool of datafeed before running monitoring functions
         for symbol in self.symbols:
             if symbol not in self.datafeed_pool: 
@@ -107,6 +107,8 @@ class MonitorRealTimeData(Monitor):
                     self.datafeed_pool[symbol].tick_buffer.add_tick(price, 
                                                                     volume, 
                                                                     timestamp)
+                    # Call tick_buffer_stat after each updates to recalculate
+                    self.datafeed_pool[symbol].tick_buffer_stat()
                     return
                     
                 # Delay x seconds for each receive message attempt
@@ -127,8 +129,8 @@ class MonitorRealTimeData(Monitor):
         
         if self.symbol_count < len(self.symbols):  
             try: # If there are more symbols than the 
-                await self._resolve_symbol() # Get contract_id from resolve symbol
-                await self._build_datafeed() # Setup data feed
+                self._resolve_symbol() # Get contract_id from resolve symbol
+                self._build_datafeed() # Setup data feed
                 # Add 
                 self.symbol_count +=len(self.symbols) - self.symbol_count
             except:

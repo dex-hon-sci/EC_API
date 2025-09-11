@@ -24,13 +24,19 @@ class DataFeed:
     """
     def __init__(self, 
                  tick_buffer: TickBuffer,
-                 tick_buffer_stat: TickBufferStat,
+                 buf_stat_method: TickBufferStat = TickBufferStat(),
                  symbol: str = "",
                  ):
         self.tick_buffer: TickBuffer = tick_buffer
-        self.tick_buffer_stat: dict = tick_buffer_stat.compute(self.tick_buffer)
+        self._tick_buffer_stat: dict = {}
         self.symbol: str = symbol
 
+        self.buf_stat_method: TickBufferStat= buf_stat_method
+        
+    @property
+    def tick_buffer_stat(self): # Only Getter method is needed in this class
+        self._tick_buffer_stat = self.buf_stat_method.compute(self.tick_buffer)
+        return self._tick_buffer_stat
 
 class CrossDataFeed: # WIP
     """

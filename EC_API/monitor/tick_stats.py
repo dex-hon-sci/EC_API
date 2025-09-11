@@ -26,12 +26,15 @@ ALL_STATS = { # Add more functions in the future
 
 
 class TickBufferStat:
-    def __init__(self, keywords: list[str]):
+    def __init__(self, keywords: list[str]=[]):
         self.stats: dict = {}
         
         self.price_stats: dict = {}
         self.volume_stats: dict = {}
         self.cross_stats: dict = {}
+        
+        if len(keywords)==0: 
+            keywords = list(ALL_STATS.keys())
         
         # Build master dictionary with custom Stats drawn from ALL_STATS
         for keyword in keywords:

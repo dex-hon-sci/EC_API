@@ -105,7 +105,10 @@ class MonitorRealTimeDataCQG(Monitor):
                         price = server_msg.real_time_market_data[0].quotes[0].scaled_price
                         volume = server_msg.real_time_market_data[0].quotes[0].volume.significand
                         
-                        T = Tick(price, volume, timestamp)
+                        self.datafeed_pool[symbol].tick_buffer.add_tick(price, 
+                                                                        volume, 
+                                                                        timestamp)
+                        self.datafeed_pool[symbol].tick_buffer_stat()
                         #print(timestamp, price, volume) 
                         return timestamp, price, volume
                     
