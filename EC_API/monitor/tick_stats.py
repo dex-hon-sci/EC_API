@@ -13,7 +13,7 @@ from EC_API.monitor.tick import Tick
 ALL_STATS = { # Add more functions in the future
     "mean_price": lambda prices: float(np.mean(prices)),
     "std_price": lambda prices: float(np.std(prices, ddof=1)) if len(prices) > 1 else 0.0,
-    "ohlc": lambda prices: {
+    "ohlc_price": lambda prices: {
         "open": float(prices[0]),
         "high": float(np.max(prices)),
         "low":  float(np.min(prices)),
