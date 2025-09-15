@@ -25,6 +25,12 @@ class OpStrategy(Protocol):
         self.datafeed_pool = datafeed_pool
         self.payload_pool = payload_pool
         
+    def on_tick():
+        pass
+    
+    def insert_signal():
+        pass
+        
 class ActionNode(Protocol):
     pass
 

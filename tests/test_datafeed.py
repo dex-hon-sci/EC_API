@@ -166,5 +166,4 @@ def test_update_tickbuffer_stat_selection() -> None:
         assert stats[50]['mean_price'] == mean_price[index]
         
         index +=1
-test_update_tickbuffer_stat_selection()
 

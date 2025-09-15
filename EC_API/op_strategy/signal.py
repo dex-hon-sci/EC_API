@@ -37,6 +37,9 @@ class OpSignal(Protocol):
         """Insert Payload into Storage Table of the DB."""
         pass
     
+    def on_tick(self):
+        pass
+    
     def run(self):
         if self._activation_logic():
             self._insert_payload()
