@@ -35,17 +35,20 @@ class TickBufferStat:
         
         if len(keywords)==0: 
             keywords = list(ALL_STATS.keys())
+        #print("keyword_create", keywords)
         
         # Build master dictionary with custom Stats drawn from ALL_STATS
         for keyword in keywords:
              if ALL_STATS.get(keyword) is not None:
+                 print('keyword', keyword)
                  if "price" in keyword:
                      self.price_stats[keyword] = ALL_STATS[keyword]
                  elif "volume" in keyword:
                      self.volume_stats[keyword] = ALL_STATS[keyword]
                  else:
                      self.cross_stats[keyword] = ALL_STATS[keyword]
-    
+                     
+
     def compute(self, ticks: deque[list[Tick]]) -> dict[str, float]:
         """
         Compute statistics for a list of Tick objects.
@@ -53,14 +56,18 @@ class TickBufferStat:
         """
         if not ticks:
             return {}
-
+        #print("self.price_stats", self.price_stats)
+        #print("self.volume_stats", self.volume_stats)
+        #print("self.cross_stats", self.cross_stats)
+        
         prices = np.array([t.price for t in ticks])
         volumes = np.array([t.volume for t in ticks])
-        cross = np.array([(price, volume) for price, volume in zip(prices, volumes)])
+        #cross = np.array([(price, volume) for price, volume in zip(prices, volumes)])
 
-        price_stats = {method(prices) for method in self.price_stats}
-        volume_stats = {method(volumes) for method in self.volume_stats}
-        cross_stats = {method(cross) for method in self.cross_stats}
+        price_stats = {method:self.price_stats[method](prices) for method in self.price_stats}
+        volume_stats = {method:self.volume_stats[method](volumes) for method in self.volume_stats}
+        cross_stats = {method:self.cross_stats[method](prices, volumes) for method in self.cross_stats}
         
         stats = {**price_stats, **volume_stats, **cross_stats}
+        #print("stats", stats)
         return stats

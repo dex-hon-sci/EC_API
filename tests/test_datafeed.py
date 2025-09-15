@@ -100,16 +100,15 @@ def test_update_tickbuffer_stat_all() -> None:
     IT = IncomingTicks()
     TB = TickBuffer([50]) # include all entries
     DF = DataFeed(TB, symbol="Stat_all")
-        #self.prices: list[float|int] = [10,40,70,20]
-        #self.volumes: list[float|int] = [4,1,10,4]
 
     mean_price = [10,25,40,35]
     std_price = [0.0, 21.2132034, 30.0, 26.457513110]
-    ohlc_price = [{"open":10, "high":10, "low":10, "close":10},
-            {"open":10, "high":40, "low":10, "close":40},
-            {"open":10, "high":70, "low":10, "close":70},
-            {"open":10, "high":70, "low":10, "close":20},
-            ]
+    ohlc_price = [
+        {"open":10, "high":10, "low":10, "close":10},
+        {"open":10, "high":40, "low":10, "close":40},
+        {"open":10, "high":70, "low":10, "close":70},
+        {"open":10, "high":70, "low":10, "close":20},
+        ]
     mean_volume = [4.0,2.5,5.0,4.75]
     std_volume = [0.0, 2.1213203, 4.58257569, 3.77491721]
     vwap = [10.0, 16.0, 52.0, 45.2631578]
@@ -125,12 +124,47 @@ def test_update_tickbuffer_stat_all() -> None:
                          } for mean_p, std_p, 
                                ohlc, mean_v, 
                                std_v, vwap in zip_all]
-    
+    delta = 1e-5
+    index = 0 
     for price, volume, timestamp in IT.feed:
         DF.tick_buffer.add_tick(price, volume, timestamp)
+        #print("Add tick complete")
         stats = DF.tick_buffer_stat # call stat method
+        #print("stats", stats)
+        for stat_ele in stats[50]:
+            #print("stat_ele", stat_ele)
+            answer = stat_all_answers[index][stat_ele]
 
+            if stat_ele == "ohlc_price":
+                assert stats[50][stat_ele]['open'] == answer['open']
+                assert stats[50][stat_ele]['high'] == answer['high']
+                assert stats[50][stat_ele]['low'] == answer['low']
+                assert stats[50][stat_ele]['close'] == answer['close']
+            else:
+                assert stats[50][stat_ele] < answer + delta
+                assert stats[50][stat_ele] > answer - delta
+        index += 1
         
 
 def test_update_tickbuffer_stat_selection() -> None:
-    pass
+    IT = IncomingTicks()
+    TB = TickBuffer([50]) # include all entries
+    #print('--creating DataFeed')
+    DF = DataFeed(TB, buf_stat_method=TickBufferStat(['mean_price']), 
+                  symbol="Stat_selection")
+    
+    mean_price = [10,25,40,35]
+    index = 0
+    #print('--Running DataStream')
+
+    for price, volume, timestamp in IT.feed:
+        DF.tick_buffer.add_tick(price, volume, timestamp)
+        stats = DF.tick_buffer_stat # call stat method
+        assert len(stats[50]) == 1
+        #print("stats_test", stats)
+
+        assert stats[50]['mean_price'] == mean_price[index]
+        
+        index +=1
+test_update_tickbuffer_stat_selection()
+

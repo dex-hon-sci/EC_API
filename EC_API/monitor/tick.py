@@ -17,6 +17,14 @@ class Tick:
     volume: int
     timestamp: int  # Unix timestamp
     
+# =============================================================================
+#     def __iter__(self):
+#         return self
+#     
+#     def __next__(self):
+#         return
+# =============================================================================
+    
 class TickBuffer:
     def __init__(self, timeframes_seconds: int | float):
         """

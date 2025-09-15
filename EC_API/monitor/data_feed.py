@@ -28,15 +28,21 @@ class DataFeed:
                  symbol: str = "",
                  ):
         self.tick_buffer: TickBuffer = tick_buffer
-        self._tick_buffer_stat: dict = {}
         self.symbol: str = symbol
-
-        self.buf_stat_method: TickBufferStat= buf_stat_method
         
+        self.buf_stat_method: TickBufferStat= buf_stat_method
+        self._tick_buffer_stat: dict = {}
+
     @property
     def tick_buffer_stat(self): # Only Getter method is needed in this class
-        self._tick_buffer_stat = self.buf_stat_method.compute(self.tick_buffer)
-        return self._tick_buffer_stat
+        print("TICK BUF STAT", self.tick_buffer.buffers, type(self.tick_buffer.buffers))
+
+        for buffer_key in self.tick_buffer.buffers:
+            print("BUF KEY",buffer_key, self.tick_buffer.buffers[buffer_key], 
+                  type(self.tick_buffer.buffers[buffer_key]))
+            self._tick_buffer_stat[buffer_key] = self.buf_stat_method.compute(
+                                                 self.tick_buffer.buffers[buffer_key])
+            return self._tick_buffer_stat
 
 class CrossDataFeed: # WIP
     """
