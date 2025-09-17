@@ -10,5 +10,10 @@ from enums import Enum
 class OpSignalStatus(Enum):
     ACTIVE = "Active"
     FREEZE = "Freeze" # Only temporarily inactive.
-    INACTIVE = "INACTIVE" # OpSignal Shutdown
+    INACTIVE = "Inactive" # OpSignal Shutdown
+    
+class ActionStatus(Enum):
+    FILLED = "Filled"
+    PENDING = "Pending"
+    VOID = "Cancelled"
 
