@@ -9,8 +9,10 @@ from EC_API.op_strategy.enum import ActionStatus
 from EC_API.payload.base import Payload
 
 class ActionNode:
-    def __init__(self, payload: Payload, on_filled = None, on_failed = None):
-        self.payload: Payload = payload
+    def __init__(self, 
+                 payloads: list[Payload], 
+                 on_filled = None, on_failed = None):
+        self.payloads: list[Payload] = payloads  # Each action can contain multiple Payload
         self.status: ActionStatus = ActionStatus.PENDING
         self.on_filled: ActionNode | None = on_filled
         self.on_failed: ActionNode | None = on_failed
@@ -19,6 +21,9 @@ class ActionNode:
     def update(self):
         pass
     
+    def trigger_cond(self):
+        pass
+    
 class ActionTree:
     def __init__(self, root: ActionNode):
-        pass
+        self.cur = root

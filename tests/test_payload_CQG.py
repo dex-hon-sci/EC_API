@@ -855,8 +855,4 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_down() -> None:
             check_method = CQGFormatCheck
             )
 
-
-
-
-
 # test ExecutePayload_CQG (PENDING, NOT PENDING, STATUS changes)

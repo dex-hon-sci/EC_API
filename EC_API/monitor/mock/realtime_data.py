@@ -26,11 +26,11 @@ class MonitorRealTimeData(Monitor):
     """
     def __init__(self, 
                  connection: Connect,
-                 symbols: set):
+                 symbols: set[str]):
         self._connection = connection
         #self._connection.logon()
         self._msg_id: int = 200 # just a starting number for message id
-        self.symbols: set = symbols
+        self.symbols: set[str] = symbols
         
         self.symbol_count: int = len(symbols)
         self.datafeed_pool: dict[str, TickBuffer] = {}
@@ -67,7 +67,7 @@ class MonitorRealTimeData(Monitor):
                                 level: int = 1, 
                                 default_timestamp: float | int = 9, 
                                 default_price: float | int = 9, 
-                                default_volume: float | int = 9) -> ServerMsg:
+                                default_volume: float | int = 9) -> None:
         # Two loop approach: Not the most sophisticated but will do for now.
         # Could Use continuous scrapping with a buffer. Send all requests, recv
         # msg, scrap them and bank them in our buffer. Then we post it on the TSDB
@@ -139,3 +139,13 @@ class MonitorRealTimeData(Monitor):
                       
         await self.request_real_time() # Request real-time data
         await self.reset_tracker() # Reset tracker
+        
+    async def run(self) -> dict[str|int|float]:
+        # Get contract_id from resolve symbol
+        
+        self.request_real_time() # Request real-time data
+        
+        await self.reset_tracker() # Reset tracker
+        # get the data from  other symbols
+        
+        return 

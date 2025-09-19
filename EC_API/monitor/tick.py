@@ -9,21 +9,12 @@ from collections import deque
 from dataclasses import dataclass
 import time
 import numpy as np
-import asyncio
 
 @dataclass
 class Tick:
     price: int
     volume: int
     timestamp: int  # Unix timestamp
-    
-# =============================================================================
-#     def __iter__(self):
-#         return self
-#     
-#     def __next__(self):
-#         return
-# =============================================================================
     
 class TickBuffer:
     def __init__(self, timeframes_seconds: int | float):
@@ -34,11 +25,11 @@ class TickBuffer:
         if isinstance(timeframes_seconds, (int, float)):
             timeframes_seconds = [timeframes_seconds]
         self.timeframes = timeframes_seconds
-        self.buffers = {tf: deque() for tf in self.timeframes}
+        self.buffers = {tf: deque(np.array([])) for tf in self.timeframes}
         
-        self.price_buffers = {tf: deque() for tf in self.timeframes}
-        self.volume_buffers = {tf: deque() for tf in self.timeframes}
-        self.timestamp_buffers = {tf: deque() for tf in self.timeframes}
+        #self.price_buffers = {tf: deque() for tf in self.timeframes}
+        #self.volume_buffers = {tf: deque() for tf in self.timeframes}
+        #self.timestamp_buffers = {tf: deque() for tf in self.timeframes}
 
     def add_tick(self, 
                  price: int, 

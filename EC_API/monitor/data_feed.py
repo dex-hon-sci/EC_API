@@ -5,14 +5,18 @@ Created on Mon Aug 25 18:58:16 2025
 
 @author: dexter
 """
-
+from typing import Protocol
 # EC_API imports
 from EC_API.monitor.tick import TickBuffer
 from EC_API.monitor.tick_stats import TickBufferStat
     
+class DataFeedProtocol(Protocol):
+    pass
+    
 class DataFeed:
     """ 
-    DataFeed is a container class. It does not modify the behaviours/data of ticks.
+    DataFeed is a container class. 
+    It does not modify the behaviours/data of ticks.
     
     Standard: One Data Feed object contains only one TickBuffer and one set of 
     Stats. This is mainly a format class.
