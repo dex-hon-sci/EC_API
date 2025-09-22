@@ -31,9 +31,4 @@ class OpStrategy(Protocol):
     def insert_signal():
         pass
         
-class ActionNode(Protocol):
-    pass
 
-class ActionTree(Protocol):
-    pass
-        
