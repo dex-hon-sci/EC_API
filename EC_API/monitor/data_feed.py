@@ -28,16 +28,24 @@ class DataFeed:
     """
     def __init__(self, 
                  tick_buffer: TickBuffer,
-                 buf_stat_method: TickBufferStat = TickBufferStat(),
+                 #buf_stat_method: TickBufferStat = TickBufferStat(
+                 calculators: dict = {},
+                 min_n: int = 20, 
                  symbol: str = "",
                  ):
         self.tick_buffer: TickBuffer = tick_buffer
         self.symbol: str = symbol
+        self.min_n: int = min_n
+        self.calculators: dict = calculators
+        self.buf_stat_method: TickBufferStat= TickBufferStat(
+                                                self.tick_buffer,
+                                                calculators= self.calculators,                    
+                                                min_n = self.min_n
+                                                )
+        #buf_stat_method()
+        #self._tick_buffer_stat: dict = {}
         
-        self.buf_stat_method: TickBufferStat= buf_stat_method
-        self._tick_buffer_stat: dict = {}
-        
-    @property
+    #@property
     def tick_buffer_stat(self, horizon:float, current_time: float) -> dict[str, None|float]: 
         # Only Getter method is needed in this class
         return self.buf_stat_method.stats(horizon, current_time)

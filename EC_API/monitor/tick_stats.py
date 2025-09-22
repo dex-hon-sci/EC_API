@@ -7,15 +7,16 @@ Created on Mon Sep  8 09:27:21 2025
 """
 import numpy as np
 from collections import deque
-from typing import Protocol
 # EC_API imports
 from EC_API.monitor.tick import TickBuffer
 from EC_API.utility.base import time_it
 
     
 class TickBufferStat:
-    def __init__(self, buffer: TickBuffer, 
-                 calculators: dict[str, object], min_n: int = 10):
+    def __init__(self, 
+                 buffer: TickBuffer, 
+                 calculators: dict[str, object], 
+                 min_n: int = 10):
         """
         :param buffer: TickBuffer instance
         :param calculators: dict of StatCalculator objects

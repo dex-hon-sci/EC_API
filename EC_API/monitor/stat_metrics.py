@@ -5,7 +5,7 @@ Created on Mon Sep 22 13:25:47 2025
 
 @author: dexter
 """
-from numpy import np
+import numpy as np
 from typing import Protocol
 
 class StatCalculator(Protocol):
@@ -24,17 +24,17 @@ class MeanPrice:
 class StdPrice:
     name = "std_price"
     def compute(self, prices, volumes, timestamps):
-        return np.std(prices) if prices.size > 0 else np.nan
+        return np.std(prices,ddof=1) if prices.size > 0 else np.nan
     
 class MeanVolume:
     name = "mean_volume"
     def compute(self, prices, volumes, timestamps):
-        return np.mean(prices) if prices.size > 0 else np.nan
+        return np.mean(volumes) if prices.size > 0 else np.nan
 
 class StdVolume:
     name = "std_volume"
     def compute(self, prices, volumes, timestamps):
-        return np.std(prices) if prices.size > 0 else np.nan
+        return np.std(volumes,ddof=1) if prices.size > 0 else np.nan
 
 class VWAP:
     name = "vwap"
@@ -45,7 +45,7 @@ class VWAP:
 
 class OHLC:
     def __init__(self): 
-        self.name = "ohlc"
+        self.name = "ohlc_price"
         
     def compute(self, prices, volumes, timestamps):
         if prices.size == 0:
