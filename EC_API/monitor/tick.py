@@ -147,7 +147,7 @@ class TimeTickBuffer(TickBuffer):
         - If only tf is given: returns the full buffer for that timeframe.
         - If horizon + current_time are given: filter by time horizon (like ring buffer version).
         """
-        if buf_key is None:
+        if buf_key is None: # If buf_key not specificed, use the first key
             buf_key = list(self.buffers.keys())[0]
             
         cutoff = current_time - float(horizon)

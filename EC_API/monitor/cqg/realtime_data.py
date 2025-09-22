@@ -28,7 +28,7 @@ class MonitorRealTimeDataCQG(Monitor):
             }
         self._contract_metadata = {
             f'{sym}': self._connection.resolve_symbol(sym, 1)
-                                   for sym in self.symbols
+                             for sym in self.symbols
             }     
         
         self.total_recv_cycle: int = 20
