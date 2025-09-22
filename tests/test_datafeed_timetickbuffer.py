@@ -11,8 +11,13 @@ from datetime import datetime, timedelta
 # Pyhton Package imports
 import pytest
 # EC_API imports
-from EC_API.monitor.tick import TickBuffer
-from EC_API.monitor.tick_stats import TickBufferStat, ALL_STATS
+from EC_API.monitor.tick import TimeTickBuffer
+from EC_API.monitor.tick_stats import TickBufferStat#, ALL_STATS
+from EC_API.monitor.stat_metrics import (
+    VWAP, OHLC, 
+    MeanPrice, MeanVolume, 
+    StdPrice, StdVolume
+    )
 from EC_API.monitor.data_feed import DataFeed
 
 @dataclass
@@ -37,7 +42,7 @@ class IncomingTicks:
         
 def test_addto_tickbuffer() -> None:
     IT = IncomingTicks()
-    TB = TickBuffer([60])
+    TB = TimeTickBuffer([60])
     DF = DataFeed(TB, symbol="AddtoTest")
     
     for price, volume, timestamp in IT.feed:
@@ -57,7 +62,7 @@ def test_popleft_tickbuffer() -> None:
                     (datetime.now()+timedelta(seconds=30.2)).timestamp(),
                     ] # Evict ticks every iteration
 
-    TB = TickBuffer([10])
+    TB = TimeTickBuffer([10])
     DF = DataFeed(TB, symbol="PopLeftTest")
     
     for price, volume, timestamp in IT.feed:
@@ -83,7 +88,7 @@ def test_multi_timeframe_tickbuffer() -> None:
     # third step: len_10 =1, len_20 = 3, len_30 = 3;
     # fourth step: len_10 =1, len_20 = 2, len_30 = 4;
 
-    TB = TickBuffer(timeframe)
+    TB = TimeTickBuffer(timeframe)
     DF = DataFeed(TB, symbol="Multi-TimeFrame")
     index = 0
     for price, volume, timestamp in IT.feed:
@@ -98,8 +103,21 @@ def test_multi_timeframe_tickbuffer() -> None:
 
 def test_update_tickbuffer_stat_all() -> None:
     IT = IncomingTicks()
-    TB = TickBuffer([50]) # include all entries
-    DF = DataFeed(TB, symbol="Stat_all")
+    TB = TimeTickBuffer([50]) # include all entries
+    TBS = TickBufferStat(TB, 
+                         calculators = {
+                             "mean_price": MeanPrice(),
+                             "std_price": StdPrice(),
+                             "mean_volume": MeanVolume(),
+                             "std_volume": StdVolume(),
+                             "vwap": VWAP(),
+                             "ohlc": OHLC() 
+                             },
+                         min_n = 1
+                         )
+    DF = DataFeed(TB, 
+                  buf_stat_method=TBS,
+                  symbol="Stat_all")
 
     mean_price = [10,25,40,35]
     std_price = [0.0, 21.2132034, 30.0, 26.457513110]
@@ -129,13 +147,14 @@ def test_update_tickbuffer_stat_all() -> None:
     for price, volume, timestamp in IT.feed:
         DF.tick_buffer.add_tick(price, volume, timestamp)
         #print("Add tick complete")
-        stats = DF.tick_buffer_stat # call stat method
+        stats = DF.tick_buffer_stat(timestamp-50, current_time=timestamp) # call stat method
         #print("stats", stats)
         for stat_ele in stats[50]:
             #print("stat_ele", stat_ele)
             answer = stat_all_answers[index][stat_ele]
-
-            if stat_ele == "ohlc_price":
+            if stat_ele == "n":
+                assert stats[50][stat_ele]['n'] == 1
+            elif stat_ele == "ohlc_price":
                 assert stats[50][stat_ele]['open'] == answer['open']
                 assert stats[50][stat_ele]['high'] == answer['high']
                 assert stats[50][stat_ele]['low'] == answer['low']
@@ -144,13 +163,16 @@ def test_update_tickbuffer_stat_all() -> None:
                 assert stats[50][stat_ele] < answer + delta
                 assert stats[50][stat_ele] > answer - delta
         index += 1
-        
 
 def test_update_tickbuffer_stat_selection() -> None:
     IT = IncomingTicks()
-    TB = TickBuffer([50]) # include all entries
+    TB = TimeTickBuffer([50]) # include all entries
     #print('--creating DataFeed')
-    DF = DataFeed(TB, buf_stat_method=TickBufferStat(['mean_price']), 
+    DF = DataFeed(TB, 
+                  buf_stat_method=TickBufferStat(
+                      TB, 
+                      calculators ={'mean_price':MeanPrice()}, 
+                      min_n=1), 
                   symbol="Stat_selection")
     
     mean_price = [10,25,40,35]
@@ -159,11 +181,19 @@ def test_update_tickbuffer_stat_selection() -> None:
 
     for price, volume, timestamp in IT.feed:
         DF.tick_buffer.add_tick(price, volume, timestamp)
-        stats = DF.tick_buffer_stat # call stat method
+        stats = DF.tick_buffer_stat(timestamp-50, current_time=timestamp) # call stat method
         assert len(stats[50]) == 1
         #print("stats_test", stats)
-
         assert stats[50]['mean_price'] == mean_price[index]
         
         index +=1
 
+#test_addto_tickbuffer()
+import time
+t1 = time.time()
+for i in range(300):
+    print(i)
+    test_update_tickbuffer_stat_all()
+    
+t2 = time.time() - t1
+print("time2", t2)
