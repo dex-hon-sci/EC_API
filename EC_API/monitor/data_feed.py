@@ -36,17 +36,24 @@ class DataFeed:
         
         self.buf_stat_method: TickBufferStat= buf_stat_method
         self._tick_buffer_stat: dict = {}
-
+        
     @property
-    def tick_buffer_stat(self): # Only Getter method is needed in this class
-        print("TICK BUF STAT", self.tick_buffer.buffers, type(self.tick_buffer.buffers))
+    def tick_buffer_stat(self, horizon:float, current_time: float) -> dict[str, None|float]: 
+        # Only Getter method is needed in this class
+        return self.buf_stat_method.stats(horizon, current_time)
 
-        for buffer_key in self.tick_buffer.buffers:
-            print("BUF KEY",buffer_key, self.tick_buffer.buffers[buffer_key], 
-                  type(self.tick_buffer.buffers[buffer_key]))
-            self._tick_buffer_stat[buffer_key] = self.buf_stat_method.compute(
-                                                 self.tick_buffer.buffers[buffer_key])
-            return self._tick_buffer_stat
+# =============================================================================
+#     @property
+#     def tick_buffer_stat(self): # Only Getter method is needed in this class
+#         print("TICK BUF STAT", self.tick_buffer.buffers, type(self.tick_buffer.buffers))
+# 
+#         for buffer_key in self.tick_buffer.buffers:
+#             print("BUF KEY",buffer_key, self.tick_buffer.buffers[buffer_key], 
+#                   type(self.tick_buffer.buffers[buffer_key]))
+#             self._tick_buffer_stat[buffer_key] = self.buf_stat_method.compute(
+#                                                  self.tick_buffer.buffers[buffer_key])
+#             return self._tick_buffer_stat
+# =============================================================================
 
 class CrossDataFeed: # WIP
     """
