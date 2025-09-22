@@ -28,6 +28,8 @@ WebSocket and TSL layers.
 Here are some examples for the usage. 
 We use CQG connection as an example in this demostration.
 
+
+### Sending Orders
 To facilitate a connection, 
 ```python
 from EC_API.connect.cqg.connect import ConnectCQG
@@ -144,7 +146,24 @@ try: # Specify the type of live order we are using here.
   EP = ExecutePayload(CONNECT, PL1, ACCOUNT_ID, live_order=CQGLiveOrder).unload()
 
 ```
+### Strategy Building
+To build a Operational Strategy, One need to use the following workflow and data structure.
 
+First, we have to define `ActionNode` and `ActionTree`:
+```
+```
+Then, we have to define the `OpSignal` (Operation Signal) objects where the `ActionTree` lives:
+```
+````
+
+Finally, we can write the `OpStrategy` type class that produces  `OpSignal`.
+```
+
+```
+
+
+
+### Monitoring
 To monitor Open Orders in your account,
 ```python
 from EC_API.monitor.cqg.trade_info import MonitorTradeCQG
@@ -211,6 +230,13 @@ To monitor Real-time Data (WIP)
     │   │   │   ├── realtime_data.py
     │   │   │   ├── trade_info.py
     │   │   │   └── __init__.py
+    │   │   ├── data_feed.py
+    │   │   ├── mock
+    │   │   │   ├── realtime_data.py
+    │   │   │   └── __init__.py
+    │   │   ├── stat_metrics.py
+    │   │   ├── tick.py
+    │   │   ├── tick_stats.py
     │   │   ├── __init__.py
     │   ├── msg_validation            <- In charge of validating server message.
     │   │   ├── base.py
@@ -225,7 +251,10 @@ To monitor Real-time Data (WIP)
     │   │   │   └── __init__.py
     │   │   ├── __init__.py
     │   ├── ops_strategy              <- In charge of operation strategy (Service Agnostic).
+    │   │   ├── action.py
     │   │   ├── base.py
+    │   │   ├── enums.py
+    │   │   ├── signal.py
     │   │   └── __init__.py
     │   │ 
     │   ├── ordering                  <- In charge of sending orders to the exchanges.
