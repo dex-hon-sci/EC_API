@@ -46,7 +46,7 @@ class DataFeed:
         #self._tick_buffer_stat: dict = {}
         
     #@property
-    def tick_buffer_stat(self, horizon:float, current_time: float) -> dict[str, None|float]: 
+    def tick_buffer_stat(self, horizon:float, current_time: float) -> dict[str, float | None]: 
         # Only Getter method is needed in this class
         return self.buf_stat_method.stats(horizon, current_time)
 
