@@ -5,7 +5,7 @@ Created on Wed Sep 17 12:18:58 2025
 
 @author: dexter
 """
-from typing import Callable, Optional, Any, field
+from typing import Callable, Optional, Any, field, Self
 from dataclasses import dataclass
 from datetime import datetime
 from EC_API.op_strategy.enum import ActionStatus
@@ -18,14 +18,15 @@ class ActionContext:
     def __init__(self, 
                  start_time: datetime, 
                  end_time: datetime,
-                 feeds: dict[str, DataFeed],):
+                 feeds: dict[str, DataFeed]):
         self.start_time = start_time
         self.end_time = end_time
         self.feeds = feeds   # e.g. {"WTI": DataFeed(...), "Brent": DataFeed(...)}        self.actions: ActionTree = actions
         
+        # Exchange specific attributes
         self.connect: str = ""
         self.account_id: str = ""
-        self.live_order: LiveOrder = LiveOrder()    
+        self.live_order: LiveOrder = LiveOrder() # Specify LiveOrder type, such as CQGLiveOrder  
     
     def update_market(self, price: float, volume: float, timestamp: datetime):
         self.data.update({
@@ -43,43 +44,43 @@ class ActionContext:
         
 class ActionNode:
     def __init__(self, 
-                 payloads: list[Payload], 
-                 trigger_cond: Callable,
-                 on_filled = None, 
-                 on_failed = None,
-                 on_overtime = None,
+                 trigger_cond: Callable[ActionContext, dict],
+                 payloads: list[Payload], # Payloads of this action
+                 transitions: dict[str, tuple[[ActionContext, bool], Self]],
+                 #make_payload: Optional[Callable[["ActionContext"], Payload]] = None,
+                 on_overtime = Self | None,
                  remark: str =""):
-        self.payloads: list[Payload] = payloads  # Each action can contain multiple Payload
+        # Trigger conditions -> Fire Payload inside the payload list
+        # Check transition conditions- > if filled (status change), move to next node.
+        # If next node is None, switch Signal Status to Terminated. 
+        # trigger_cond = 
+        #transitions = {
+        #    "TP": (lambda ctx: ctx.price > 105, tp_node),
+        #    "SL": (lambda ctx: ctx.price < 95, sl_node)
+        #    }
         self.status: ActionStatus = ActionStatus.PENDING
-        self.on_filled: ActionNode | None = on_filled
-        self.on_failed: ActionNode | None = on_failed
-        self.on_overtime: ActionNode | None = on_overtime
-        self.remark: str = remark
+        self.trigger_cond = trigger_cond
+        self.payloads: list[Payload] = payloads  # Each action can contain multiple Payload
         
-        self.trigger_cond: Callable | None = trigger_cond
+        self.transitions = transitions
+        self.on_overtime = on_overtime
+        self.remark = remark
         
-        self.connect: str = ""
-        self.account_id: str = ""
-        self.live_order: LiveOrder = LiveOrder()
-        
-    #def evaluate(self, ctx)->bool:
-    #    if not self.state == ActionStatus.PENDING:
-    #        return False
-    #    else:
-    #        if self.trigger_cond:
-    #            return self.trigger_cond()
     def evaluate(self, ctx: dict) -> Optional["ActionNode"]:
         # Only evaluate nodes that are still pending
-        if self.state != ActionStatus.PENDING:
+        if self.status != ActionStatus.PENDING:
             return None
 
-        if self.condition(ctx):
+        if self.trigger_cond(ctx):
             print(f"[ActionNode] {self.name} triggered.")
-            self.state = ActionStatus.ACTIVE
-
-            if self.action:
+            self.status = ActionStatus.ACTIVE
+            for payload in self.payloads:
                 try:
-                    self.action(ctx)
+                    print(payload)
+                    #EP = ExecutePayload(ctx.connect, payload, ctx.account_id, 
+                    #                    live_order=ctx.live_order).unload()
+
+                    #self.action(ctx)
                     self.state = ActionStatus.COMPLETED
                 except Exception as e:
                     print(f"[ActionNode] {self.name} failed: {e}")
@@ -115,12 +116,11 @@ class ActionTree:
         self.cur = root
         self.root = root
         
-# =============================================================================
-#     def step(self) -> None:
-#         if self.cur is not None:
-#             if self.cur.check_trigger():
-#                 self.cur.activate()
-# =============================================================================
+        # Move through Tree with Step function
+        # If overtime is reached, go to the overtime_node
+        # If the market conditions is met and node is pending, move to the next
+        # If the node is VOID, avoid going to that node and its branches
+        
     def finished(self)-> bool:
         return self.cur is None
 
@@ -133,6 +133,6 @@ class ActionTree:
 
         if self.cur and self.cur.state == ActionStatus.PENDING:
             nxt = self.current.evaluate(ctx)
-            if nxt:
+            if nxt and nxt.status != ActionStatus.VOID:
                 self.current = nxt
         

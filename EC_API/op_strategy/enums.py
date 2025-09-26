@@ -8,12 +8,15 @@ Created on Mon Sep  8 11:21:19 2025
 from enums import Enum
 
 class OpSignalStatus(Enum):
-    ACTIVE = "Active"
+    INACTIVE = "Inactive" # OpSignal 
+    ACTIVE = "Active" 
     FREEZE = "Freeze" # Only temporarily inactive.
-    INACTIVE = "Inactive" # OpSignal Shutdown
+    TERMINAL = "Terminated" # when action tree is exhausted
+    EXPIRED = "Expired" # Terminated by time
+
     
 class ActionStatus(Enum):
-    FILLED = "Filled"
     PENDING = "Pending"
+    FILLED = "Filled"
     VOID = "Cancelled"
 

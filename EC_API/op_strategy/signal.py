@@ -22,40 +22,50 @@ class OpSignal(Protocol):
                  start_time: datetime,
                  end_time: datetime):
         self.signal_id: str = ""
-        self.feeds = feeds   # e.g. {"WTI": DataFeed(...), "Brent": DataFeed(...)}        self.actions: ActionTree = actions
+        self.feeds = feeds   # e.g. {"WTI": DataFeed(...), "Brent": DataFeed(...)} 
+        self.action_tree = action_tree
         self.start_time = start_time
         self.end_time = end_time
         
         self.context = ActionContext(self.start_time, self.end_time,self.feeds)
-        self.status: OpSignalStatus = OpSignalStatus.ACTIVE
+        self.status: OpSignalStatus = OpSignalStatus.INACTIVE
+            
+        # Creation, status Inactive,
+        # If start_time is hit, activate, start running on_tick, that         
+        # monitor raw data, time, price, volume
+        # check the current node in the action tree, if it is exahusted,
+        # change status to TERMINAL
+        # If end_time is hit, EXPIRED
         
-    def _make_payloads(self) -> None:
-        pass
-    
     def activate(self):
         self.status = OpSignalStatus.ACTIVE
-        payload = self._make_payload()
-        print(f"[OpSignal] Activated with payload {payload}")
-        return payload
+        print("[OpSignal] Activated")
+        
+    def terminate(self):
+        self.status = OpSignalStatus.TERMINAL
+        print("[OpSignal] Terminated")
 
     def deactivate(self):
         self.status = OpSignalStatus.EXPIRED
-        print(f"[OpSignal] Deactivated")
+        print("[OpSignal] Deactivated")
         
-    #def _activation_logic(self) -> bool:
-    #    pass
-    
-    #def _deactivate_logic(self) -> bool:
-    #    pass
-        
+
     def on_tick(self, price: float, volume: float, timestamp: float):
         self.context.update_market(price, volume, timestamp)
         self.action_tree.step(self.context)
     
     def run(self, now: datetime):
+        
+        self.on_tick()
+        
+        # During Active Signal
         if self.status == OpSignalStatus.PENDING and now >= self.context.start_time:
             return self.activate()
-        elif self.status == OpSignalStatus.ACTIVE and now > self.context.end_time:
+        elif not self.action_tree.cur:
+            self.terminate()
+        
+        # When end_time is reached, override all status
+        if self.status == OpSignalStatus.ACTIVE and now > self.context.end_time:
             self.deactivate()
             
     # decay_func, confidence level
