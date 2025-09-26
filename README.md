@@ -29,7 +29,7 @@ Here are some examples for the usage.
 We use CQG connection as an example in this demostration.
 
 
-### <u>Sending Orders</u>
+### (1) Sending Orders
 To facilitate a connection, 
 ```python
 from EC_API.connect.cqg.connect import ConnectCQG
@@ -146,7 +146,11 @@ try: # Specify the type of live order we are using here.
   EP = ExecutePayload(CONNECT, PL1, ACCOUNT_ID, live_order=CQGLiveOrder).unload()
 
 ```
-### <u>Strategy Building</u>
+### (2) Strategy Building
+`EC_API` follows the following standard schema for operational strategy:
+![plot](./images/op_strategy_module.jpg)
+
+
 To build a Operational Strategy, One need to use the following workflow and data structure.
 
 First, we have to define `ActionNode` and `ActionTree`:
@@ -162,14 +166,14 @@ Finally, we can write the `OpStrategy` type class that produces  `OpSignal`.
 ```
 Note that for a fully automated Algo-Trading setup, the `OpSignal` and `OpStrategy`
 both live in the "Data Loop" where the raw market data from the websocket are
-ingested. The raw ticks has to be converted into `TickBuffer` objects in the 
-built-in `DataFeed` class. `OpSignal` and `OpStrategy` interact with `DataFeed`
-and decided when to send out the corresponding oders or what signal to be generated,
-respectively.
+ingested. The raw ticks has to be stored in `TickBuffer` objects via the 
+built-in method of the `DataFeed` class. `OpSignal` and `OpStrategy` interact 
+with `DataFeed` and decided when to send out the corresponding oders or what 
+signal to be generated, respectively.
 
 
 
-### <u>Monitoring</u>
+### (3) Monitoring and Data Feed
 To monitor Open Orders in your account,
 ```python
 from EC_API.monitor.cqg.trade_info import MonitorTradeCQG
