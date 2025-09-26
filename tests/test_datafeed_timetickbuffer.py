@@ -9,11 +9,10 @@ Created on Thu Sep 11 09:40:47 2025
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 # Pyhton Package imports
-import pytest
 import numpy as np
 # EC_API imports
 from EC_API.monitor.tick import TimeTickBuffer
-from EC_API.monitor.tick_stats import TickBufferStat#, ALL_STATS
+from EC_API.monitor.tick_stats import TickBufferStat
 from EC_API.monitor.stat_metrics import (
     VWAP, OHLC, 
     MeanPrice, MeanVolume, 
@@ -105,19 +104,6 @@ def test_multi_timeframe_tickbuffer() -> None:
 def test_update_tickbuffer_stat_all() -> None:
     IT = IncomingTicks()
     TB = TimeTickBuffer([50]) # include all entries
-# =============================================================================
-#     TBS = TickBufferStat(TB, 
-#                          calculators = {
-#                              "mean_price": MeanPrice(),
-#                              "std_price": StdPrice(),
-#                              "mean_volume": MeanVolume(),
-#                              "std_volume": StdVolume(),
-#                              "vwap": VWAP(),
-#                              "ohlc": OHLC() 
-#                              },
-#                          min_n = 1
-#                          )
-# =============================================================================
     DF = DataFeed(TB, 
                   #buf_stat_method=TBS,
                   calculators = {
