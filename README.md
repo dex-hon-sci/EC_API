@@ -148,7 +148,7 @@ try: # Specify the type of live order we are using here.
 ```
 ### (2) Strategy Building
 `EC_API` follows the following standard schema for operational strategy:
-![plot](./images/op_strategy_module.jpg)
+![plot](./images/op_strategy_module.jpg){width=456 height=548}
 
 
 To build a Operational Strategy, One need to use the following workflow and data structure.
