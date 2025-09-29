@@ -16,9 +16,9 @@ WebSocket and TSL layers.
 |-----------|-------------|
 | `connect` | Connection modiule that is in charge of authetication and message<br> hear-back. |
 | `ext` | External codes. Trade routing API codes are in here.  |
-| `monitor` | Monitor module takes care of information request, open-order<br>tracking, and real-time data request. |
+| `monitor` | Monitor module takes care of information request, open-order<br>tracking, and real-time data request. Specify `DataFeed` input<br>for strategy here.|
 | `msg_validation` | It is in charge of server message validation. After sending<br>a client request, the server repsonse message goes through<br>message validation process in this module. The functions match<br>the message ID and map them with the acceptable message type<br>to ensure accurate pairing between client-server messages. |
-| `ops_strategy` | It defines the format for operational strategy. Specify<br>data feed input for strategy here.|
+| `op_strategy` | It defines the format for operational strategy (`OpStrategy`).<br> Key components for strategy building, such as `OpSignal`<br>that controls the life-cycle of signals, as well as `ActionNode`<br> and `ActionTree` (a finite-state machine) that controls<br>order flow and execution are in this module. |
 | `ordering` | It handles `LiveOrder` type objects and how we send order request<br>to the exchanges. |
 | `payload` | It contains the `Payload` class where parameters validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
 | `utility` | It contains utility functions for the package.  |
