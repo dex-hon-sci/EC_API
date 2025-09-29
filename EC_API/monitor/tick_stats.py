@@ -25,7 +25,9 @@ class TickBufferStat:
         self.buffer = buffer
         self.calculators = calculators
         self.min_n = min_n
-
+        
+        self.storage: dict = {key: None for key in self.calculators}
+        
     def stats(self, 
               horizon: float | None = None, 
               current_time: float | None = None) -> dict[str, None|int|float]:
@@ -36,15 +38,15 @@ class TickBufferStat:
         prices, volumes, timestamps = self.buffer.get_window(horizon, current_time)
         n = len(prices)
 
-        result = {"n": n}  # always include sample size
+        self.storage['n'] = n #{"n": n}  # always include sample size
 
         if n < self.min_n:
             # Too few ticks → mark stats as None/NaN
             for name in self.calculators.keys():
-                result[name] = None
-            return result
+                self.storage[name] = None
+            return self.storage
 
         for name, calc in self.calculators.items():
-            result[name] = calc.compute(prices, volumes, timestamps)
+            self.storage[name] = calc.compute(prices, volumes, timestamps)
 
-        return result
+        return self.storage
