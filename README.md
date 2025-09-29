@@ -153,12 +153,77 @@ try: # Specify the type of live order we are using here.
 
 To build a Operational Strategy, One need to use the following workflow and data structure.
 
-First, we have to define `ActionNode` and `ActionTree`:
+We will follow the schematic above.
+First, we specifiy the trigger conditions and `Payload` objects to be sent.
 ```
+from datetime import datetime, timedelta, timezone
+from EC_API.op_strategy.action import ActionNode, ActionTree
+from EC_API.op_strategy.signal import OpSignal
+from EC_API.payload.cqg.safety import CQGFormatCheck
+from EC_API.payload.base import Payload
+from EC_API.payload.enums import PayloadStatus
+from EC_API.ordering.enums import RequestType
+
+# Global variables
+account_id = 1000
+checks = CQGFormatCheck #Define checking schema for Payloads
+
+
+# Trigger Conditions
+# a, b, c, d, a2 = 100, 50, 60, 70, 80
+TE_trigger =  lambda ctx: ctx.price >= a
+mod_TE_trigger = lambda ctx: b < ctx.price < a
+TP_trigger_1 = lambda ctx: ctx.price <= c
+TP_trigger_2 = lambda ctx: ctx.price <= d
+cancel_trigger = lambda ctx: ctx.price < b
+overtime_cond = lambda ctx: ctx.timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
+
+# Define Payloads
+
+
+```
+
+After that we have to define `ActionNode` and `ActionTree`:
+```
+# Define Action Nodes
+cancel_node = ActionNode("CancelEntry", 
+                         payloads = [cancel_PL_A], 
+                         trigger_cond = cancel_trigger, 
+                         transitions={})
+TP_node_1 = ActionNode("TakeProfit1", 
+                       payloads=[TP_PL1_A], 
+                       trigger_cond = TP_trigger_1, 
+                       transitions={})
+TP_node_2 = ActionNode("TakeProfit2", 
+                       payloads =[TP_PL2_A], 
+                       trigger_cond = TP_trigger_2, 
+                       transitions={})
+TE_node_mod = ActionNode("ModifyTargetEntry", 
+                         payloads=[TE_mod_PL_A], 
+                         trigger_cond = mod_TE_trigger, 
+                         transitions={
+                             "TakeProfit2": (TP_trigger_2, TP_node_2)
+                             })
+TE_node = ActionNode("TargetEntry", 
+                     payloads=[TE_PL_A], # Have two assets for testing. Same direction
+                     trigger_cond = TE_trigger, 
+                     transitions = { # Same transition and trigger conditions
+                         "TakeProfit1": (TP_trigger_1, TP_node_1),
+                         "ModifyTargetEntry": (mod_TE_trigger, TE_node_mod),
+                         "CancelEntry": (cancel_trigger, cancel_node)   
+                         })
+overtime_node = ActionNode("OvertimeExit", 
+                           payloads=[overtime_PL_A], 
+                           trigger_cond=overtime_cond, 
+                           transitions={})
+
+# Define Action Tree
+tree = ActionTree(TE_node, overtime_cond, overtime_node)
+
 ```
 Then, we have to define the `OpSignal` (Operation Signal) objects where the `ActionTree` lives:
 ```
-````
+```
 
 Finally, we can write the `OpStrategy` type class that produces  `OpSignal`.
 ```
@@ -170,6 +235,18 @@ ingested. The raw ticks has to be stored in `TickBuffer` objects via the
 built-in method of the `DataFeed` class. `OpSignal` and `OpStrategy` interact 
 with `DataFeed` and decided when to send out the corresponding orders or what 
 signal to be generated, respectively.
+
+As a short summary, each classes are in control of a separate function, from
+a top-to-down persepctive, we have:
+(1) `OpStrategy` reads the `DataFeed` controls the production `OpSignal` and 
+    the cool-down mechanism that limit the frequency of signal production;
+(2) `OpSignal` reads the `DataFeed` and controls xxx;
+(3) `ActionTree` controls the traversal along the `ActionNode` chain and the
+    sequence of execution of the `ActionNode` objects;
+(4) `ActionNode` controls when is the `Payload` insertion triggered;
+(5) `Payload` controls how the desired orders is sent to an Exchange (`LiveOrder`
+    type objects), and what format checking policy (via `FormatCheck` type 
+    objects) is used to validate our orders.
 
 
 
