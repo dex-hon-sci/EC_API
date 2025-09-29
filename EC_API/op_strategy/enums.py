@@ -17,6 +17,7 @@ class OpSignalStatus(Enum):
     
 class ActionStatus(Enum):
     PENDING = "Pending"
-    FILLED = "Filled"
+    #SENT = "Sent" # Payloads have been sent to the database
+    COMPLETED = "Completed"
     VOID = "Cancelled"
 

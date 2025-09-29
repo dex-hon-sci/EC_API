@@ -18,6 +18,8 @@ class OpStrategy(Protocol):
     Input: Monitor info, specify data type, sizes and x.
     DB_address: somewhere to save the outputs
     Output: OpSignal. 
+    
+    Contain Cool-down mechanism
     """
     def __init__(self,
                  datafeed_pool: list[DataFeed],
