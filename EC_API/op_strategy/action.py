@@ -118,7 +118,7 @@ class ActionNode:
                 order_info=payload.order_info
             )
             #entry = self.to_db_table(**payload.dict())
-            self.db_session.session.add(entry)
+            self.db_session.add(entry)
         await self.db_session.commit()
         
     async def evaluate(self, ctx: dict) -> None:
@@ -162,7 +162,7 @@ class ActionTree:
         # If the market conditions is met and node is pending, move to the next
         # If the node is VOID, avoid going to that node and its branches
 
-    def step(self, ctx: dict) -> None:
+    async def step(self, ctx: dict) -> None:
         # ctx: ActionContext
         if self.finished:
             return
@@ -182,7 +182,7 @@ class ActionTree:
             return
 
         if self.cur:
-            self.cur.evaluate(ctx)
+            await self.cur.evaluate(ctx)
 
             # 3. Transition to next node
             for label, (cond, nxt_node) in self.cur.transitions.items():
