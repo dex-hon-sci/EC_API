@@ -168,7 +168,7 @@ Note that for a fully automated Algo-Trading setup, the `OpSignal` and `OpStrate
 both live in the "Data Loop" where the raw market data from the websocket are
 ingested. The raw ticks has to be stored in `TickBuffer` objects via the 
 built-in method of the `DataFeed` class. `OpSignal` and `OpStrategy` interact 
-with `DataFeed` and decided when to send out the corresponding oders or what 
+with `DataFeed` and decided when to send out the corresponding orders or what 
 signal to be generated, respectively.
 
 
