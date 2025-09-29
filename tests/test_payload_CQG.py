@@ -738,9 +738,8 @@ def test_CQGFormatCheck_check_valid_value_qty_up() -> None:
 def test_CQGFormatCheck_check_valid_value_qty_down() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
-        "cl_order_id": "1231314",
-        "orig_cl_order_id" : "1313",
-        "cl_order_id" : "1314",
+        "cl_order_id": "1231315",
+        "orig_cl_order_id" : "1231314",
         "qty": 0, # <-- less than allowed limit
         }
     
