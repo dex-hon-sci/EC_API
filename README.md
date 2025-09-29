@@ -155,7 +155,7 @@ To build a Operational Strategy, One need to use the following workflow and data
 
 We will follow the schematic above.
 First, we specifiy the trigger conditions and `Payload` objects to be sent.
-```
+```python
 from datetime import datetime, timedelta, timezone
 from EC_API.op_strategy.action import ActionNode, ActionTree
 from EC_API.op_strategy.signal import OpSignal
@@ -181,10 +181,10 @@ overtime_cond = lambda ctx: ctx.timestamp >= (datetime.now(tz=timezone.utc) + ti
 # Define Payloads
 
 
-```
+```python
 
 After that we have to define `ActionNode` and `ActionTree`:
-```
+```python
 # Define Action Nodes
 cancel_node = ActionNode("CancelEntry", 
                          payloads = [cancel_PL_A], 
@@ -222,11 +222,11 @@ tree = ActionTree(TE_node, overtime_cond, overtime_node)
 
 ```
 Then, we have to define the `OpSignal` (Operation Signal) objects where the `ActionTree` lives:
-```
+```python
 ```
 
 Finally, we can write the `OpStrategy` type class that produces  `OpSignal`.
-```
+```python
 
 ```
 Note that for a fully automated Algo-Trading setup, the `OpSignal` and `OpStrategy`
