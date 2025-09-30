@@ -176,34 +176,35 @@ mod_TE_trigger = lambda ctx: b < ctx.price < a
 TP_trigger_1 = lambda ctx: ctx.price <= c
 TP_trigger_2 = lambda ctx: ctx.price <= d
 cancel_trigger = lambda ctx: ctx.price < b
-overtime_cond = lambda ctx: ctx.timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
+overtime_cond = lambda ctx: ctx.timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp() # The signal last for 5 seconds
 
 # Define Payloads
 
 
-```python
+```
 
-After that we have to define `ActionNode` and `ActionTree`:
+After that we have to define `ActionNode` and `ActionTree`. The `ActionTree` is 
+better built from bottom-up (End Nodes come first, Root node come last):
 ```python
 # Define Action Nodes
 cancel_node = ActionNode("CancelEntry", 
                          payloads = [cancel_PL_A], 
                          trigger_cond = cancel_trigger, 
-                         transitions={})
+                         transitions={}) # End Node
 TP_node_1 = ActionNode("TakeProfit1", 
                        payloads=[TP_PL1_A], 
                        trigger_cond = TP_trigger_1, 
-                       transitions={})
+                       transitions={}) # End Node
 TP_node_2 = ActionNode("TakeProfit2", 
                        payloads =[TP_PL2_A], 
                        trigger_cond = TP_trigger_2, 
-                       transitions={})
+                       transitions={}) # End Node
 TE_node_mod = ActionNode("ModifyTargetEntry", 
                          payloads=[TE_mod_PL_A], 
                          trigger_cond = mod_TE_trigger, 
                          transitions={
                              "TakeProfit2": (TP_trigger_2, TP_node_2)
-                             })
+                             }) 
 TE_node = ActionNode("TargetEntry", 
                      payloads=[TE_PL_A], # Have two assets for testing. Same direction
                      trigger_cond = TE_trigger, 
@@ -211,11 +212,11 @@ TE_node = ActionNode("TargetEntry",
                          "TakeProfit1": (TP_trigger_1, TP_node_1),
                          "ModifyTargetEntry": (mod_TE_trigger, TE_node_mod),
                          "CancelEntry": (cancel_trigger, cancel_node)   
-                         })
+                         }) # root node
 overtime_node = ActionNode("OvertimeExit", 
                            payloads=[overtime_PL_A], 
                            trigger_cond=overtime_cond, 
-                           transitions={})
+                           transitions={}) # End_node, overtime condition
 
 # Define Action Tree
 tree = ActionTree(TE_node, overtime_cond, overtime_node)
@@ -223,6 +224,9 @@ tree = ActionTree(TE_node, overtime_cond, overtime_node)
 ```
 Then, we have to define the `OpSignal` (Operation Signal) objects where the `ActionTree` lives:
 ```python
+OPS = OpSignal(...
+        )
+
 ```
 
 Finally, we can write the `OpStrategy` type class that produces  `OpSignal`.
@@ -238,13 +242,13 @@ signal to be generated, respectively.
 
 As a short summary, each classes are in control of a separate function, from
 a top-to-down persepctive, we have:
-(1) `OpStrategy` reads the `DataFeed` controls the production `OpSignal` and 
+1. `OpStrategy` reads the `DataFeed` controls the production `OpSignal` and 
     the cool-down mechanism that limit the frequency of signal production;
-(2) `OpSignal` reads the `DataFeed` and controls xxx;
-(3) `ActionTree` controls the traversal along the `ActionNode` chain and the
+2. `OpSignal` reads the `DataFeed` and controls xxx;
+3. `ActionTree` controls the traversal along the `ActionNode` chain and the
     sequence of execution of the `ActionNode` objects;
-(4) `ActionNode` controls when is the `Payload` insertion triggered;
-(5) `Payload` controls how the desired orders is sent to an Exchange (`LiveOrder`
+4. `ActionNode` controls when is the `Payload` insertion triggered;
+5. `Payload` controls how the desired orders is sent to an Exchange (`LiveOrder`
     type objects), and what format checking policy (via `FormatCheck` type 
     objects) is used to validate our orders.
 

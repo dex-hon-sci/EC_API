@@ -84,14 +84,10 @@ TP_PL1_A = Payload(
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
         "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
-        "is_manual": False,
         "scaled_limit_price": 60,
-        "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
         },
     check_method = checks
     )
@@ -108,14 +104,10 @@ TP_PL2_A = Payload(
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
         "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
-        "is_manual": False,
         "scaled_limit_price": 70,
-        "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
         },
     check_method = checks
     )
@@ -130,7 +122,7 @@ cancel_PL_A = Payload(
                timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
-        "orig_cl_order_id": "1231314", # <-- wrong type
+        "orig_cl_order_id": "1231314", 
         "cl_order_id": "1231315",
         },
     check_method = checks
@@ -144,7 +136,10 @@ overtime_PL_A = Payload(
                  timedelta(minutes=5),
     end_time = datetime.now(timezone.utc) +\
                timedelta(days=1),
-    order_info = {},
+    order_info = {
+        "symbol_name": "Asset_A",
+
+        },
     check_method = checks
     )
 
@@ -186,3 +181,19 @@ tree = ActionTree(TE_node, overtime_cond, overtime_node)
 # Define OpSignal
 OPS = OpSignal()
 # Define OpStrategy
+
+
+
+
+
+def test_action_sequence_TP1() -> None:
+    pass
+
+def test_action_sequence_mod_TP2() -> None:
+    pass
+
+def test_action_sequence_cancel() -> None:
+    pass
+
+def test_action_sequence_overtime() -> None:
+    pass
