@@ -16,7 +16,7 @@ from sqlalchemy.future import select
 # EC_API imports
 from EC_API.op_strategy.enum import ActionStatus
 from EC_API.op_strategy.data_feed import DataFeed
-from EC_API.payload.base import Payload, ExecutePayload
+from EC_API.payload.base import Payload
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.base import LiveOrder
 
@@ -33,19 +33,23 @@ class ActionContext:
         self.connect: str = ""
         self.account_id: str = ""
         self.live_order: LiveOrder = LiveOrder() # Specify LiveOrder type, such as CQGLiveOrder  
-    
-    def update_market(self, price: float, volume: float, timestamp: datetime):
-        self.data.update({
-            "price": price,
-            "volume": volume,
-            "timestamp": timestamp,
-        })
-
-    def get(self, key: str, default=None):
-        return self.data.get(key, default)
-
-    def set_(self, key: str, value: Any):
-        self.data[key] = value
+      
+    def get_feed(self, symbol: str) -> DataFeed | None:
+        return self.feeds.get(symbol)
+      
+    def get_stat(self, symbol: str, horizon: float, current_time: float) -> dict[str, float | None]:
+        """Shortcut to fetch stats from a feed"""
+        feed = self.get_feed(symbol)
+        if feed:
+            return feed.tick_buffer_stat(horizon, current_time)
+        return {}
+      
+    def all_stats(self, horizon: float, current_time: float) -> dict[str, dict[str, float | None]]:
+        """Return stats for ALL feeds at once"""
+        return {
+            symbol: feed.tick_buffer_stat(horizon, current_time)
+            for symbol, feed in self.feeds.items()
+        }  
 
 class ActionNode:
     """
@@ -134,172 +138,6 @@ class ActionNode:
                 await self.insert_payload(payload)
         return 
     
-class ActionTree:
-    """
-    `ActionTree` controls the traversal between linked `ActionNodes`.
-    
-    It also enforeced a special overtime node via the overtime_node attribute.
-    If the time window of OpSignal has past, `ActionTree` will default to 
-    execute the overtime_node. Usually, this node contains cancel_all orders or
-    liquidate_all orders type of `Payload`.
-    
-    Once we self.finished == True, the OpSignal turn to TERMINAL.
-    
-    """
-    def __init__(self, 
-                 root: ActionNode, 
-                 overtime_cond: Callable[[ActionContext], bool],
-                 overtime_node: ActionNode):
-        self.cur = root
-        self.root = root
-        
-        self.overtime_cond = overtime_cond
-        self.overtime_node = overtime_node # Compulsory 
-
-        self.finished = False
-        # Move through Tree with Step function
-        # If overtime is reached, go to the overtime_node
-        # If the market conditions is met and node is pending, move to the next
-        # If the node is VOID, avoid going to that node and its branches
-
-    async def step(self, ctx: dict) -> None:
-        # ctx: ActionContext
-        if self.finished:
-            return
-        
-         # 1. Check universal overtime condition
-        if self.overtime_cond and self.overtime_cond(ctx):
-            if self.overtime_node.status == ActionStatus.PENDING:
-                print("[ActionTree] Triggering overtime exit")
-                self.overtime_node.evaluate(ctx)
-            self.cur = None
-            self.finished = True
-            return
-    
-        # 2. Evaluate current node
-        if self.cur is None:
-            self.finished = True
-            return
-
-        if self.cur:
-            await self.cur.evaluate(ctx)
-
-            # 3. Transition to next node
-            for label, (cond, nxt_node) in self.cur.transitions.items():
-                if cond(ctx) and self.cur.status == ActionStatus.COMPLETED:
-                    # Cancel siblings
-                    for alt_label, (_, alt_node) in self.cur.transitions.items():
-                        if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
-                            alt_node.status = ActionStatus.VOID
-                    self.cur = nxt_node
-                    if not nxt_node.transitions:
-                        self.finished = True
-                    break
-            
-async def update_action_status(node: ActionNode, session: AsyncSession) -> None:
-    """Update a single node from DB."""
-    for i, payload in enumerate(node.payloads):
-
-        for table in node.scan_db_tables:
-            stmt = select(table).where(table.request_id == payload.request_id)
-            result = await node.db_session.execute(stmt)
-            row = result.scalars().first()
-
-            if row and row.status in (PayloadStatus.FILLED, PayloadStatus.ACK):
-                node.payloads_states[i] = True
-                break
-            
-    if all(node.payloads_states):
-        node.status = ActionStatus.COMPLETED
-
-# =============================================================================
-# async def update_status(self) -> None:
-#     for i, payload in enumerate(self.payloads):
-#         #################
-#         # Scan DB for confirmation .
-#         for table in self.scan_db_tables:
-#             result = self.db_session.execute(
-#                 select(table).where(table.request_id == payload.request_id)
-#                 )
-#             if len(result.scalars().all())>0:
-#                 db_payload = result.scalars().all()
-#         ###################
-#         
-#         if db_payload.status in (PayloadStatus.FILLED, PayloadStatus.ACK):
-#             self.payloads_states[i] = True
-#              
-#         elif db_payload.status == PayloadStatus.VOID:
-#             self.payloads_states[i] = False
-# 
-#     if all(self.payloads_states):
-#         self.status = ActionStatus.COMPLETED     
-# =============================================================================
-
-# =============================================================================
-#                 try: 
-#                     print(payload)
-#                     # Insert Payload to DB
-#                     entry = self.to_db_table(
-#                         request_id=payload.request_id,
-#                         account_id=payload.account_id,
-#                         status=payload.status,
-#                         order_request_type=payload.order_request_type,
-#                         start_time=payload.start_time,
-#                         end_time=payload.end_time,
-#                         order_info=payload.order_info
-#                     )
-#                     self.db_session.add(entry)
-# 
-#                 except Exception as e:
-#                     print(f"[ActionNode] {self.name} failed: {e}")
-#     
-# =============================================================================
-        # Scan database for conifrmation and change status
-        #self.update_status()
-# =============================================================================
-# class ActionContext:
-#     """
-#     Provides the information needed by ActionNodes to evaluate
-#     trigger and transition conditions.
-#     """
-#     def __init__(self, price: float, volume: float, timestamp: float, extra: dict = None):
-#         self.price = price
-#         self.volume = volume
-#         self.timestamp = timestamp
-#         self.extra = extra or {}
-# 
-#     def as_dict(self) -> dict:
-#         """Optional helper if lambdas prefer dict input."""
-#         return {
-#             "price": self.price,
-#             "volume": self.volume,
-#             "timestamp": self.timestamp,
-#             **self.extra,
-#         }
-# =============================================================================
-
-# =============================================================================
-#     for i, payload in enumerate(self.payloads):
-#         #################
-#         # Scan DB for confirmation .
-#         for table in self.scan_db_tables:
-#             result = self.db_session.execute(
-#                 select(table).where(table.request_id == payload.request_id)
-#                 )
-#             if len(result.scalars().all())>0:
-#                 db_payload = result.scalars().all()
-#         ###################
-#         
-#         if db_payload.status in (PayloadStatus.FILLED, PayloadStatus.ACK):
-#             self.payloads_states[i] = True
-#              
-#         elif db_payload.status == PayloadStatus.VOID:
-#             self.payloads_states[i] = False
-# 
-#     if all(self.payloads_states):
-#         self.status = ActionStatus.COMPLETED     
-# =============================================================================
-
 class GoFlatNode(ActionNode): # Untested
     """
     Special ActionNode that liquidates all positions and cancels all orders.
@@ -367,4 +205,83 @@ class GoFlatNode(ActionNode): # Untested
 
         self.status = ActionStatus.COMPLETED
         return None
+        
+class ActionTree:
+    """
+    `ActionTree` controls the traversal between linked `ActionNodes`.
+    
+    It also enforeced a special overtime node via the overtime_node attribute.
+    If the time window of OpSignal has past, `ActionTree` will default to 
+    execute the overtime_node. Usually, this node contains cancel_all orders or
+    liquidate_all orders type of `Payload`.
+    
+    Once we self.finished == True, the OpSignal turn to TERMINAL.
+    
+    """
+    def __init__(self, 
+                 root: ActionNode, 
+                 overtime_cond: Callable[[ActionContext], bool],
+                 overtime_node: ActionNode):
+        self.cur = root
+        self.root = root
+        
+        self.overtime_cond = overtime_cond
+        self.overtime_node = overtime_node # Compulsory 
+
+        self.finished = False
+        # Move through Tree with Step function
+        # If overtime is reached, go to the overtime_node
+        # If the market conditions is met and node is pending, move to the next
+        # If the node is VOID, avoid going to that node and its branches
+
+    async def step(self, ctx: dict) -> None:
+        # ctx: ActionContext
+        if self.finished:
+            return
+        
+         # 1. Check universal overtime condition
+        if self.overtime_cond and self.overtime_cond(ctx):
+            if self.overtime_node.status == ActionStatus.PENDING:
+                print("[ActionTree] Triggering overtime exit")
+                await self.overtime_node.evaluate(ctx)
+            self.cur = None
+            self.finished = True
+            return
+    
+        # 2. Evaluate current node
+        if self.cur is None:
+            self.finished = True
+            return
+
+        await self.cur.evaluate(ctx)
+
+        # 3. Transition to next node
+        for label, (cond, nxt_node) in self.cur.transitions.items():
+            if cond(ctx) and self.cur.status == ActionStatus.COMPLETED:
+                # Cancel siblings
+                for alt_label, (_, alt_node) in self.cur.transitions.items():
+                    if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
+                        alt_node.status = ActionStatus.VOID
+                self.cur = nxt_node
+                if not nxt_node.transitions:
+                    self.finished = True
+                break
+            
+async def update_action_status(node: ActionNode, session: AsyncSession) -> None:
+    """Update a single node from DB."""
+    for i, payload in enumerate(node.payloads):
+
+        for table in node.scan_db_tables:
+            stmt = select(table).where(table.request_id == payload.request_id)
+            result = await node.db_session.execute(stmt)
+            row = result.scalars().first()
+
+            if row and row.status in (PayloadStatus.FILLED, PayloadStatus.ACK):
+                node.payloads_states[i] = True
+                break
+            
+    if all(node.payloads_states):
+        node.status = ActionStatus.COMPLETED
+
+
 

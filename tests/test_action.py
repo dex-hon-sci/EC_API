@@ -18,16 +18,18 @@ from EC_API.ordering.enums import RequestType, OrderType, Duration, Side, ExecIn
 
 # Global variables
 ACCOUNT_ID = 100
+timeframe = 60 # seconds (Assume we use TimeTickBuffer)
 checks = CQGFormatCheck #Define checking schema for Payloads
 
 # Trigger Conditions
 # a, b, c, d, a2 = 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: ctx.price >= 100
-mod_TE_trigger = lambda ctx: 50 < ctx.price < 100
-TP_trigger_1 = lambda ctx: ctx.price <= 60
-TP_trigger_2 = lambda ctx: ctx.price <= 70
-cancel_trigger = lambda ctx: ctx.price < 50
-overtime_cond = lambda ctx: ctx.timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
+TE_trigger =  lambda ctx: max(ctx['Asset_A'].tick_buffer.ohlc().values()) >= 100
+mod_TE_trigger = lambda ctx: 50 < ctx['Asset_A'].tick_buffer.ohlc()['Close']  < 100
+TP_trigger_1 = lambda ctx: ctx['Asset_A'].tick_buffer.ohlc()['Close']  <= 60
+TP_trigger_2 = lambda ctx: ctx['Asset_A'].tick_buffer.ohlc()['Close']  <= 70
+cancel_trigger = lambda ctx: ctx['Asset_A'].tick_buffer.ohlc()['Close'] < 50
+overtime_cond = lambda ctx: ctx['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp \
+                            >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
 
 # Define Payloads for asset A
 TE_PL_A = Payload(  
@@ -86,7 +88,6 @@ TP_PL1_A = Payload(
         "order_type": OrderType.ORDER_TYPE_LMT, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
-        "qty_exponent": 0, 
         "scaled_limit_price": 60,
         },
     check_method = checks
@@ -106,7 +107,6 @@ TP_PL2_A = Payload(
         "order_type": OrderType.ORDER_TYPE_LMT, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
-        "qty_exponent": 0, 
         "scaled_limit_price": 70,
         },
     check_method = checks
@@ -138,7 +138,6 @@ overtime_PL_A = Payload(
                timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
-
         },
     check_method = checks
     )
@@ -182,12 +181,37 @@ tree = ActionTree(TE_node, overtime_cond, overtime_node)
 OPS = OpSignal()
 # Define OpStrategy
 
+# Setup dummu live-data
+from dataclasses import dataclass
+from EC_API.monitor.tick import TimeTickBuffer
+from EC_API.monitor.data_feed import DataFeed
 
-
-
+@dataclass
+class IncomingTicks:
+    def __init__(self):
+        self.prices: list[float|int] = [10,40,70,20]
+        self.volumes: list[float|int] = [4,1,10,4]
+        self.timestamps: list[float] = [
+                    datetime.now().timestamp(),
+                    (datetime.now()+timedelta(seconds=10)).timestamp(),
+                    (datetime.now()+timedelta(seconds=20)).timestamp(),
+                    (datetime.now()+timedelta(seconds=30)).timestamp(),
+                    ]
+        self._feed = None
+        
+    @property
+    def feed(self):
+        self._feed = zip(self.prices,
+                        self.volumes,
+                        self.timestamps)
+        return self._feed
+        
 
 def test_action_sequence_TP1() -> None:
-    pass
+    IT = IncomingTicks()
+    TB = TimeTickBuffer([60])
+    DF = DataFeed(TB, symbol="Asset_A")
+
 
 def test_action_sequence_mod_TP2() -> None:
     pass
@@ -196,4 +220,7 @@ def test_action_sequence_cancel() -> None:
     pass
 
 def test_action_sequence_overtime() -> None:
+    pass
+
+def test_() -> None:
     pass
