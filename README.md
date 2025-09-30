@@ -168,21 +168,127 @@ from EC_API.ordering.enums import RequestType
 account_id = 1000
 checks = CQGFormatCheck #Define checking schema for Payloads
 
-
 # Trigger Conditions
 # a, b, c, d, a2 = 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: ctx.price >= a
-mod_TE_trigger = lambda ctx: b < ctx.price < a
-TP_trigger_1 = lambda ctx: ctx.price <= c
-TP_trigger_2 = lambda ctx: ctx.price <= d
-cancel_trigger = lambda ctx: ctx.price < b
-overtime_cond = lambda ctx: ctx.timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp() # The signal last for 5 seconds
+TE_trigger =  lambda ctx: ctx['Asset_A'].price >= a
+mod_TE_trigger = lambda ctx: b < ctx['Asset_A'].price < a
+TP_trigger_1 = lambda ctx: ctx['Asset_A'].price <= c
+TP_trigger_2 = lambda ctx: ctx['Asset_A'].price <= d
+cancel_trigger = lambda ctx: ctx['Asset_A'].price < b
+overtime_cond = lambda ctx: ctx['Asset_A'].timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=60)).timestamp() # The signal last for 5 seconds
 
-# Define Payloads
-
+# Define Payloads for asset A
+TE_PL_A = Payload(  
+    account_id=ACCOUNT_ID,
+    request_id=101,
+    status = PayloadStatus.PENDING,
+    order_request_type = RequestType.NEW_ORDER,
+    start_time = datetime.now(timezone.utc) +\
+                 timedelta(minutes=5),
+    end_time = datetime.now(timezone.utc) +\
+               timedelta(days=1),
+    order_info = {
+        "symbol_name": "Asset_A",
+        "cl_order_id": "1231314",
+        "order_type": OrderType.ORDER_TYPE_LMT, 
+        "duration": Duration.DURATION_GTC, 
+        "side": Side.SIDE_SELL,
+        "qty_significant": 2,
+        "qty_exponent": 0, 
+        "is_manual": False,
+        "scaled_limit_price": 100,
+        "good_thru_date": datetime(2025,9,9),
+        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
+        },
+    check_method = checks
+    )
+TE_mod_PL_A = Payload(
+    account_id=ACCOUNT_ID,
+    request_id=102,
+    status = PayloadStatus.PENDING,
+    order_request_type = RequestType.MODIFY_ORDER,
+    start_time = datetime.now(timezone.utc) +\
+                 timedelta(minutes=5),
+    end_time = datetime.now(timezone.utc) +\
+               timedelta(days=1),
+    order_info = {
+        "symbol_name": "Asset_A",
+        "orig_cl_order_id" : "1231314",
+        "cl_order_id" : "1231315",
+        "scaled_limit_price": 80, 
+        },
+    check_method = checks
+    )
+TP_PL1_A = Payload(
+    account_id=ACCOUNT_ID,
+    request_id=103,
+    status = PayloadStatus.PENDING,
+    order_request_type = RequestType.NEW_ORDER,
+    start_time = datetime.now(timezone.utc) +\
+                 timedelta(minutes=5),
+    end_time = datetime.now(timezone.utc) +\
+               timedelta(days=1),
+    order_info = {
+        "symbol_name": "Asset_A",
+        "cl_order_id": "1231314",
+        "order_type": OrderType.ORDER_TYPE_LMT, 
+        "side": Side.SIDE_BUY,
+        "qty_significant": 2,
+        "scaled_limit_price": 60,
+        },
+    check_method = checks
+    )
+TP_PL2_A = Payload(
+    account_id=ACCOUNT_ID,
+    request_id=104,
+    status = PayloadStatus.PENDING,
+    order_request_type = RequestType.NEW_ORDER,
+    start_time = datetime.now(timezone.utc) +\
+                 timedelta(minutes=5),
+    end_time = datetime.now(timezone.utc) +\
+               timedelta(days=1),
+    order_info = {
+        "symbol_name": "Asset_A",
+        "cl_order_id": "1231314",
+        "order_type": OrderType.ORDER_TYPE_LMT, 
+        "side": Side.SIDE_BUY,
+        "qty_significant": 2,
+        "scaled_limit_price": 70,
+        },
+    check_method = checks
+    )
+cancel_PL_A = Payload(
+    account_id=ACCOUNT_ID,
+    request_id=105,
+    status = PayloadStatus.PENDING,
+    order_request_type = RequestType.CANCEL_ORDER,
+    start_time = datetime.now(timezone.utc) +\
+                 timedelta(minutes=5),
+    end_time = datetime.now(timezone.utc) +\
+               timedelta(days=1),
+    order_info = {
+        "symbol_name": "Asset_A",
+        "orig_cl_order_id": "1231314", 
+        "cl_order_id": "1231315",
+        },
+    check_method = checks
+    )
+overtime_PL_A = Payload(
+    account_id=ACCOUNT_ID,
+    request_id=106,
+    status = PayloadStatus.PENDING,
+    order_request_type = RequestType.LIQUIDATEALL_ORDER,
+    start_time = datetime.now(timezone.utc) +\
+                 timedelta(minutes=5),
+    end_time = datetime.now(timezone.utc) +\
+               timedelta(days=1),
+    order_info = {
+        "symbol_name": "Asset_A",
+        },
+    check_method = checks
+    )
 
 ```
-
 After that we have to define `ActionNode` and `ActionTree`. The `ActionTree` is 
 better built from bottom-up (End Nodes come first, Root node come last):
 ```python
