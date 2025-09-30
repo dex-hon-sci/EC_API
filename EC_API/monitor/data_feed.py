@@ -28,7 +28,6 @@ class DataFeed:
     """
     def __init__(self, 
                  tick_buffer: TickBuffer,
-                 #buf_stat_method: TickBufferStat = TickBufferStat(
                  calculators: dict = {},
                  min_n: int = 20, 
                  symbol: str = "",
@@ -42,8 +41,6 @@ class DataFeed:
                                                 calculators= self.calculators,                    
                                                 min_n = self.min_n
                                                 )
-        #buf_stat_method()
-        #self._tick_buffer_stat: dict = {}
         
     #@property
     def tick_buffer_stat(self, horizon:float, current_time: float) -> dict[str, float | None]: 
@@ -61,6 +58,9 @@ class DataFeed:
 #             self._tick_buffer_stat[buffer_key] = self.buf_stat_method.compute(
 #                                                  self.tick_buffer.buffers[buffer_key])
 #             return self._tick_buffer_stat
+#buf_stat_method: TickBufferStat = TickBufferStat(
+        #buf_stat_method()
+        #self._tick_buffer_stat: dict = {}
 # =============================================================================
 
 class CrossDataFeed: # WIP
