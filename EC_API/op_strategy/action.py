@@ -7,7 +7,6 @@ Created on Wed Sep 17 12:18:58 2025
 """
 # Python imports
 from typing import Callable, Optional, Any, field, Self
-from dataclasses import dataclass
 from datetime import datetime
 # Python Packages imports
 import nunmpy as np
