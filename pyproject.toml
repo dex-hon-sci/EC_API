@@ -19,3 +19,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/dex-hon-sci/EC_API"
 #Issues = "https://github.com/yourusername/my_package_name/issues"
+
+[tool.setuptools.packages.find]
+exclude = ["images/*"]
+
