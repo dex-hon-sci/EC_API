@@ -16,7 +16,8 @@ from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 from EC_API.monitor.tick import TimeTickBuffer
 from EC_API.monitor.data_feed import DataFeed
-from tests.example_actiontree import tree
+from EC_API.op_strategy.action import ActionContext
+from tests.example_actiontree import tree as ACTION_TREE
 
 @dataclass
 class IncomingTicks:
@@ -38,11 +39,16 @@ class IncomingTicks:
                         self.timestamps)
         return self._feed
         
-
 def test_action_sequence_TP1() -> None:
     IT = IncomingTicks([10,40,70,20])
     TB = TimeTickBuffer([60])
     DF = DataFeed(TB, symbol="Asset_A")
+    ctx = ActionContext(feeds = {"Asset_A": DF})
+
+    for price, volume, timestamp in IT.feed:
+        DF.tick_buffer.add_tick(price, volume, timestamp)
+        ACTION_TREE.step(ctx)
+        print(ACTION_TREE.cur.label)
     
 def test_action_sequence_mod_TP2() -> None:
     pass
@@ -55,3 +61,5 @@ def test_action_sequence_overtime() -> None:
 
 def test_() -> None:
     pass
+
+test_action_sequence_TP1()

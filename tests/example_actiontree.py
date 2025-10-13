@@ -29,6 +29,7 @@ overtime_cond = lambda ctx: ctx['Asset_A'].tick_buffer.buffers[timeframe][-1].ti
                             >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
 
 # Define Payloads for asset A
+print("=====TE_PL_A=======")
 TE_PL_A = Payload(  
     account_id=ACCOUNT_ID,
     request_id=101,
@@ -53,6 +54,7 @@ TE_PL_A = Payload(
         },
     check_method = checks
     )
+print("=====TE_mod_PL_A=========")
 TE_mod_PL_A = Payload(
     account_id=ACCOUNT_ID,
     request_id=102,
@@ -70,6 +72,7 @@ TE_mod_PL_A = Payload(
         },
     check_method = checks
     )
+print("=====TP_PL1_A=========")
 TP_PL1_A = Payload(
     account_id=ACCOUNT_ID,
     request_id=103,
@@ -83,6 +86,7 @@ TP_PL1_A = Payload(
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
         "order_type": OrderType.ORDER_TYPE_LMT, 
+        "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "scaled_limit_price": 60,
@@ -102,6 +106,7 @@ TP_PL2_A = Payload(
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
         "order_type": OrderType.ORDER_TYPE_LMT, 
+        "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "scaled_limit_price": 70,
@@ -175,5 +180,5 @@ overtime_node = ActionNode("OvertimeExit",
 tree = ActionTree(TE_node, overtime_cond, overtime_node)
 
 # Define OpSignal
-OPS = OpSignal()
+#OPS = OpSignal()
 # Define OpStrategy
