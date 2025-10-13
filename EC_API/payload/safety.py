@@ -11,13 +11,16 @@ from EC_API.ordering.enums import RequestType
 def isnot_null(reference_dict: dict[str, Any], 
                target_dict: dict[str, Any]) -> None:
     # Return nothing if value exist in target_dict, else raise key error
+    print("Check isnot null")
     for key in list(reference_dict.keys()):
+        print(key, target_dict.get(key))
         if target_dict.get(key) is None:
             raise KeyError(f"Essential parameter(s): {key} is missing.")
             
 def is_correct_type(reference_dict: dict[str, Any], 
                     target_dict: dict[str, Any]) -> None:
     # Return nothing if type exist in target_dict, else raise key error
+    print("Check correct type")
     for key in reference_dict:
         #print(type(target_dict[key]), reference_dict[key])
         if type(target_dict[key]) != reference_dict[key]:

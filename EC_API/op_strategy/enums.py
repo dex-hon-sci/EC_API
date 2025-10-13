@@ -5,7 +5,7 @@ Created on Mon Sep  8 11:21:19 2025
 
 @author: dexter
 """
-from enums import Enum
+from enum import Enum
 
 class OpSignalStatus(Enum):
     INACTIVE = "Inactive" # OpSignal 

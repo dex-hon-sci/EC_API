@@ -38,13 +38,14 @@ class Payload:
     order_info: dict = field(default_factory=dict)
     check_method: PayloadFormatCheck = PayloadFormatCheck
     
-    def __post_init__(self) -> None:
+    def __post_init__(self, **kwargs) -> None:
         # Check the order instructions based on the order type
         # import checking classes and func specific for CQG type orders
         #check_obj = self.check_method(self.order_request_type, 
         #                              self.order_info)
         check_obj = self.check_method(self.order_request_type, 
-                                      self.order_info)
+                                      self.order_info,
+                                      **kwargs)
         check_obj.run()
         
 

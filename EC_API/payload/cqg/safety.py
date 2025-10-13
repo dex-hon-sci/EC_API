@@ -31,7 +31,8 @@ ASSETS_SAFETY_RANGE = {
             'qty_exponent': {'upper_limit': 1,
                              'lower_limit': 0},
             },
-    "HOE": {}
+    "HOE": {},
+    "Asset_A": {} # Test asset
     } # example dict # Need to make a control function for this
 
 class CQGFormatCheck(PayloadFormatCheck):
@@ -243,19 +244,29 @@ class CQGFormatCheck(PayloadFormatCheck):
     def check_valid_value(self) -> None:
         # Check if the value entered is allowed by our safety parameters.  
         # Call the relevant dictionary that store all the safety prarmeters
-        range_mapping = self.asset_safty_range[self.order_info['symbol_name'][:3]]
+        range_mapping = self.asset_safty_range.get(self.order_info['symbol_name'])
+        print("range_mapping", range_mapping)
+        
+        # Need a null_check here. but it is easier for testing so omit it for now
         
         for key in range_mapping:
             if self.order_info.get(key) is not None:
                 up_bound = range_mapping[key]['upper_limit']
                 low_bound = range_mapping[key]['lower_limit']
+                print(self.order_info[key], 
+                      "upper_limit", up_bound, 
+                      "lower_limit", low_bound)
                 if (self.order_info[key] > up_bound) or (self.order_info[key] < low_bound):
                         raise ValueError(f'{key} is outside of the allowed range: [{low_bound}, {up_bound}].')
     
     def run(self) -> None:
+        print('---check_credential---')
         self.check_crendential()
+        print('---check_request_specific_fields---')
         self.check_request_specific_fields()
+        print('---check_order_specific_essential_fields---')
         self.check_order_specific_essential_fields()
+        print('---check_valid_value---')
         self.check_valid_value()
         
 
