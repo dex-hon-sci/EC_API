@@ -52,14 +52,32 @@ async def test_action_sequence_TP1() -> None:
 
     for price, volume, timestamp in IT.feed:
         DF.tick_buffer.add_tick(price, volume, timestamp)
-        print('+++++'+ACTION_TREE.cur.label+'+++++')
+        print("+++++ current tickbuf [", DF.tick_buffer.ohlc()['Close'], "]")
+        print("++++ current ctx df [", ctx.feeds["Asset_A"].tick_buffer.ohlc()['Close'],"]")
+        print('+++++'+ACTION_TREE.cur.label+'+++++:',ACTION_TREE.cur.status)
+        print("Payload:", ACTION_TREE.cur.payloads[0].request_id)
         await ACTION_TREE.step(ctx)
+        
+    # Select * in DB and check if the Payloads matches
+        
     
 def test_action_sequence_mod_TP2() -> None:
     pass
 
 def test_action_sequence_cancel() -> None:
-    pass
+    IT = IncomingTicks([101,90,70,20])
+    TB = TimeTickBuffer([60])
+    DF = DataFeed(TB, symbol="Asset_A")
+    ctx = ActionContext(feeds = {"Asset_A": DF})
+
+    for price, volume, timestamp in IT.feed:
+        DF.tick_buffer.add_tick(price, volume, timestamp)
+        print("+++++ current tickbuf [", DF.tick_buffer.ohlc()['Close'], "]")
+        print("++++ current ctx df [", ctx.feeds["Asset_A"].tick_buffer.ohlc()['Close'],"]")
+        print('+++++'+ACTION_TREE.cur.label+'+++++:',ACTION_TREE.cur.status)
+        print("Payload:", ACTION_TREE.cur.payloads[0].request_id)
+        await ACTION_TREE.step(ctx)
+        
 
 def test_action_sequence_overtime() -> None:
     pass

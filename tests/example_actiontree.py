@@ -21,12 +21,12 @@ timeframe = 60 # seconds (Assume we use TimeTickBuffer)
 checks = CQGFormatCheck #Define checking schema for Payloads
 
 # Trigger Conditions
-# a, b, c, d, a2 = 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: max(ctx.feeds['Asset_A'].tick_buffer.ohlc().values()) >= 100
-mod_TE_trigger = lambda ctx: 50 < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < 100
-TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= 60
-TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= 70
-cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < 50
+price_a, price_b, price_c, price_d, price_a2 = 100, 50, 60, 70, 80
+TE_trigger =  lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] >= price_a
+mod_TE_trigger = lambda ctx: price_b < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < price_c
+TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_c
+TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_d
+cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_b
 overtime_cond = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp \
                             >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
 
@@ -49,7 +49,7 @@ TE_PL_A = Payload(
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
-        "scaled_limit_price": 100,
+        "scaled_limit_price": price_a,
         "good_thru_date": datetime(2025,9,9),
         "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
         },
@@ -69,7 +69,7 @@ TE_mod_PL_A = Payload(
         "symbol_name": "Asset_A",
         "orig_cl_order_id" : "1231314",
         "cl_order_id" : "1231315",
-        "scaled_limit_price": 80, 
+        "scaled_limit_price": price_a2, 
         },
     check_method = checks
     )
@@ -90,7 +90,7 @@ TP_PL1_A = Payload(
         "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
-        "scaled_limit_price": 60,
+        "scaled_limit_price": price_c,
         },
     check_method = checks
     )
@@ -110,7 +110,7 @@ TP_PL2_A = Payload(
         "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
-        "scaled_limit_price": 70,
+        "scaled_limit_price": price_d,
         },
     check_method = checks
     )
