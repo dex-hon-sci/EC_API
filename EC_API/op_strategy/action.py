@@ -60,7 +60,8 @@ class ActionNode:
     `ActionNode` is a building block for all Operational Strategy (OpStrategy).
     
     Each `ActionNode` requires a few compulsaory attributes:
-        label: The name of the `ActionNode`
+        label: The name of the `
+        `
         payloads: A list of `Payload` objects that contains the information of 
                   the orders for for this nodes.
         trigger_cond: A Callable function (-> bool) that is used in the evaluate 
@@ -140,8 +141,10 @@ class ActionNode:
         if self.trigger_cond(ctx):
             print(f"[ActionNode] {self.label} triggered.")
 
-            for payload in self.payloads:
+            for payload in self.payloads:             
                 await self.insert_payload()
+                self.status = ActionStatus.SENT
+
         return 
     
 class GoFlatNode(ActionNode): # Untested
@@ -264,22 +267,22 @@ class ActionTree:
 
         # 3. Transition to next node
         for label, (cond, nxt_node) in self.cur.transitions.items():
-            print("check"+label, cond(ctx))
-            if cond(ctx) and self.cur.status == ActionStatus.COMPLETED:
+            print("check"+label, cond(ctx), self.cur.label, self.cur.status, nxt_node.label)
+            if cond(ctx) and self.cur.status == ActionStatus.SENT:
                 print(label+": Condition match")
                 # Cancel siblings
                 for alt_label, (_, alt_node) in self.cur.transitions.items():
                     if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
                         alt_node.status = ActionStatus.VOID
+                        
                 print("Move from: ", self.cur.label)
-
                 self.cur = nxt_node
-                print("To: ", nxt_node)
-                if not nxt_node.transitions:
-                    print("Reaching the end of the Tree")
-
-                    self.finished = True
-                break
+                print("To: ", nxt_node.label)
+                
+                #if not nxt_node.transitions:
+                #    print("Reaching the end of the Tree")#
+                #    self.finished = True
+                #break
             
 async def update_action_status(node: ActionNode, session: AsyncSession) -> None:
     """Update a single node from DB."""
