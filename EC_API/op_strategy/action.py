@@ -32,7 +32,11 @@ class ActionContext:
         # Exchange specific attributes
         self.connect: str = ""
         self.account_id: str = ""
-        self.live_order: LiveOrder = LiveOrder() # Specify LiveOrder type, such as CQGLiveOrder  
+        
+        self.live_order: LiveOrder = LiveOrder(self.connect, 
+                                               "",
+                                               0,
+                                               self.account_id) # Specify LiveOrder type, such as CQGLiveOrder  
       
     def get_feed(self, symbol: str) -> DataFeed | None:
         return self.feeds.get(symbol)
@@ -103,7 +107,8 @@ class ActionNode:
         
         self.payloads_states = np.array([False for _ in range(len(self.payloads))]) 
         # We assume the DB we used to house the Pending Payloads are an async_seesion in
-        # sql_alchemy, we might change this into a message queue in the future
+        # sql_alchemy, we might change this into a message queue in the future.
+        # Once that is done, the following three attributes will be removed
         self.db_session = db_session  
         self.to_db_table = to_db_table
         self.scan_db_tables = scan_db_tables
@@ -135,7 +140,7 @@ class ActionNode:
             print(f"[ActionNode] {self.label} triggered.")
 
             for payload in self.payloads:
-                await self.insert_payload(payload)
+                await self.insert_payload()
         return 
     
 class GoFlatNode(ActionNode): # Untested
@@ -250,6 +255,7 @@ class ActionTree:
     
         # 2. Evaluate current node
         if self.cur is None:
+            print("Reaching the end of the Tree")
             self.finished = True
             return
 
@@ -257,13 +263,20 @@ class ActionTree:
 
         # 3. Transition to next node
         for label, (cond, nxt_node) in self.cur.transitions.items():
+            print("check"+label, cond(ctx))
             if cond(ctx) and self.cur.status == ActionStatus.COMPLETED:
+                print(label+": Condition match")
                 # Cancel siblings
                 for alt_label, (_, alt_node) in self.cur.transitions.items():
                     if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
                         alt_node.status = ActionStatus.VOID
+                print("Move from: ", self.cur.label)
+
                 self.cur = nxt_node
+                print("To: ", nxt_node)
                 if not nxt_node.transitions:
+                    print("Reaching the end of the Tree")
+
                     self.finished = True
                 break
             
