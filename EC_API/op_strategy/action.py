@@ -116,19 +116,20 @@ class ActionNode:
 
     async def insert_payload(self) -> None:
         # In the future we might want to change this into an event-driven msg bus
-        for payload in self.payloads:
-            entry = self.to_db_table(
-                request_id=payload.request_id,
-                account_id=payload.account_id,
-                status=payload.status,
-                order_request_type=payload.order_request_type,
-                start_time=payload.start_time,
-                end_time=payload.end_time,
-                order_info=payload.order_info
-            )
-            #entry = self.to_db_table(**payload.dict())
-            self.db_session.add(entry)
-        await self.db_session.commit()
+        async with self.db_session() as session:
+            for payload in self.payloads:
+                entry = self.to_db_table(
+                    request_id=payload.request_id,
+                    account_id=payload.account_id,
+                    status=payload.status,
+                    order_request_type=payload.order_request_type,
+                    start_time=payload.start_time,
+                    end_time=payload.end_time,
+                    order_info=payload.order_info
+                )
+                #entry = self.to_db_table(**payload.dict())
+                session.add(entry)
+            await session.commit()
         
     async def evaluate(self, ctx: dict) -> None:
         # Only evaluate nodes that are still pending
