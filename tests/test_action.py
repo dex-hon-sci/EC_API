@@ -10,7 +10,8 @@ Created on Mon Sep 22 18:38:26 2025
 # have an equal qty of Buy/Sell orders (balance check).
 
 
-
+import pytest
+import asyncio
 # Setup dummu live-data
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
@@ -18,6 +19,9 @@ from EC_API.monitor.tick import TimeTickBuffer
 from EC_API.monitor.data_feed import DataFeed
 from EC_API.op_strategy.action import ActionContext
 from tests.example_actiontree import tree as ACTION_TREE
+
+# Trigger Conditions
+# a, b, c, d, a2 = 100, 50, 60, 70, 80
 
 @dataclass
 class IncomingTicks:
@@ -38,17 +42,18 @@ class IncomingTicks:
                         self.volumes,
                         self.timestamps)
         return self._feed
-        
-def test_action_sequence_TP1() -> None:
-    IT = IncomingTicks([10,40,70,20])
+    
+@pytest.mark.asyncio       
+async def test_action_sequence_TP1() -> None:
+    IT = IncomingTicks([101,40,70,20])
     TB = TimeTickBuffer([60])
     DF = DataFeed(TB, symbol="Asset_A")
     ctx = ActionContext(feeds = {"Asset_A": DF})
 
     for price, volume, timestamp in IT.feed:
         DF.tick_buffer.add_tick(price, volume, timestamp)
-        ACTION_TREE.step(ctx)
-        print(ACTION_TREE.cur.label)
+        print('+++++'+ACTION_TREE.cur.label+'+++++')
+        await ACTION_TREE.step(ctx)
     
 def test_action_sequence_mod_TP2() -> None:
     pass
@@ -62,4 +67,5 @@ def test_action_sequence_overtime() -> None:
 def test_() -> None:
     pass
 
-test_action_sequence_TP1()
+print("====Test Started =====")
+asyncio.run(test_action_sequence_TP1())

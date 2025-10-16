@@ -20,16 +20,15 @@ checks = CQGFormatCheck #Define checking schema for Payloads
 
 # Trigger Conditions
 # a, b, c, d, a2 = 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: max(ctx['Asset_A'].tick_buffer.ohlc().values()) >= 100
-mod_TE_trigger = lambda ctx: 50 < ctx['Asset_A'].tick_buffer.ohlc()['Close']  < 100
-TP_trigger_1 = lambda ctx: ctx['Asset_A'].tick_buffer.ohlc()['Close']  <= 60
-TP_trigger_2 = lambda ctx: ctx['Asset_A'].tick_buffer.ohlc()['Close']  <= 70
-cancel_trigger = lambda ctx: ctx['Asset_A'].tick_buffer.ohlc()['Close'] < 50
-overtime_cond = lambda ctx: ctx['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp \
+TE_trigger =  lambda ctx: max(ctx.feeds['Asset_A'].tick_buffer.ohlc().values()) >= 100
+mod_TE_trigger = lambda ctx: 50 < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < 100
+TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= 60
+TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= 70
+cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < 50
+overtime_cond = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp \
                             >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
 
 # Define Payloads for asset A
-print("=====TE_PL_A=======")
 TE_PL_A = Payload(  
     account_id=ACCOUNT_ID,
     request_id=101,
@@ -54,7 +53,7 @@ TE_PL_A = Payload(
         },
     check_method = checks
     )
-print("=====TE_mod_PL_A=========")
+
 TE_mod_PL_A = Payload(
     account_id=ACCOUNT_ID,
     request_id=102,
@@ -72,7 +71,7 @@ TE_mod_PL_A = Payload(
         },
     check_method = checks
     )
-print("=====TP_PL1_A=========")
+
 TP_PL1_A = Payload(
     account_id=ACCOUNT_ID,
     request_id=103,
@@ -143,12 +142,19 @@ overtime_PL_A = Payload(
         },
     check_method = checks
     )
+# Define Database for ActionNode
+DB_SESSION = None
+TO_DB_TABLE = None
+SCAN_DB_TABLES = None
 
 # Define Action Nodes
 cancel_node = ActionNode("CancelEntry", 
                          payloads = [cancel_PL_A], 
                          trigger_cond = cancel_trigger, 
-                         transitions={})
+                         transitions={},
+                         db_session = DB_SESSION,
+                         to_db_table = TO_DB_TABLE,
+                         scan_db_tables = SCAN_DB_TABLES)
 TP_node_1 = ActionNode("TakeProfit1", 
                        payloads=[TP_PL1_A], 
                        trigger_cond = TP_trigger_1, 
@@ -179,6 +185,7 @@ overtime_node = ActionNode("OvertimeExit",
 # Define Action Tree
 tree = ActionTree(TE_node, overtime_cond, overtime_node)
 
+print('===Import ActionTree Done====')
 # Define OpSignal
 #OPS = OpSignal()
 # Define OpStrategy
