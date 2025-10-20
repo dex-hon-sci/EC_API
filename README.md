@@ -169,13 +169,13 @@ account_id = 1000
 checks = CQGFormatCheck #Define checking schema for Payloads
 
 # Trigger Conditions
-# a, b, c, d, a2 = 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: ctx['Asset_A'].price >= a
-mod_TE_trigger = lambda ctx: b < ctx['Asset_A'].price < a
-TP_trigger_1 = lambda ctx: ctx['Asset_A'].price <= c
-TP_trigger_2 = lambda ctx: ctx['Asset_A'].price <= d
-cancel_trigger = lambda ctx: ctx['Asset_A'].price < b
-overtime_cond = lambda ctx: ctx['Asset_A'].timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=60)).timestamp() # The signal last for 5 seconds
+price_a, price_b, price_c, price_d, price_a2 = 100, 50, 60, 70, 80
+TE_trigger =  lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] >= price_a
+mod_TE_trigger = lambda ctx: price_b < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < price_c
+TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_c
+TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_d
+cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_b
+overtime_cond = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
 
 # Define Payloads for asset A
 TE_PL_A = Payload(  
@@ -323,6 +323,9 @@ overtime_node = ActionNode("OvertimeExit",
                            payloads=[overtime_PL_A], 
                            trigger_cond=overtime_cond, 
                            transitions={}) # End_node, overtime condition
+
+# Note that in this example, we do not include Database Configuration
+# 
 
 # Define Action Tree
 tree = ActionTree(TE_node, overtime_cond, overtime_node)

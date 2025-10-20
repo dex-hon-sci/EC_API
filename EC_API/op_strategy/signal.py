@@ -27,7 +27,7 @@ class OpSignal(Protocol):
         self.start_time = start_time
         self.end_time = end_time
         
-        self.context = ActionContext(self.start_time, self.end_time,self.feeds)
+        self.context = ActionContext(self.start_time, self.end_time, self.feeds)
         self.status: OpSignalStatus = OpSignalStatus.INACTIVE
             
         # Creation, status Inactive,
