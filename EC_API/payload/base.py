@@ -37,15 +37,16 @@ class Payload:
                                     + timedelta(days=2) # In long text format
     order_info: dict = field(default_factory=dict)
     check_method: PayloadFormatCheck = PayloadFormatCheck
-    
-    def __post_init__(self, **kwargs) -> None:
+    asset_safty_range: dict = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
         # Check the order instructions based on the order type
         # import checking classes and func specific for CQG type orders
         #check_obj = self.check_method(self.order_request_type, 
         #                              self.order_info)
         check_obj = self.check_method(self.order_request_type, 
                                       self.order_info,
-                                      **kwargs)
+                                      self.asset_safty_range)
         check_obj.run()
         
 

@@ -19,21 +19,6 @@ from EC_API.ordering.enums import (
     ExecInstruction
     )
 
-ASSETS_SAFETY_RANGE = {
-    "CLE": {'scaled_limit_price': {'upper_limit': 10000, 
-                                   'lower_limit': 100},
-            'scaled_stop_price': {'upper_limit': 15000,
-                                  'lower_limit': 100},
-            'qty': {'upper_limit': 10,
-                    'lower_limit': 1},
-            'qty_significant': {'upper_limit': 9,
-                                'lower_limit': 1},
-            'qty_exponent': {'upper_limit': 1,
-                             'lower_limit': 0},
-            },
-    "HOE": {},
-    "Asset_A": {} # Test asset
-    } # example dict # Need to make a control function for this
 
 class CQGFormatCheck(PayloadFormatCheck):
     """
@@ -42,10 +27,11 @@ class CQGFormatCheck(PayloadFormatCheck):
     """
     def __init__(self, 
                  order_request_type: RequestType, 
-                 order_info: dict):
+                 order_info: dict,
+                 asset_safty_range: dict):
         self.order_request_type = order_request_type
         self.order_info = order_info
-        self.asset_safty_range: dict = ASSETS_SAFETY_RANGE
+        self.asset_safty_range: dict = asset_safty_range
         
     def check_crendential(self) -> None:
         credential_essentials_field_types = {

@@ -18,6 +18,23 @@ from EC_API.ordering.enums import (
     ExecInstruction
     )
 
+ASSETS_SAFETY_RANGE = {
+    "CLEV25": {'scaled_limit_price': {'upper_limit': 10000, 
+                                   'lower_limit': 100},
+            'scaled_stop_price': {'upper_limit': 15000,
+                                  'lower_limit': 100},
+            'qty': {'upper_limit': 10,
+                    'lower_limit': 1},
+            'qty_significant': {'upper_limit': 9,
+                                'lower_limit': 1},
+            'qty_exponent': {'upper_limit': 1,
+                             'lower_limit': 0},
+            },
+    "HOE": {},
+    "Asset_A": {} # Test asset
+    } # example dict # Need to make a control function for this
+
+
 # test Payload construction
 def test_payload_construction_succes() -> None:
     ORDER_INFO = {
@@ -40,7 +57,8 @@ def test_payload_construction_succes() -> None:
           start_time = datetime.now(timezone.utc),
           end_time = datetime.now(timezone.utc)+timedelta(days=1),
           order_info = ORDER_INFO,
-          check_method = CQGFormatCheck
+          check_method = CQGFormatCheck,
+          asset_safty_range = ASSETS_SAFETY_RANGE
           )
     assert type(PL1) == Payload
 
@@ -66,7 +84,8 @@ def test_CQGFormatCheck_check_crendential_fail_null() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
     #print(PL)
     
@@ -93,7 +112,8 @@ def test_CQGFormatCheck_check_crendential_fail_TypeError() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
         
 # - check_request_specific_fields (NEW_ORDER, MODIFY_ORDER, CANCEL_ORDER, 
@@ -121,7 +141,8 @@ def test_CQGFormatCheck_check_request_specific_fields_NEW_ORDER_fail_null() -> N
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 
@@ -148,7 +169,8 @@ def test_CQGFormatCheck_check_request_specific_fields_NEW_ORDER_fail_TypeError()
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_MODIFY_ORDER_fail_null() -> None:
@@ -166,7 +188,8 @@ def test_CQGFormatCheck_check_request_specific_fields_MODIFY_ORDER_fail_null() -
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_MODIFY_ORDER_fail_TypeError( ) -> None:
@@ -185,7 +208,8 @@ def test_CQGFormatCheck_check_request_specific_fields_MODIFY_ORDER_fail_TypeErro
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_CANCEL_ORDER_fail_null() -> None:
@@ -203,7 +227,8 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCEL_ORDER_fail_null() -
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_CANCEL_ORDER_fail_TypeError() -> None:
@@ -221,7 +246,8 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCEL_ORDER_fail_TypeErro
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_ACTIVATE_ORDER_fail_null() -> None:
@@ -239,7 +265,8 @@ def test_CQGFormatCheck_check_request_specific_fields_ACTIVATE_ORDER_fail_null()
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_ACTIVATE_ORDER_fail_TypeError() -> None:
@@ -257,7 +284,8 @@ def test_CQGFormatCheck_check_request_specific_fields_ACTIVATE_ORDER_fail_TypeEr
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_CANCELALL_ORDER_fail_null() -> None:
@@ -274,7 +302,8 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCELALL_ORDER_fail_null(
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_CANCELALL_ORDER_fail_TypeError() -> None:
@@ -291,7 +320,8 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCELALL_ORDER_fail_TypeE
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_notaccept() -> None:
@@ -308,7 +338,8 @@ def test_CQGFormatCheck_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_no
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = notaccept_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_TypeError() -> None:
@@ -325,7 +356,8 @@ def test_CQGFormatCheck_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_Ty
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_GOFLAT_ORDER_fail_notaccept() -> None:
@@ -342,7 +374,8 @@ def test_CQGFormatCheck_check_request_specific_fields_GOFLAT_ORDER_fail_notaccep
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = notaccept_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_request_specific_fields_GOFLAT_ORDER_fail_TypeError() -> None:
@@ -359,7 +392,8 @@ def test_CQGFormatCheck_check_request_specific_fields_GOFLAT_ORDER_fail_TypeErro
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wrong_type,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 
@@ -385,7 +419,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_LMT_fail_null()->N
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 
@@ -410,7 +445,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STP_fail_null()->N
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_null()->None:
@@ -435,7 +471,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_null()->N
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_order_specific_essential_fields_GTD_fail_null()->None:
@@ -460,7 +497,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_GTD_fail_null()->N
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_null()-> None:
@@ -486,7 +524,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_null()-
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = null_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_order_specific_essential_fields_LMT_fail_TypeError()-> None:
@@ -510,7 +549,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_LMT_fail_TypeError
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wronginput_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_order_specific_essential_fields_STP_fail_TypeError():
@@ -534,7 +574,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STP_fail_TypeError
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wronginput_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_TypeError()-> None:
@@ -559,7 +600,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_TypeError
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wronginput_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 
@@ -585,7 +627,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_GTD_fail_TypeError
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wronginput_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_TypeError() -> None:
@@ -611,7 +654,8 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_TypeErr
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = wronginput_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 # - check_valid_value
@@ -637,7 +681,8 @@ def test_CQGFormatCheck_check_valid_value_LMT_price_up() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_LMT_price_down() -> None:
@@ -662,7 +707,8 @@ def test_CQGFormatCheck_check_valid_value_LMT_price_down() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_STP_price_up() -> None:
@@ -687,7 +733,8 @@ def test_CQGFormatCheck_check_valid_value_STP_price_up() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_STP_price_down() -> None:
@@ -712,7 +759,8 @@ def test_CQGFormatCheck_check_valid_value_STP_price_down() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_qty_up() -> None:
@@ -732,7 +780,8 @@ def test_CQGFormatCheck_check_valid_value_qty_up() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_qty_down() -> None:
@@ -751,7 +800,8 @@ def test_CQGFormatCheck_check_valid_value_qty_down() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_qty_significant_up() -> None:
@@ -776,7 +826,8 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_up() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_qty_significant_down() -> None:
@@ -801,7 +852,8 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_down() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_qty_exponent_up() -> None:
@@ -826,7 +878,8 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_up() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 def test_CQGFormatCheck_check_valid_value_qty_exponent_down() -> None:
@@ -851,7 +904,8 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_down() -> None:
             start_time = datetime.now(timezone.utc),
             end_time = datetime.now(timezone.utc)+timedelta(days=1),
             order_info = outoflimit_input,
-            check_method = CQGFormatCheck
+            check_method = CQGFormatCheck,
+            asset_safty_range = ASSETS_SAFETY_RANGE
             )
 
 # test ExecutePayload_CQG (PENDING, NOT PENDING, STATUS changes)
