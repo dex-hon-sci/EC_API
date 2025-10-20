@@ -58,7 +58,7 @@ class CQGLiveOrder(LiveOrder):
         if 'instrument_group_request' in kwargs:
             information_request.instrument_group_request = kwargs['instrument_group_request']
         
-        self._connect.client.client.send_client_message(client_msg)
+        self._connect.client.send_client_message(client_msg)
         return 
     
     @hearback

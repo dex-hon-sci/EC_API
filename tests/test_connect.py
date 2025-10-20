@@ -14,7 +14,7 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import (
     RestoreOrJoinSession, 
     RestoreOrJoinSessionResult
 )
-from EC_API.connect.cqg.connect import ConnectCQG
+from EC_API.connect.cqg.base import ConnectCQG
 
 
 host_name = 'wss://demoapi.cqg.com:443'
