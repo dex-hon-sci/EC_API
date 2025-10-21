@@ -128,10 +128,11 @@ class ActionNode:
                     end_time=payload.end_time,
                     order_info=payload.order_info
                 )
+                print("entryentry", entry)
                 #entry = self.to_db_table(**payload.dict())
                 session.add(entry)
             await session.commit()
-        
+            
     async def evaluate(self, ctx: dict) -> None:
         # Only evaluate nodes that are still pending
         if self.status != ActionStatus.PENDING:

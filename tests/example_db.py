@@ -42,7 +42,7 @@ class TestStorage(BaseTable):
     __tablename__ = "Test_Storage"
     
     def __repr__(self):
-        return f"<Test_Storage(id={self.request_id}, status={self.status}, type={self.order_request_type})>"
+        return f"<Test_Storage(id={self.request_id}, status={self.status}, type={self.order_request_type}, order_info = {self.order_info})>"
 
 
 async def init_db():

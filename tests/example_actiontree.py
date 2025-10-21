@@ -21,14 +21,27 @@ timeframe = 60 # seconds (Assume we use TimeTickBuffer)
 checks = CQGFormatCheck #Define checking schema for Payloads
 
 # Trigger Conditions
-price_a, price_b, price_c, price_d, price_a2 = 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] >= price_a
+price_a_up, price_a, price_b, price_c, price_d, price_a2 = 105, 100, 50, 60, 70, 80
+TE_trigger =  lambda ctx: price_a_up >= ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] >= price_a
 mod_TE_trigger = lambda ctx: price_b < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < price_c
 TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_c
 TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_d
 cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_b
 overtime_cond = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp \
                             >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
+ASSETS_SAFETY_RANGE = {
+    "Asset_A": {'scaled_limit_price': {'upper_limit': 200, 
+                                   'lower_limit': 0},
+            'scaled_stop_price': {'upper_limit': 200,
+                                  'lower_limit': 0},
+            'qty': {'upper_limit': 10,
+                    'lower_limit': 1},
+            'qty_significant': {'upper_limit': 9,
+                                'lower_limit': 1},
+            'qty_exponent': {'upper_limit': 1,
+                             'lower_limit': 0},
+            },
+    } # example dict # Need to make a control function for this
 
 # Define Payloads for asset A
 TE_PL_A = Payload(  
@@ -53,7 +66,8 @@ TE_PL_A = Payload(
         "good_thru_date": datetime(2025,9,9),
         "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
         },
-    check_method = checks
+    check_method = checks,
+    asset_safty_range = ASSETS_SAFETY_RANGE
     )
 
 TE_mod_PL_A = Payload(
@@ -71,7 +85,8 @@ TE_mod_PL_A = Payload(
         "cl_order_id" : "1231315",
         "scaled_limit_price": price_a2, 
         },
-    check_method = checks
+    check_method = checks,
+    asset_safty_range = ASSETS_SAFETY_RANGE
     )
 
 TP_PL1_A = Payload(
@@ -85,14 +100,15 @@ TP_PL1_A = Payload(
                timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
-        "cl_order_id": "1231314",
+        "cl_order_id": "1231316",
         "order_type": OrderType.ORDER_TYPE_LMT, 
         "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "scaled_limit_price": price_c,
         },
-    check_method = checks
+    check_method = checks,
+    asset_safty_range = ASSETS_SAFETY_RANGE
     )
 TP_PL2_A = Payload(
     account_id=ACCOUNT_ID,
@@ -105,14 +121,15 @@ TP_PL2_A = Payload(
                timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
-        "cl_order_id": "1231314",
+        "cl_order_id": "1231316",
         "order_type": OrderType.ORDER_TYPE_LMT, 
         "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "scaled_limit_price": price_d,
         },
-    check_method = checks
+    check_method = checks,
+    asset_safty_range = ASSETS_SAFETY_RANGE
     )
 cancel_PL_A = Payload(
     account_id=ACCOUNT_ID,
@@ -128,7 +145,8 @@ cancel_PL_A = Payload(
         "orig_cl_order_id": "1231314", 
         "cl_order_id": "1231315",
         },
-    check_method = checks
+    check_method = checks,
+    asset_safty_range = ASSETS_SAFETY_RANGE
     )
 overtime_PL_A = Payload(
     account_id=ACCOUNT_ID,
@@ -142,8 +160,10 @@ overtime_PL_A = Payload(
     order_info = {
         "symbol_name": "Asset_A",
         },
-    check_method = checks
+    check_method = checks,
+    asset_safty_range = ASSETS_SAFETY_RANGE
     )
+    
 # Define Database for ActionNode
 from tests.example_db import TEST_ASYNC_SESSION, TestStorage, init_db
 DB_SESSION = TEST_ASYNC_SESSION
