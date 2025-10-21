@@ -22,7 +22,7 @@ checks = CQGFormatCheck #Define checking schema for Payloads
 
 # Trigger Conditions
 price_a_up, price_a, price_b, price_c, price_d, price_a2 = 105, 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: price_a_up >= ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] >= price_a
+TE_trigger =  lambda ctx: price_a < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_a_up
 mod_TE_trigger = lambda ctx: price_b < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < price_c
 TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_c
 TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_d
@@ -209,8 +209,8 @@ TE_node = ActionNode("TargetEntry",
                      payloads=[TE_PL_A], # Have two assets for testing. Same direction
                      trigger_cond = TE_trigger, 
                      transitions = { # Same transition and trigger conditions
-                         "TakeProfit1": (TP_trigger_1, TP_node_1),
                          "ModifyTargetEntry": (mod_TE_trigger, TE_node_mod),
+                         "TakeProfit1": (TP_trigger_1, TP_node_1),
                          "CancelEntry": (cancel_trigger, cancel_node)   
                          },
                        db_session = DB_SESSION,

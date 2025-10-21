@@ -57,6 +57,7 @@ async def actionflow_validation(prices: list[float]) -> None:
     ctx = ActionContext(feeds = {"Asset_A": DF})
 
     for price, volume, timestamp in IT.feed:
+        print('---------------------------------------------')
         DF.tick_buffer.add_tick(price, volume, timestamp)
         print("+++++ current tickbuf [", DF.tick_buffer.ohlc()['Close'], "]")
         print("++++ current ctx df [", ctx.feeds["Asset_A"].tick_buffer.ohlc()['Close'],"]")
@@ -73,7 +74,8 @@ async def actionflow_validation(prices: list[float]) -> None:
 
 #############
 # Constants
-price_a_up, price_a, price_b, price_c, price_d, price_a2 = 105, 100, 50, 60, 40, 80
+price_a_up, price_a1, price_b, price_c, price_d, price_a2 = 105, 100, 50, 60, 40, 80
+price_a, price_b1, price_b2, price_c2, price_d2, price_e3 = 105, 100, 50, 60, 40, 80
 
 # Route 1
 TP1test_prices = [101,40,70,20]
@@ -81,16 +83,16 @@ TP1test_answer_ids = (100, 103)
 TP1test_answer_sides = (Side.SIDE_SELL, Side.SIDE_BUY)
 TP1test_answer_rq_types = (OrderType.ORDER_TYPE_LMT, OrderType.ORDER_TYPE_LMT)
 TP1test_answer_qtys =  (2, 2)
-TP1test_answer_LMT_price =  (price_a, price_c)
+TP1test_answer_LMT_price =  (price_a1, price_c)
 
 # Route 2
-TP2test_prices = [90, 80, 58, 55, 57, 40, 38]
+TP2test_prices = [102, 80, 58, 55, 57, 40, 38]
 TP2test_answer_ids = (100, 102, 104)
 TP2test_answer_sides = (Side.SIDE_SELL, Side.SIDE_SELL, Side.SIDE_BUY)
 TP2test_answer_rq_types = (OrderType.ORDER_TYPE_LMT, OrderType.ORDER_TYPE_LMT,
                            OrderType.ORDER_TYPE_LMT)
 TP2test_answer_qtys =  (2, 2, 2)
-TP2test_answer_LMT_price =  (price_a, price_a2, price_d)
+TP2test_answer_LMT_price =  (price_a1, price_a2, price_d)
 
 # Route 3
 
@@ -140,49 +142,9 @@ async def test_action_sequence_mod_TP2() -> None:
 async def test_action_sequence_cancel() -> None:
     pass
 
-# =============================================================================
-#     # Define the answers for this test
-#     answer_ids = [100, 103]
-#     answer_sides = [Side.SIDE_SELL, Side.SIDE_BUY]
-#     answer_rq_types = [OrderType.ORDER_TYPE_LMT, OrderType.ORDER_TYPE_LMT]
-#     answer_qtys = [2, 2]
-# 
-#     # Initialise DB
-#     await init_db()
-# 
-#     # DataFeed setup
-#     IT = IncomingTicks([101,40,70,20])
-#     TB = TimeTickBuffer([60])
-#     DF = DataFeed(TB, symbol="Asset_A")
-#     ctx = ActionContext(feeds = {"Asset_A": DF})
-# 
-#     for price, volume, timestamp in IT.feed:
-#         DF.tick_buffer.add_tick(price, volume, timestamp)
-#         print("+++++ current tickbuf [", DF.tick_buffer.ohlc()['Close'], "]")
-#         print("++++ current ctx df [", ctx.feeds["Asset_A"].tick_buffer.ohlc()['Close'],"]")
-#         print('+++++'+ACTION_TREE.cur.label+'+++++:',ACTION_TREE.cur.status)
-#         print("Payload:", ACTION_TREE.cur.payloads[0].request_id)
-#         await ACTION_TREE.step(ctx)
-# =============================================================================
-# =============================================================================
-#         
-#     # Select * in DB and check if the Payloads matches
-#     async with TEST_ASYNC_SESSION() as session:
-#         entries = await session.execute(select(TestStorage))
-#         
-#     entries_list = entries.scalars().all()
-#     for i, ele in enumerate(entries_list):
-#         print("ele", ele.__dict__)
-#         assert ele.request_id == answer_ids[i]
-#         assert ele.order_info["order_type"] == answer_rq_types[i]
-#         assert ele.order_info["qty_significant"] == answer_qtys[i]
-#         assert ele.order_info["side"] == answer_sides[i]
-#         
-#     # Delete all entry in DB
-#     async with TEST_ASYNC_SESSION() as session:
-#         await session.execute(delete(TestStorage))
-#         await session.commit()
-# =============================================================================
+@pytest.mark.asyncio       
+async def test_action_sequence_overtime() -> None:
+     pass
 
 
 # =============================================================================
@@ -202,16 +164,6 @@ async def test_action_sequence_cancel() -> None:
 #         await ACTION_TREE.step(ctx)
 # =============================================================================
         
-# =============================================================================
-# @pytest.mark.asyncio       
-# async def test_action_sequence_overtime() -> None:
-#     pass
-# 
-# @pytest.mark.asyncio       
-# async def test_() -> None:
-#     pass
-# 
-# =============================================================================
 print("====Test Started =====")
 #asyncio.run(test_action_sequence_TP1())
 asyncio.run(test_action_sequence_mod_TP2())
