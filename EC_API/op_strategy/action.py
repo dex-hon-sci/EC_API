@@ -107,6 +107,7 @@ class ActionNode:
         self.status: ActionStatus = ActionStatus.PENDING  
         
         self.payloads_states = np.array([False for _ in range(len(self.payloads))]) 
+        self.move_on_filled = True
         # We assume the DB we used to house the Pending Payloads are an async_seesion in
         # sql_alchemy, we might change this into a message queue in the future.
         # Once that is done, the following three attributes will be removed
@@ -146,6 +147,7 @@ class ActionNode:
                 await self.insert_payload()
                 self.status = ActionStatus.SENT
 
+        
         return 
     
 class GoFlatNode(ActionNode): # Untested
@@ -285,7 +287,8 @@ class ActionTree:
                 #    self.finished = True
                 #break
             
-async def update_action_status(node: ActionNode, session: AsyncSession) -> None:
+async def update_completed_action_status(node: ActionNode, 
+                                         session: AsyncSession) -> None:
     """Update a single node from DB."""
     for i, payload in enumerate(node.payloads):
 
