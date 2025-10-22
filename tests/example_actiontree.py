@@ -20,13 +20,22 @@ ACCOUNT_ID = 100
 timeframe = 60 # seconds (Assume we use TimeTickBuffer)
 checks = CQGFormatCheck #Define checking schema for Payloads
 
-# Trigger Conditions
-price_a_up, price_a, price_b, price_c, price_d, price_a2 = 105, 100, 50, 60, 70, 80
-TE_trigger =  lambda ctx: price_a < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_a_up
-mod_TE_trigger = lambda ctx: price_b < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < price_c
-TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_c
-TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_d
-cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_b
+# Trigger Conditions 
+# (a: entry LMT price, b: exit LMT price, c/d: trigger price, e: cancel order price)
+# numbers: route, eg, a1 and b1 are the first route in the order chain
+# Route 1, Trigger TE at c1 = 90, LMT a1=100, on_complete -> TP LMT b1 = 80, on_complete->Done
+# Route 2, Trigger TE at c1 = 90, LMT a1=100, on_sent -> Tirgger mod TE if 
+#          d2 (50) < price < c2 (60), mod LMT a2 = 70, on_complete-> TP LMT b2 = 40, on_complete -> Done
+# Route 3, Trigger TE at c1 = 90, LMT a1=100, on_sent -> Tirgger Cancel TE if 
+#          price < e3 (30), Cancel TE -> Done
+price_a1, price_b1, price_a2, price_b2, \
+price_c1, price_c2, price_d2, price_e3 = 100, 80, 70, 40, 90, 60, 50, 30
+#price_a_up, price_a, price_b, price_c, price_d, price_a2 = 105, 100, 50, 60, 70, 80
+TE_trigger =  lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] >= price_c1
+mod_TE_trigger = lambda ctx: price_d2 < ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  < price_c2
+TP_trigger_1 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_b1
+TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= price_b2
+cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_e3
 overtime_cond = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp \
                             >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
 ASSETS_SAFETY_RANGE = {

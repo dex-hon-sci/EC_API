@@ -234,7 +234,8 @@ class ActionTree:
                  root: ActionNode, 
                  overtime_cond: Callable[[ActionContext], bool],
                  overtime_node: ActionNode):
-        self.cur = root
+        self.head_cur = root # The pointer for PENDING nodes, transition to SENT
+        self.tail_cur = root # Pointer for SENT nodes, transition to VOID or COMPLETED
         self.root = root
         
         self.overtime_cond = overtime_cond
@@ -256,30 +257,30 @@ class ActionTree:
             if self.overtime_node.status == ActionStatus.PENDING:
                 print("[ActionTree] Triggering overtime exit")
                 await self.overtime_node.evaluate(ctx)
-            self.cur = None
+            self.head_cur = None
             self.finished = True
             return
     
         # 2. Evaluate current node
-        if self.cur is None:
+        if self.head_cur is None:
             print("Reaching the end of the Tree")
             self.finished = True
             return
 
-        await self.cur.evaluate(ctx)
+        await self.head_cur.evaluate(ctx)
 
         # 3. Transition to next node
-        for label, (cond, nxt_node) in self.cur.transitions.items():
-            print("check"+label, cond(ctx), self.cur.label, self.cur.status, nxt_node.label)
-            if cond(ctx) and self.cur.status == ActionStatus.SENT:
+        for label, (cond, nxt_node) in self.head_cur.transitions.items():
+            print("check"+label, cond(ctx), self.head_cur.label, self.head_cur.status, nxt_node.label)
+            if cond(ctx) and self.head_cur.status == ActionStatus.SENT:
                 print(label+": Condition match")
                 # Cancel siblings
-                for alt_label, (_, alt_node) in self.cur.transitions.items():
+                for alt_label, (_, alt_node) in self.head_cur.transitions.items():
                     if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
                         alt_node.status = ActionStatus.VOID
                         
-                print("Move from: ", self.cur.label)
-                self.cur = nxt_node
+                print("Move from: ", self.head_cur.label)
+                self.head_cur = nxt_node
                 print("To: ", nxt_node.label)
                 
                 #if not nxt_node.transitions:
