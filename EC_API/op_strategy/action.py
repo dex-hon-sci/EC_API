@@ -60,8 +60,7 @@ class ActionNode:
     `ActionNode` is a building block for all Operational Strategy (OpStrategy).
     
     Each `ActionNode` requires a few compulsaory attributes:
-        label: The name of the `
-        `
+        label: The name of the `ActionNode`.
         payloads: A list of `Payload` objects that contains the information of 
                   the orders for for this nodes.
         trigger_cond: A Callable function (-> bool) that is used in the evaluate 
@@ -85,8 +84,8 @@ class ActionNode:
     make sure to make both conditions identical.
     
     Life Cycle of a ActionNode, default status: PENDING, if all payloads 
-    confirmed sent-> COMPLETED. If other sibling's nodes are COMPLTETED, 
-    status->VOID.
+    confirmed SENT-> COMPLETED. 
+    If other sibling's nodes are COMPLTETED, status->VOID.
 
     If next node is None, switch `OpSignal` status to TERMINATED. 
         
@@ -105,9 +104,21 @@ class ActionNode:
         self.trigger_cond = trigger_cond if trigger_cond else False
         self.transitions = transitions if transitions else {}
         self.status: ActionStatus = ActionStatus.PENDING  
-        
         self.payloads_states = np.array([False for _ in range(len(self.payloads))]) 
-        self.move_on_filled = True
+        
+        # Transition_rules 
+        # (Once this Node reaches SENT or COMPLETED, we proceed to check transitions)
+        self.move_on_sent = True
+        self.move_on_complete = False
+        if not (self.move_on_sent ^ self.move_on_complete): # Check Validity
+            raise Exception("An Action Node can either be moved on SENT or\
+                            COMPLETED. Set either move_on_sent or move_on_complete\
+                            to True.")
+        if self.move_on_sent:
+            self.move_status = ActionStatus.SENT
+        if self.move_on_complete:
+            self.move_status = ActionStatus.COMPLETED
+
         # We assume the DB we used to house the Pending Payloads are an async_seesion in
         # sql_alchemy, we might change this into a message queue in the future.
         # Once that is done, the following three attributes will be removed
@@ -136,6 +147,7 @@ class ActionNode:
             
     async def evaluate(self, ctx: dict) -> None:
         # Only evaluate nodes that are still pending
+        # Status: PENDING -> SENT
         if self.status != ActionStatus.PENDING:
             return None
         
@@ -146,8 +158,26 @@ class ActionNode:
             for payload in self.payloads:             
                 await self.insert_payload()
                 self.status = ActionStatus.SENT
-
+        return 
+    
+    async def listen_for_conifrm(self) -> None:
+        # Status: SENT -> COMPLETED/VOID
+        if self.status != ActionStatus.SENT:
+            return None
         
+        for i, payload in enumerate(self.payloads):
+            for table in self.scan_db_tables:
+                stmt = select(table).where(table.request_id == payload.request_id)
+                result = await self.db_session.execute(stmt)
+                row = result.scalars().first()
+
+                if row and row.status in (PayloadStatus.FILLED):
+                    self.payloads_states[i] = True
+                    break
+                
+        if all(self.payloads_states):
+            self.status = ActionStatus.COMPLETED
+            
         return 
     
 class GoFlatNode(ActionNode): # Untested
@@ -175,6 +205,8 @@ class GoFlatNode(ActionNode): # Untested
         """
         On activation, dynamically create liquidation payloads
         based on current portfolio state (positions in ctx).
+        
+        Status
         """
         if self.status != ActionStatus.PENDING:
             return None
@@ -270,40 +302,43 @@ class ActionTree:
         await self.head_cur.evaluate(ctx)
 
         # 3. Transition to next node
-        for label, (cond, nxt_node) in self.head_cur.transitions.items():
-            print("check"+label, cond(ctx), self.head_cur.label, self.head_cur.status, nxt_node.label)
-            if cond(ctx) and self.head_cur.status == ActionStatus.SENT:
-                print(label+": Condition match")
-                # Cancel siblings
-                for alt_label, (_, alt_node) in self.head_cur.transitions.items():
-                    if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
-                        alt_node.status = ActionStatus.VOID
-                        
-                print("Move from: ", self.head_cur.label)
-                self.head_cur = nxt_node
-                print("To: ", nxt_node.label)
-                
-                #if not nxt_node.transitions:
-                #    print("Reaching the end of the Tree")#
-                #    self.finished = True
-                #break
+        if self.head_cur.status == self.head_cur.move_status:
+            for label, (cond, nxt_node) in self.head_cur.transitions.items():
+                print("check"+label, cond(ctx), self.head_cur.label, self.head_cur.status, nxt_node.label)
+                if cond(ctx) and self.head_cur.status == ActionStatus.SENT:
+                    print(label+": Condition match")
+                    # Cancel siblings
+                    for alt_label, (_, alt_node) in self.head_cur.transitions.items():
+                        if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
+                            alt_node.status = ActionStatus.VOID
+                            
+                    print("Move from: ", self.head_cur.label)
+                    self.head_cur = nxt_node
+                    print("To: ", nxt_node.label)
+                    
+                    #if not nxt_node.transitions:
+                    #    print("Reaching the end of the Tree")#
+                    #    self.finished = True
+                    #break
             
-async def update_completed_action_status(node: ActionNode, 
-                                         session: AsyncSession) -> None:
-    """Update a single node from DB."""
-    for i, payload in enumerate(node.payloads):
-
-        for table in node.scan_db_tables:
-            stmt = select(table).where(table.request_id == payload.request_id)
-            result = await node.db_session.execute(stmt)
-            row = result.scalars().first()
-
-            if row and row.status in (PayloadStatus.FILLED, PayloadStatus.ACK):
-                node.payloads_states[i] = True
-                break
-            
-    if all(node.payloads_states):
-        node.status = ActionStatus.COMPLETED
+# =============================================================================
+# async def update_completed_action_status(node: ActionNode, 
+#                                          session: AsyncSession) -> None:
+#     """Update a single node from DB."""
+#     for i, payload in enumerate(node.payloads):
+# 
+#         for table in node.scan_db_tables:
+#             stmt = select(table).where(table.request_id == payload.request_id)
+#             result = await node.db_session.execute(stmt)
+#             row = result.scalars().first()
+# 
+#             if row and row.status in (PayloadStatus.FILLED, PayloadStatus.ACK):
+#                 node.payloads_states[i] = True
+#                 break
+#             
+#     if all(node.payloads_states):
+#         node.status = ActionStatus.COMPLETED
+# =============================================================================
 
 
 

@@ -42,13 +42,15 @@ class Payload:
     def __post_init__(self) -> None:
         # Check the order instructions based on the order type
         # import checking classes and func specific for CQG type orders
-        #check_obj = self.check_method(self.order_request_type, 
-        #                              self.order_info)
         check_obj = self.check_method(self.order_request_type, 
                                       self.order_info,
                                       self.asset_safty_range)
         check_obj.run()
         
+class PayloadStatusManager:
+    def __init__(self, payload: Payload):
+        pass
+
 
 class ExecutePayload:
     # Execution object for CQG trade rounting connection
@@ -104,3 +106,22 @@ class ExecutePayload:
             
         else:
             raise Exception("Only pending payloads can be unloaded.")
+
+    
+def change_payload_status(payload, server_msg) -> None:
+    #SENT_CASES = ()
+    #FILL_CASES = ()
+    #VOID_CASES = ()
+    
+    match server_msg.status:
+        case OrderStatus.WORKING | OrderStatus.IN_TRANSIT | OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY | OrderStatus.ACTIVEAT:
+            payload.status = PayloadStatus.SENT
+        case OrderStatus.CANCELLED | OrderStatus.FILLED | OrderStatus.SUSPENDED:
+            payload.status = PayloadStatus.FILLED
+            # After Filled, add Order_ID to self.order_info <-- add different order status types here
+            ORDER_ID = server_msg.order_statuses[0].order_id
+            payload.order_info['order_id'] = ORDER_ID
+        case OrderStatus.DISCONNECTED | OrderStatus.REJECTED:
+            payload.status = PayloadStatus.VOID
+        case _:
+            payload.status = PayloadStatus.ARCHIVED

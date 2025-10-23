@@ -71,7 +71,7 @@ TE_PL_A = Payload(
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
-        "scaled_limit_price": price_a,
+        "scaled_limit_price": price_a1,
         "good_thru_date": datetime(2025,9,9),
         "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
         },
@@ -114,7 +114,7 @@ TP_PL1_A = Payload(
         "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
-        "scaled_limit_price": price_c,
+        "scaled_limit_price": price_b1,
         },
     check_method = checks,
     asset_safty_range = ASSETS_SAFETY_RANGE
@@ -135,7 +135,7 @@ TP_PL2_A = Payload(
         "duration": Duration.DURATION_GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
-        "scaled_limit_price": price_d,
+        "scaled_limit_price": price_b2,
         },
     check_method = checks,
     asset_safty_range = ASSETS_SAFETY_RANGE
