@@ -49,8 +49,22 @@ class Payload:
         
 class PayloadStatusManager:
     def __init__(self, payload: Payload):
-        pass
+        self.payload = payload
 
+    def change_status(self, server_msg) -> None:
+        match server_msg.status:
+            case OrderStatus.WORKING | OrderStatus.IN_TRANSIT | OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY | OrderStatus.ACTIVEAT:
+                self.payload.status = PayloadStatus.SENT
+            case OrderStatus.CANCELLED | OrderStatus.FILLED | OrderStatus.SUSPENDED:
+                self.payload.status = PayloadStatus.FILLED
+                # After Filled, add Order_ID to self.order_info <-- add different order status types here
+                ORDER_ID = server_msg.order_statuses[0].order_id
+                self.payload.order_info['order_id'] = ORDER_ID
+            case OrderStatus.DISCONNECTED | OrderStatus.REJECTED:
+                self.payload.status = PayloadStatus.VOID
+            case _:
+                self.payload.status = PayloadStatus.ARCHIVED
+ 
 
 class ExecutePayload:
     # Execution object for CQG trade rounting connection
@@ -108,20 +122,3 @@ class ExecutePayload:
             raise Exception("Only pending payloads can be unloaded.")
 
     
-def change_payload_status(payload, server_msg) -> None:
-    #SENT_CASES = ()
-    #FILL_CASES = ()
-    #VOID_CASES = ()
-    
-    match server_msg.status:
-        case OrderStatus.WORKING | OrderStatus.IN_TRANSIT | OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY | OrderStatus.ACTIVEAT:
-            payload.status = PayloadStatus.SENT
-        case OrderStatus.CANCELLED | OrderStatus.FILLED | OrderStatus.SUSPENDED:
-            payload.status = PayloadStatus.FILLED
-            # After Filled, add Order_ID to self.order_info <-- add different order status types here
-            ORDER_ID = server_msg.order_statuses[0].order_id
-            payload.order_info['order_id'] = ORDER_ID
-        case OrderStatus.DISCONNECTED | OrderStatus.REJECTED:
-            payload.status = PayloadStatus.VOID
-        case _:
-            payload.status = PayloadStatus.ARCHIVED
