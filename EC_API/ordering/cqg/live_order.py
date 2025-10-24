@@ -119,8 +119,12 @@ class CQGLiveOrder(LiveOrder):
         order_request.new_order.order.order_type = order_type
         order_request.new_order.order.duration = duration
         order_request.new_order.order.side = side
+        
+        
         order_request.new_order.order.qty.significand = qty_significant
         order_request.new_order.order.qty.exponent = qty_exponent
+        
+        
         order_request.new_order.order.is_manual = is_manual
         
         optional_kwargs_keys = [
@@ -188,7 +192,7 @@ class CQGLiveOrder(LiveOrder):
         optional_kwargs_keys = [
             'qty', 
             'scaled_limit_price', 
-            'scaled_limit_price',
+            'scaled_stop_price',
             'remove_activation_time', 
             'remove_suspension_utc_time', 
             'activation_utc_timestamp',
