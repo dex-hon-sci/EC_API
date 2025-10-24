@@ -21,6 +21,7 @@ from EC_API.monitor.data_feed import DataFeed
 from EC_API.ordering.base import LiveOrder
 
 class ActionContext:
+    """ ActionContext is in charge of the DataFeed related operation"""
     def __init__(self, 
                  #start_time: datetime, 
                  #end_time: datetime,
@@ -249,7 +250,82 @@ class GoFlatNode(ActionNode): # Untested
 
         self.status = ActionStatus.COMPLETED
         return None
+    
+    
+class ActionStatusManager:
+    """ A class that manage the status for ActionNodes and DB related context."""
+    def __init__(self, action_node: ActionNode, 
+                 db_session: AsyncSession = None,
+                 to_db_table: str = "",
+                 scan_db_tables: list[str] = []):
+        self.action_node = action_node
+        self.db_session = db_session  
+        self.to_db_table = to_db_table
+        self.scan_db_tables = scan_db_tables
+
+    def change_status(self):
         
+        return 
+    
+class ActionNodeHandler:
+    def __init__(self, action_node: ActionNode,
+                 action_mgr: ActionStatusManager):
+        self.action_node = action_node
+        self.action_mgr = action_mgr
+        
+    async def insert_payload(self) -> None:
+        # In the future we might want to change this into an event-driven msg bus
+        async with self.action_mgr.db_session() as session:
+            for payload in self.action_node.payloads:
+                entry = self.action_mgr.to_db_table(
+                    request_id=payload.request_id,
+                    account_id=payload.account_id,
+                    status=payload.status,
+                    order_request_type=payload.order_request_type,
+                    start_time=payload.start_time,
+                    end_time=payload.end_time,
+                    order_info=payload.order_info
+                )
+                print("entryentry", entry)
+                #entry = self.to_db_table(**payload.dict())
+                session.add(entry)
+            await session.commit()
+            
+    async def evaluate(self, ctx: dict) -> None:
+        # Only evaluate nodes that are still pending
+        # Status: PENDING -> SENT
+        if self.action_node.status != ActionStatus.PENDING:
+            return None
+        
+        # Check Trigger condition and fire Payload
+        if self.action_node.trigger_cond(ctx):
+            print(f"[ActionNode] {self.label} triggered.")
+
+            for payload in self.action_node.payloads:             
+                await self.insert_payload()
+                self.action_node.status = ActionStatus.SENT
+        return 
+    
+    async def listen_for_conifrm(self) -> None:
+        # Status: SENT -> COMPLETED/VOID
+        if self.action_node.status != ActionStatus.SENT:
+            return None
+        
+        for i, payload in enumerate(self.action_node.payloads):
+            for table in self.action_mgr.scan_db_tables:
+                stmt = select(table).where(table.request_id == payload.request_id)
+                result = await self.action_mgr.db_session.execute(stmt)
+                row = result.scalars().first()
+
+                if row and row.status in (PayloadStatus.FILLED):
+                    self.action_node.payloads_states[i] = True
+                    break
+                
+        if all(self.payloads_states):
+            self.action_node.status = ActionStatus.COMPLETED
+            
+        return 
+    
 class ActionTree:
     """
     `ActionTree` controls the traversal between linked `ActionNodes`.
@@ -264,14 +340,19 @@ class ActionTree:
     """
     def __init__(self, 
                  root: ActionNode, 
+                 action_mgr: ActionStatusManager,
                  overtime_cond: Callable[[ActionContext], bool],
                  overtime_node: ActionNode):
         self.head_cur = root # The pointer for PENDING nodes, transition to SENT
         self.tail_cur = root # Pointer for SENT nodes, transition to VOID or COMPLETED
         self.root = root
         
+        self.action_mgr = action_mgr
+
+        
         self.overtime_cond = overtime_cond
         self.overtime_node = overtime_node # Compulsory 
+        
 
         self.finished = False
         # Move through Tree with Step function
@@ -299,8 +380,9 @@ class ActionTree:
             self.finished = True
             return
 
-        await self.head_cur.evaluate(ctx)
-
+        #await self.head_cur.evaluate(ctx)
+        await ActionNodeHandler(self.head_cur, self.action_mgr).evaluate(ctx)
+        
         # 3. Transition to next node
         if self.head_cur.status == self.head_cur.move_status:
             for label, (cond, nxt_node) in self.head_cur.transitions.items():
@@ -321,24 +403,4 @@ class ActionTree:
                     #    self.finished = True
                     #break
             
-# =============================================================================
-# async def update_completed_action_status(node: ActionNode, 
-#                                          session: AsyncSession) -> None:
-#     """Update a single node from DB."""
-#     for i, payload in enumerate(node.payloads):
-# 
-#         for table in node.scan_db_tables:
-#             stmt = select(table).where(table.request_id == payload.request_id)
-#             result = await node.db_session.execute(stmt)
-#             row = result.scalars().first()
-# 
-#             if row and row.status in (PayloadStatus.FILLED, PayloadStatus.ACK):
-#                 node.payloads_states[i] = True
-#                 break
-#             
-#     if all(node.payloads_states):
-#         node.status = ActionStatus.COMPLETED
-# =============================================================================
-
-
 
