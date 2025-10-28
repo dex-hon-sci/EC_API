@@ -54,6 +54,10 @@ class OHLC:
             "open": prices[0],
             "high": np.max(prices),
             "low": np.min(prices),
-            "close": prices[-1]
-        }
+            "close": prices[-1],
+            "open_volume":volumes[0],
+            "high_volume":np.max(volumes),
+            "low_volume":np.min(volumes),
+            "close_volume":volumes[-1]
+            }
     
