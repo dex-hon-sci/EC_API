@@ -3,30 +3,30 @@
 
 ## Overview
 `EC_API` provides easy-to-use functions for algorithmic trading. 
-It is a wrapper package that utilises Websocket messaging to fasicilates 
-trades, real-time data monitor, open posoitions tradcking, and etc.
+It is a wrapper package that utilises Websocket messaging to facilitate 
+trades, real-time data monitoring, open positions tracking, etc.
 
 In the current version, we only support trade and real-time data monitoring 
-through CQG WebAPI which connect to their trade routing server through 
+through CQG WebAPI, which connects to their trade routing server through 
 WebSocket and TSL layers. 
 
 ## Module Reviews
 `EC_API` contains the following modules:
 | Module | Description |
 |-----------|-------------|
-| `connect` | Connection modiule that is in charge of authetication and message<br> hear-back. |
+| `connect` | Connection module that is in charge of authentication and message<br> hear-back. |
 | `ext` | External codes. Trade routing API codes are in here.  |
 | `monitor` | Monitor module takes care of information request, open-order<br>tracking, and real-time data request. Specify `DataFeed` input<br>for strategy here.|
-| `msg_validation` | It is in charge of server message validation. After sending<br>a client request, the server repsonse message goes through<br>message validation process in this module. The functions match<br>the message ID and map them with the acceptable message type<br>to ensure accurate pairing between client-server messages. |
-| `op_strategy` | It defines the format for operational strategy (`OpStrategy`).<br> Key components for strategy building, such as `OpSignal`<br>that controls the life-cycle of signals, as well as `ActionNode`<br> and `ActionTree` (a finite-state machine) that controls<br>order flow and execution are in this module. |
-| `ordering` | It handles `LiveOrder` type objects and how we send order request<br>to the exchanges. |
-| `payload` | It contains the `Payload` class where parameters validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
+| `msg_validation` | It is in charge of server message validation. After sending<br>a client request, the server response message goes through<br>message validation process in this module. The functions match<br>the message ID and map them with the acceptable message type<br>to ensure accurate pairing between client-server messages. |
+| `op_strategy` | It defines the format for operational strategy (`OpStrategy`).<br> Key components for strategy building, such as `OpSignal`<br>that controls the life-cycle of signals, as well as `ActionNode`<br> and `ActionTree` (a finite-state machine) that controls<br>order flow and execution, are in this module. |
+| `ordering` | It handles `LiveOrder` type objects and how we send order requests <br>to the exchanges. |
+| `payload` | It contains the `Payload` class where parameter validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
 | `utility` | It contains utility functions for the package.  |
 
 
 ## Usage
-Here are some examples for the usage. 
-We use CQG connection as an example in this demostration.
+Here are some usage examples. 
+We use the CQG connection as an example in this demonstration.
 
 
 ### (1) Sending Orders
@@ -39,11 +39,11 @@ USR_NAME = 'USR_NAME'
 PASSWORD = 'PASSWORD'
 ACCOUNT_ID = 0000000
 
-# create an connection before trading
+# create a connection before trading
 CONNECT = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD)
 ```
 
-To send a new order request directly via `EC_API` native functions 
+To send a new order request directly via `EC_API`'s native functions 
 (not recommended) from the `ordering` module.
 
 ```python
@@ -77,7 +77,7 @@ try:
                 request_details = new_order_details)  
 ```
 
-To send a modify order request in a similar fashion
+To send a `modify_order` request in a similar fashion
 ```python
 
 modify_order_details =  { 
@@ -85,8 +85,8 @@ modify_order_details =  {
     "ogri_cl_order_id": "1231314", # The original cl_order_id
     "cl_order_id": "1231315", # new cl_order_id
     "duration": Duration.DURATION_GTD, # Change from GTC to GTD
-    "qty": 10, # change qty to from 2 to 10
-    "scaled_limit_price": 1100, # change LMT proce from 1000 to 1100
+    "qty": 10, # change qty from 2 to 10
+    "scaled_limit_price": 1100, # change LMT price from 1000 to 1100
     }
                       
 try:
@@ -99,8 +99,8 @@ try:
 
 ```
 
-However, it is recommended to send order requests to the exchanges'' 
-server using an `Payload` object. The payload class provided format
+However, it is recommended to send order requests to the exchange  
+servers using a `Payload` object. The payload class provided format
 checking and safety regulation for the input parameters. 
 
 To send orders with `Payload`, you can use this:
@@ -154,7 +154,7 @@ try: # Specify the type of live order we are using here.
 To build a Operational Strategy, One need to use the following workflow and data structure.
 
 We will follow the schematic above.
-First, we specifiy the trigger conditions and `Payload` objects to be sent.
+First, we specify the trigger conditions and `Payload` objects to be sent.
 ```python
 from datetime import datetime, timedelta, timezone
 from EC_API.op_strategy.action import ActionNode, ActionTree
@@ -342,22 +342,22 @@ Finally, we can write the `OpStrategy` type class that produces  `OpSignal`.
 ```python
 
 ```
-Note that for a fully automated Algo-Trading setup, the `OpSignal` and `OpStrategy`
-both live in the "Data Loop" where the raw market data from the websocket are
-ingested. The raw ticks has to be stored in `TickBuffer` objects via the 
+Note that for a fully automated Algo-Trading setup, both the `OpSignal` and `OpStrategy`
+live in the "Data Loop" where the raw market data from the websocket is
+ingested. The raw ticks have to be stored in `TickBuffer` objects via the 
 built-in method of the `DataFeed` class. `OpSignal` and `OpStrategy` interact 
-with `DataFeed` and decided when to send out the corresponding orders or what 
-signal to be generated, respectively.
+with `DataFeed` and decide when to send out the corresponding orders or what 
+signal to generate, respectively.
 
-As a short summary, each classes are in control of a separate function, from
-a top-to-down persepctive, we have:
-1. `OpStrategy` reads the `DataFeed` controls the production `OpSignal` and 
-    the cool-down mechanism that limit the frequency of signal production;
+As a short summary, each class are in control of a separate function, from
+a top-to-down perspective, we have:
+1. `OpStrategy` reads the `DataFeed`, controls the production `OpSignal` and 
+    the cool-down mechanism that limits the frequency of signal production;
 2. `OpSignal` reads the `DataFeed` and controls xxx;
 3. `ActionTree` controls the traversal along the `ActionNode` chain and the
     sequence of execution of the `ActionNode` objects;
-4. `ActionNode` controls when is the `Payload` insertion triggered;
-5. `Payload` controls how the desired orders is sent to an Exchange (`LiveOrder`
+4. `ActionNode` controls when the `Payload` insertion is triggered;
+5. `Payload` controls how the desired orders are sent to an Exchange (`LiveOrder`
     type objects), and what format checking policy (via `FormatCheck` type 
     objects) is used to validate our orders.
 
@@ -386,14 +386,14 @@ To monitor Real-time Data (WIP)
 ## Project Structure
 -----------------------
     ├── EC_API
-    │   ├── connect                   <- In charge of server connections and authetications.
+    │   ├── connect                   <- In charge of server connections and authentication.
     │   │   ├── base.py
-    │   │   ├── cqg                   <- cqg specfic codes in each modules. Patches and new service can be added easily.
+    │   │   ├── cqg                   <- cqg specific codes in each module. Patches and new services can be added easily.
     │   │   │   ├── connect.py                      
     │   │   │   └── __init__.py
     │   │   ├── hearback.py           <- Universal decorators functions for receiving server msg.
     │   │   └── __init__.py
-    │   ├── ext                       <- External codes. Service provider's API can be added here.
+    │   ├── ext                       <- External codes. The service provider's API can be added here.
     │   │   ├── common
     │   │   │   ├── decimal_pb2.py
     │   │   │   ├── __init__.py
