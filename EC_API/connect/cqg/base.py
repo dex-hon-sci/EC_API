@@ -119,6 +119,8 @@ class ConnectCQG(Connect):
                 return server_msg_restore
             
     def ping():
+        ping_msg = ClientMsg()
+
         return 
     
     def resolve_symbol(self, 
