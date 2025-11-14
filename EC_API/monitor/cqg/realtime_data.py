@@ -6,6 +6,7 @@ Created on Thu Aug  7 10:06:40 2025
 @author: dexter
 """
 import asyncio
+import numpy as np
 # Import EC_API scripts
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
@@ -19,18 +20,8 @@ class MonitorRealTimeDataCQG(Monitor):
         self._connection = connection
         #self._connection.logon()
         self._msg_id: int = 200 # just a starting number for message id
-        self.symbols: list = [str]
-        self.data_buffers: dict[str, TickBuffer] = {}
-        
-        self._contract_ids = {
-            f'{sym}': self._connection.resolve_symbol(sym, 1).contract_id 
-                             for sym in self.symbols
-            }
-        self._contract_metadata = {
-            f'{sym}': self._connection.resolve_symbol(sym, 1)
-                             for sym in self.symbols
-            }     
-        
+        self.symbols: set[str] = set()
+
         self.total_recv_cycle: int = 20
         self.total_send_cycle: int = 2
         self.recv_cycle_delay: int = 0
@@ -39,29 +30,19 @@ class MonitorRealTimeDataCQG(Monitor):
     def connection(self):
         return self._connection
     
-    async def _resolve_symbol(self) -> None:
+    async def resolve_symbol(self, symbol: str, contract_ids: dict[str, int],
+                             contract_metadata: dict[str]) -> None:
         # Set up contract_id and metadata for references
-        for symbol in self.symbols:
-            if symbol not in self._contract_ids:
-                self._contract_ids[symbol] = self._connection.resolve_symbol(symbol, 1).contract_id 
-                self._contract_metadata = self._connection.resolve_symbol(symbol, 1)
+        #for symbol in self.symbols:
+        if symbol not in contract_ids:
+            contract_ids[symbol] = self._connection.resolve_symbol(symbol, 1).contract_id 
+            contract_metadata[symbol] = self._connection.resolve_symbol(symbol, 1)
 
-    async def _build_datafeed(self) -> None:
-        # Set up a pool of datafeed before running monitoring functions
-        for symbol in self.symbols:
-            if symbol not in self.datafeed_pool: 
-                #Add new datafeed if there is a new symbol
-                DF = DataFeed(tick_buffer = TickBuffer(60), #60 seconds
-                              tick_buffer_stat = TickBufferStat(),
-                              symbol = symbol)
-                self.datafeed_pool[symbol] = DF
-    
     async def request_realtime_data(self, 
-                                contract_id:int, 
-                                level: int = 1, 
-                                default_timestamp: float | int = 9, 
-                                default_price: float | int = 9, 
-                                default_volume: float | int = 9) -> ServerMsg:
+                                    contract_id: int, 
+                                    level: int = 1, 
+                                    default: tuple[ float | int] = (np.nan, np.nan, np.nan)
+                                    ) -> tuple[int, float, int]:
         # Two loop approach: Not the most sophisticated but will do for now.
         # Could Use continuous scrapping with a buffer. Send all requests, recv
         # msg, scrap them and bank them in our buffer. Then we post it on the TSDB
@@ -73,7 +54,7 @@ class MonitorRealTimeDataCQG(Monitor):
             client_msg = ClientMsg()
             subscription = client_msg.market_data_subscriptions.add()
             subscription.contract_id = contract_id
-            subscription.request_id = self.msg_id
+            subscription.request_id = self.msg_id # Everytime this is called, it increase by 1
             subscription.level = level
             # Send message
             self._connection._client.send_client_message(client_msg)
@@ -105,10 +86,10 @@ class MonitorRealTimeDataCQG(Monitor):
                         price = server_msg.real_time_market_data[0].quotes[0].scaled_price
                         volume = server_msg.real_time_market_data[0].quotes[0].volume.significand
                         
-                        self.datafeed_pool[symbol].tick_buffer.add_tick(price, 
-                                                                        volume, 
-                                                                        timestamp)
-                        self.datafeed_pool[symbol].tick_buffer_stat()
+                        #self.datafeed_pool[symbol].tick_buffer.add_tick(price, 
+                        #                                                volume, 
+                        #                                                timestamp)
+                        #self.datafeed_pool[symbol].tick_buffer_stat()
                         #print(timestamp, price, volume) 
                         return timestamp, price, volume
                     
@@ -118,11 +99,9 @@ class MonitorRealTimeDataCQG(Monitor):
             # Delay x seconds for each send message attempt
             await asyncio.sleep(self.send_cycle_delay)
         # return Default values if no correct quote message was caught
-        return default_timestamp, default_price, default_volume
+        return default
     
-    async def reset_tracker(self, 
-                            contract_id: int, 
-                            ) -> ServerMsg:
+    async def reset_tracker(self, contract_id: int) -> None:
         # A function to cancel subscription for the real-time data
         client_msg = ClientMsg()
         subscription = client_msg.market_data_subscriptions.add()
@@ -145,10 +124,26 @@ class MonitorRealTimeDataCQG(Monitor):
                 if recv_contract_id == contract_id and status == 0:
                     return 
     
-    async def run(self) -> dict[str|int|float]:
-        # Get contract_id from resolve symbol
+    async def run(self, sym: str, contract_ids: dict[str, int]) -> tuple[int|float]:
         
-        self.request_real_time() # Request real-time data
-        
-        await self.reset_tracker() # Reset tracker
+        #for sym in self.symbols:
+        # Request real-time data
+        output = await self.request_real_time(contract_ids[sym])
+                                                       
+        await self.reset_tracker(contract_ids[sym]) # Reset tracker
         # get the data from  other symbols
+        return output
+    
+
+# =============================================================================
+#     async def _build_datafeed(self) -> None:
+#         # Set up a pool of datafeed before running monitoring functions
+#         for symbol in self.symbols:
+#             if symbol not in self.datafeed_pool: 
+#                 #Add new datafeed if there is a new symbol
+#                 DF = DataFeed(tick_buffer = TickBuffer(60), #60 seconds
+#                               tick_buffer_stat = TickBufferStat(),
+#                               symbol = symbol)
+#                 self.datafeed_pool[symbol] = DF
+# =============================================================================
+    
