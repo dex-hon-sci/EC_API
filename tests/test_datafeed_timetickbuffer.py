@@ -46,7 +46,7 @@ def test_addto_tickbuffer() -> None:
     DF = DataFeed(TB, symbol="AddtoTest")
     
     for price, volume, timestamp in IT.feed:
-        DF.tick_buffer.add_tick(price, volume, timestamp)
+        DF.tick_buffer.add_tick(timestamp, price, volume)
     
     for index, tick in enumerate(DF.tick_buffer.buffers.get(60)):
         assert tick.price == IT.prices[index]
@@ -66,7 +66,7 @@ def test_popleft_tickbuffer() -> None:
     DF = DataFeed(TB, symbol="PopLeftTest")
     
     for price, volume, timestamp in IT.feed:
-        DF.tick_buffer.add_tick(price, volume, timestamp)
+        DF.tick_buffer.add_tick(timestamp, price, volume)
         #print(len(DF.tick_buffer.buffers.get(10)))
         #print(DF.tick_buffer.buffers.get(10))
         assert len(DF.tick_buffer.buffers.get(10)) == 1
@@ -92,7 +92,7 @@ def test_multi_timeframe_tickbuffer() -> None:
     DF = DataFeed(TB, symbol="Multi-TimeFrame")
     index = 0
     for price, volume, timestamp in IT.feed:
-        DF.tick_buffer.add_tick(price, volume, timestamp)
+        DF.tick_buffer.add_tick(timestamp, price, volume)
         #print('---------------------')
         for num in timeframe:
             #print(num, len(DF.tick_buffer.buffers.get(num)), len_seq.get(num)[index])
@@ -144,7 +144,7 @@ def test_update_tickbuffer_stat_all() -> None:
     delta = 1e-5
     index = 0 
     for price, volume, timestamp in IT.feed:
-        DF.tick_buffer.add_tick(price, volume, timestamp)
+        DF.tick_buffer.add_tick(timestamp, price, volume)
         #print("Add tick complete")
         stats = DF.tick_buffer_stat(timestamp-50, timestamp) # call stat method
         #print("stats", stats)
@@ -180,7 +180,7 @@ def test_update_tickbuffer_stat_selection() -> None:
     #print('--Running DataStream')
 
     for price, volume, timestamp in IT.feed:
-        DF.tick_buffer.add_tick(price, volume, timestamp)
+        DF.tick_buffer.add_tick(timestamp, price, volume)
         stats = DF.tick_buffer_stat(timestamp-50, timestamp) # call stat method
         assert stats['n'] == index +1
         assert stats['mean_price'] == mean_price[index]

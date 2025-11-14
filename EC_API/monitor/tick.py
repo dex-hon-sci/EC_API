@@ -38,12 +38,12 @@ class RingTickBuffer(TickBuffer):
         self.cur = 0
         self.full = False
         
-    def add_tick(self, price: float, volume: float, timestamp: float) -> None:
+    def add_tick(self, timestamp: float, price: float, volume: float) -> None:
         if timestamp is None:
             timestamp = time.time()
+        self.timestamps[self.cur] = timestamp
         self.prices[self.cur] = price
         self.volumes[self.cur] = volume
-        self.timestamps[self.cur] = timestamp
 
         self.cur = (self.cur + 1) % self.size
         if self.cur == 0: #no reminder, array is full
@@ -92,9 +92,10 @@ class TimeTickBuffer(TickBuffer):
 
     @time_it
     def add_tick(self, 
-                 price: int, 
-                 volume: int, 
-                 timestamp: int = None) -> None:
+                 timestamp: float,
+                 price: float, 
+                 volume: float, 
+                 ) -> None:
         if timestamp is None:
             timestamp = time.time()
         tick = Tick(price, volume, timestamp)

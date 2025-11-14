@@ -10,6 +10,7 @@ Operational Strategy module
 from typing import Protocol
 # EC_APi imports
 from EC_API.monitor.data_feed import DataFeed
+from EC_API.monitor.tick import TimeTickBuffer
 
 class OpStrategy(Protocol):
     """
@@ -22,9 +23,16 @@ class OpStrategy(Protocol):
     Contain Cool-down mechanism
     """
     def __init__(self,
-                 datafeed_pool: list[DataFeed],
+                 symbols: list[str],
+                 #datafeed_pool: list[DataFeed],
                  payload_pool: list[DataFeed]):
-        self.datafeed_pool = datafeed_pool
+        #self.datafeed_pool = datafeed_pool
+        # Build DataFeed_pool
+        for sym in symbols:
+            self.datafeed_pool.append(DataFeed(tick_buffer=TimeTickBuffer, 
+                                               calculators={},symbol=sym
+                                               )
+                                      )
         self.payload_pool = payload_pool
         
     def on_tick():

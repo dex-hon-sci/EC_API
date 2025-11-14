@@ -10,8 +10,6 @@ from typing import Protocol
 from EC_API.monitor.tick import TickBuffer
 from EC_API.monitor.tick_stats import TickBufferStat
     
-class DataFeedProtocol(Protocol):
-    pass
     
 class DataFeed:
     """ 
