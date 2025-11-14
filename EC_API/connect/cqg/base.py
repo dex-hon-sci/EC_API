@@ -48,6 +48,8 @@ class ConnectCQG(Connect):
               client_version: str ='python-client-test-2-240',
               protocol_version_major: int = 2,
               protocol_version_minor: int = 240, 
+              drop_concurrent_session: bool = False,
+              private_label: str = "WebApiTest",
               **kwargs) -> ServerMsg:
         
         # create a client_msg based on the protocol.
@@ -61,7 +63,9 @@ class ConnectCQG(Connect):
         logon.client_version = client_version
         logon.protocol_version_major = protocol_version_major
         logon.protocol_version_minor = protocol_version_minor
-        
+        logon.drop_concurrent_session = drop_concurrent_session
+        logon.private_label = private_label
+
         if 'session_settings' in kwargs:
             logon.session_settings.append(kwargs['session_settings'])
 
@@ -126,7 +130,8 @@ class ConnectCQG(Connect):
     def resolve_symbol(self, 
                        symbol_name: str, 
                        msg_id: int, 
-                       subscribe: bool=None, **kwargs): #decrepated/unused
+                       subscribe: bool = None, 
+                       **kwargs): #decrepated/unused
         # after the server confirm that we login successfully, we can send information_request
         # contains the symbol_resolution_request, the real time data, historical data, 
         # tick data, and order activities are all depended on symbol_resolution_report
@@ -145,8 +150,11 @@ class ConnectCQG(Connect):
         
         self._client.send_client_message(client_msg)
 
-        server_msg = self._client.receive_server_message()
-        return server_msg.information_reports[0].symbol_resolution_report.contract_metadata
+        while True:
+            server_msg = self._client.receive_server_message()
+            print(server_msg)
+            if len(server_msg.information_reports)>0:
+                return server_msg.information_reports[0].symbol_resolution_report.contract_metadata
     
     def disconnect(self)->None:
         self._client.disconnect()

@@ -30,13 +30,17 @@ class MonitorRealTimeDataCQG(Monitor):
     def connection(self):
         return self._connection
     
-    async def resolve_symbol(self, symbol: str, contract_ids: dict[str, int],
-                             contract_metadata: dict[str]) -> None:
+    async def resolve_symbol(self, 
+                             symbol: str, 
+                             msg_id: int,
+                             contract_ids: dict[str, int],
+                             contract_metadata: dict[str],
+                             ) -> None:
         # Set up contract_id and metadata for references
         #for symbol in self.symbols:
         if symbol not in contract_ids:
-            contract_ids[symbol] = self._connection.resolve_symbol(symbol, 1).contract_id 
-            contract_metadata[symbol] = self._connection.resolve_symbol(symbol, 1)
+            contract_ids[symbol] = self._connection.resolve_symbol(symbol, msg_id).contract_id 
+            contract_metadata[symbol] = self._connection.resolve_symbol(symbol, msg_id)
 
     async def request_realtime_data(self, 
                                     contract_id: int, 
@@ -58,13 +62,13 @@ class MonitorRealTimeDataCQG(Monitor):
             subscription.level = level
             # Send message
             self._connection._client.send_client_message(client_msg)
-            print("----------------------------")
-            print(f"contract_id={contract_id}, Attempt: {attempt}, send_request with ID {contract_id}")
+            #print("----------------------------")
+            #print(f"contract_id={contract_id}, Attempt: {attempt}, send_request with ID {contract_id}")
             #print('request_real_time')
             i = 0
             #while True:
             while i < self.total_recv_cycle:
-                print(f"Trial {i}: msg_id: {subscription.request_id}")
+                #print(f"Trial {i}: msg_id: {subscription.request_id}")
                 server_msg = self._connection._client.receive_server_message()
                 #print(server_msg)
                 i+=1
@@ -76,10 +80,10 @@ class MonitorRealTimeDataCQG(Monitor):
                     cond_ID = (server_msg.real_time_market_data[0].contract_id == contract_id) 
                     # 3) Condition for having the quote data
                     cond_quote = (len(server_msg.real_time_market_data[0].quotes)>0) 
-                    print("Conditions Check:")
-                    print("(msg recv, Correct ID, Quote recv):", 
-                          cond_existence, cond_ID, cond_quote, 
-                          'ID recv:', server_msg.real_time_market_data[0].contract_id)
+                    #print("Conditions Check:")
+                    #print("(msg recv, Correct ID, Quote recv):", 
+                    #      cond_existence, cond_ID, cond_quote, 
+                    #      'ID recv:', server_msg.real_time_market_data[0].contract_id)
 
                     if cond_ID and cond_quote: # check for validity of quote
                         timestamp = server_msg.real_time_market_data[0].quotes[0].quote_utc_time
@@ -128,7 +132,7 @@ class MonitorRealTimeDataCQG(Monitor):
         
         #for sym in self.symbols:
         # Request real-time data
-        output = await self.request_real_time(contract_ids[sym])
+        output = await self.request_realtime_data(contract_ids[sym])
                                                        
         await self.reset_tracker(contract_ids[sym]) # Reset tracker
         # get the data from  other symbols
