@@ -14,9 +14,9 @@ WebSocket and TSL layers.
 
 - [Modules Review](#module-reviews)
 - [Usage](#usage)
-  - [(1) Sending Orders](#sending-orders)
-  - [(2) Strategy Building](#strategy-building)
-  -[(3) Monitoring and Data Feed](#monitoring-and-data-feed)
+  - [Sending Orders](#sending-orders)
+  - [Strategy Building](#strategy-building)
+  - [Monitoring and Data Feed](#monitoring-and-data-feed)
 
 ## Module Reviews
 `EC_API` contains the following modules:
@@ -37,7 +37,7 @@ Here are some usage examples.
 We use the CQG connection as an example in this demonstration.
 
 
-### (1) Sending Orders
+### Sending Orders
 To facilitate a connection, 
 ```python
 from EC_API.connect.cqg.connect import ConnectCQG
@@ -154,7 +154,7 @@ try: # Specify the type of live order we are using here.
   EP = ExecutePayload(CONNECT, PL1, ACCOUNT_ID, live_order=CQGLiveOrder).unload()
 
 ```
-### (2) Strategy Building
+### Strategy Building
 `EC_API` follows the following standard schema for operational strategy:
 ![plot](./images/OpSignal_schema_v2.jpg)
 
@@ -371,7 +371,7 @@ a top-to-down perspective, we have:
 
 
 
-### (3) Monitoring and Data Feed
+### Monitoring and Data Feed
 To monitor Open Orders in your account,
 ```python
 from EC_API.monitor.cqg.trade_info import MonitorTradeCQG
