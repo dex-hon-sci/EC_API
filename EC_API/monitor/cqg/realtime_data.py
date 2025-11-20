@@ -18,7 +18,6 @@ from EC_API.monitor.data_feed import DataFeed
 class MonitorRealTimeDataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._connection = connection
-        #self._connection.logon()
         self._msg_id: int = 200 # just a starting number for message id
         self.symbols: set[str] = set()
 
@@ -39,8 +38,22 @@ class MonitorRealTimeDataCQG(Monitor):
         # Set up contract_id and metadata for references
         #for symbol in self.symbols:
         if symbol not in contract_ids:
-            contract_ids[symbol] = self._connection.resolve_symbol(symbol, msg_id).contract_id 
-            contract_metadata[symbol] = self._connection.resolve_symbol(symbol, msg_id)
+            result_msg = self._connection.resolve_symbol(symbol, msg_id)
+            print("resolve_sym_msg", result_msg)
+            contract_ids[symbol] = result_msg.contract_id 
+            contract_metadata[symbol] = result_msg
+
+# =============================================================================
+#             try:
+#                 result_msg = self._connection.resolve_symbol(symbol, msg_id)
+#                 print("resolve_sym_msg", result_msg)
+#                 contract_ids[symbol] = result_msg.contract_id 
+#                 contract_metadata[symbol] = result_msg.resolve_symbol(symbol, msg_id)
+#             except:
+#                 print("Encounter problem resolving symbol.")
+# =============================================================================
+        await asyncio.sleep(0.2)
+        
 
     async def request_realtime_data(self, 
                                     contract_id: int, 
@@ -137,17 +150,5 @@ class MonitorRealTimeDataCQG(Monitor):
         await self.reset_tracker(contract_ids[sym]) # Reset tracker
         # get the data from  other symbols
         return output
-    
 
-# =============================================================================
-#     async def _build_datafeed(self) -> None:
-#         # Set up a pool of datafeed before running monitoring functions
-#         for symbol in self.symbols:
-#             if symbol not in self.datafeed_pool: 
-#                 #Add new datafeed if there is a new symbol
-#                 DF = DataFeed(tick_buffer = TickBuffer(60), #60 seconds
-#                               tick_buffer_stat = TickBufferStat(),
-#                               symbol = symbol)
-#                 self.datafeed_pool[symbol] = DF
-# =============================================================================
     

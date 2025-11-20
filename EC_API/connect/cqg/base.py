@@ -88,7 +88,7 @@ class ConnectCQG(Connect):
             # the text_message contains the reason why user cannot login.
             raise Exception("Can't login: " + server_msg.logon_result.text_message)
 
-    def logoff(self):
+    def logoff(self) -> ServerMsg:
         # Logoff. Invoke this everytime when a connection is dropped
         client_msg = ClientMsg()
         logoff = client_msg.logoff
@@ -122,7 +122,7 @@ class ConnectCQG(Connect):
             if len(server_msg_restore.restore_or_join_session_result)>0:
                 return server_msg_restore
             
-    def ping():
+    async def ping():
         ping_msg = ClientMsg()
 
         return 
