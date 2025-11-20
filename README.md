@@ -10,6 +10,14 @@ In the current version, we only support trade and real-time data monitoring
 through CQG WebAPI, which connects to their trade routing server through 
 WebSocket and TSL layers. 
 
+## Table of contents
+
+- [Modules Review](#module-reviews)
+- [Usage](#usage)
+    - [Sending Orders](#sending-orders)
+    - [Strategy Building](#strategy-building)
+    -[Monitoring and Data Feed](monitoring-and-data-feed)
+
 ## Module Reviews
 `EC_API` contains the following modules:
 | Module | Description |
