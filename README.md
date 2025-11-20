@@ -14,9 +14,9 @@ WebSocket and TSL layers.
 
 - [Modules Review](#module-reviews)
 - [Usage](#usage)
-    - [Sending Orders](#sending-orders)
-    - [Strategy Building](#strategy-building)
-    -[Monitoring and Data Feed](monitoring-and-data-feed)
+  - [(1) Sending Orders](#sending-orders)
+  - [(2) Strategy Building](#strategy-building)
+  -[(3) Monitoring and Data Feed](#monitoring-and-data-feed)
 
 ## Module Reviews
 `EC_API` contains the following modules:
