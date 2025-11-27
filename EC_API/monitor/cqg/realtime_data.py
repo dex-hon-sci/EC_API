@@ -34,11 +34,15 @@ class MonitorRealTimeDataCQG(Monitor):
                              msg_id: int,
                              contract_ids: dict[str, int],
                              contract_metadata: dict[str],
+                             **kwargs
                              ) -> None:
         # Set up contract_id and metadata for references
         #for symbol in self.symbols:
+        print("======================")
+        print("realtime monitor:", symbol, msg_id, contract_ids, contract_metadata)
+        print("realtime monitor2:", symbol not in contract_ids)
         if symbol not in contract_ids:
-            result_msg = self._connection.resolve_symbol(symbol, msg_id)
+            result_msg = await self._connection.resolve_symbol(symbol, msg_id, **kwargs)
             print("resolve_sym_msg", result_msg)
             contract_ids[symbol] = result_msg.contract_id 
             contract_metadata[symbol] = result_msg
@@ -52,7 +56,7 @@ class MonitorRealTimeDataCQG(Monitor):
 #             except:
 #                 print("Encounter problem resolving symbol.")
 # =============================================================================
-        await asyncio.sleep(0.2)
+        #await asyncio.sleep(1.2)
         
 
     async def request_realtime_data(self, 
