@@ -5,11 +5,14 @@ Created on Mon Aug 18 11:34:22 2025
 
 @author: dexter
 """
+import asyncio
 from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
 from EC_API.connect.enums import ConnectionState
+from EC_API.transport.cqg.base import CQGTransport
+from EC_API.transport.router import MessageRouter
 
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
@@ -19,7 +22,7 @@ class ConnectCQG(Connect):
                  user_name: str, 
                  password: str,
                  immediate_connect: bool = True):
-        
+        # Inputs
         self._host_name = host_name
         self._user_name = user_name
         self._password = password
@@ -29,21 +32,37 @@ class ConnectCQG(Connect):
         self.client_app_id: str = None
         self.protocol_version_major: int = None
         self.protocol_version_minor: int = None
+        
+        
         # Define client
         self._client = webapi_client.WebApiClient()
-
+        self._loop = asyncio.get_running_loop()
+        self._transport = CQGTransport()
+        self._router = MessageRouter()
+        
+        # queues for 
+        self.marketdata_queue = None
+        self.exec_queue = None
+        
         if immediate_connect:
-            self._client.connect(self._host_name)
+            self._transport.connect()
+            self._transport.start()
+            self._router_task = asyncio.create_task(self._router_loop())
+            #self._client.connect(self._host_name)
+            
+    async def start(self) -> None:
+        self._transport.start()
+        asyncio.create_task(self._router_loop())
 
     @property
     def client(self):
         # return client connection object
         return self._client
-    
-    def connect(self):
+        
+    async def connect(self):
         self._client.connect(self._host_name)
 
-    def logon(self, 
+    async def logon(self, 
               client_app_id: str ='WebApiTest', 
               client_version: str ='python-client-test-2-240',
               protocol_version_major: int = 2,
@@ -122,16 +141,28 @@ class ConnectCQG(Connect):
             if len(server_msg_restore.restore_or_join_session_result)>0:
                 return server_msg_restore
             
+    async def _router_loop(self):
+        while True:
+            msg = await self._transport.recv()
+            msg_type = msg.WhichOneof("message")
+
+    async def recv_msg_async(self):
+        #await asyncio.sleep(0.1)
+        async with self._recv_lock:
+            return await asyncio.to_thread(
+                self.resolve_symbol, symbol_name, msg_id, subscribe, **kwargs
+                )
+        
     async def ping():
         ping_msg = ClientMsg()
 
         return 
     
-    def resolve_symbol(self, 
+    async def resolve_symbol(self, 
                        symbol_name: str, 
                        msg_id: int, 
                        subscribe: bool = None, 
-                       **kwargs): #decrepated/unused
+                       **kwargs)-> ServerMsg: #decrepated/unused
         # after the server confirm that we login successfully, we can send information_request
         # contains the symbol_resolution_request, the real time data, historical data, 
         # tick data, and order activities are all depended on symbol_resolution_report
@@ -147,14 +178,15 @@ class ConnectCQG(Connect):
         
         if 'instrument_group_request' in kwargs:
             information_request.instrument_group_request = kwargs['instrument_group_request']    
-        
-        self._client.send_client_message(client_msg)
+        print("resolve_sym_client_msg", client_msg)
 
+        self._client.send_client_message(client_msg)
         while True:
             server_msg = self._client.receive_server_message()
-            print(server_msg)
+            print("server_msg", server_msg)
             if len(server_msg.information_reports)>0:
                 return server_msg.information_reports[0].symbol_resolution_report.contract_metadata
-    
+            asyncio.sleep(0.1)
+            
     def disconnect(self)->None:
         self._client.disconnect()

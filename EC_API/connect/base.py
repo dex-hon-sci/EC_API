@@ -6,7 +6,7 @@ Created on Wed Jul 30 10:23:04 2025
 @author: dexter
 """
 # Native Python imports
-from typing import Protocol
+from typing import Protocol, Any
 from EC_API.connect.enums import ConnectionState
 
 class Connect(Protocol):
@@ -78,3 +78,15 @@ class Connect(Protocol):
 
         """
         pass
+
+class Transport(Protocol):
+    async def send(self, msg: Any) -> None: ...
+    async def recv(self) -> Any: ...  # or provide a Queue / async iterator
+    
+class SymbolClient(Protocol): 
+    async def resolve_symbol(self, symbol: str) -> None: ...#SymbolMetadata: ...
+    
+class MarketDataClient(Protocol): ...
+
+class OrderClient(Protocol): ...
+
