@@ -115,6 +115,12 @@ class ConnectCQG(Connect):
             **kwargs
             )
         
+        key = ("user_session_statuses", self.msg_id)
+        fut = self._router.register(key)
+        await self._transport.send(client_msg)
+        reply = await asyncio.wait_for(fut, timeout=5.0)
+        #status = cqg_session.parse_logon_status(reply)
+        
 # =============================================================================
 #         # create a client_msg based on the protocol.
 #         client_msg = ClientMsg()
@@ -133,26 +139,28 @@ class ConnectCQG(Connect):
 #         if 'session_settings' in kwargs:
 #             logon.session_settings.append(kwargs['session_settings'])
 # =============================================================================
-
-        self._client.send_client_message(client_msg)
-        
-        server_msg = self._client.receive_server_message()
-        if server_msg.logon_result.result_code == LogonResult.ResultCode.RESULT_CODE_SUCCESS:
-            
-            # Save successful Logon information
-            self.session_token = server_msg.logon_result.session_token
-            self.client_app_id = client_app_id
-            self.client_version = client_version
-            self.protocol_version_major = protocol_version_major
-            self.protocol_version_minor = protocol_version_minor
-            
-            print("Logon Successful")
-            return server_msg
-        
-        else:
-            # the text_message contains the reason why user cannot login.
-            raise Exception("Can't login: " + server_msg.logon_result.text_message)
-
+# =============================================================================
+# 
+#         self._client.send_client_message(client_msg)
+#         
+#         server_msg = self._client.receive_server_message()
+#         if server_msg.logon_result.result_code == LogonResult.ResultCode.RESULT_CODE_SUCCESS:
+#             
+#             # Save successful Logon information
+#             self.session_token = server_msg.logon_result.session_token
+#             self.client_app_id = client_app_id
+#             self.client_version = client_version
+#             self.protocol_version_major = protocol_version_major
+#             self.protocol_version_minor = protocol_version_minor
+#             
+#             print("Logon Successful")
+#             return server_msg
+#         
+#         else:
+#             # the text_message contains the reason why user cannot login.
+#             raise Exception("Can't login: " + server_msg.logon_result.text_message)
+# 
+# =============================================================================
     async def logoff(self) -> ServerMsg:
         # Logoff. Invoke this everytime when a connection is dropped
         client_msg = build_logoff_msg("logoff")

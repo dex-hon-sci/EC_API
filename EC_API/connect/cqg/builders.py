@@ -48,6 +48,7 @@ def build_restore_msg(
         client_app_id: str, 
         protocol_version_major: int, 
         protocol_version_minor: int,
+        session_token: str,
         **kwargs
     ) -> ClientMsg:
     # Restore request taken from class attributes
@@ -56,11 +57,7 @@ def build_restore_msg(
     restore_request.client_app_id = client_app_id
     restore_request.protocol_version_minor = protocol_version_major
     restore_request.protocol_version_major = protocol_version_minor
-    
-    if session_token is None:
-        restore_request.session_token = self.session_token
-    else:
-        restore_request.session_token = session_token
+    restore_request.session_token = session_token
     return restore_msg
 
 def build_ping_msg(msg_id: str) -> ClientMsg:
