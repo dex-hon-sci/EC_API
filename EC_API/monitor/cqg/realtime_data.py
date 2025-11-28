@@ -15,11 +15,25 @@ from EC_API.monitor.tick import TickBuffer
 from EC_API.monitor.tick_stats import TickBufferStat
 from EC_API.monitor.data_feed import DataFeed
 
+from EC_API.transport.cqg.base import CQGTransport
+from EC_API.transport.router import MessageRouter
+from EC_API.monitor.cqg.builders import(
+    build_realtime_data_request_msg,
+    build_reset_tracker_request_msg
+    )
+
 class MonitorRealTimeDataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._connection = connection
         self._msg_id: int = 200 # just a starting number for message id
         self.symbols: set[str] = set()
+        
+        # Define client
+        #self._client = webapi_client.WebApiClient()
+        self._loop = asyncio.get_running_loop()
+        self._transport = CQGTransport()
+        self._router = MessageRouter()
+
 
         self.total_recv_cycle: int = 20
         self.total_send_cycle: int = 2
@@ -28,6 +42,16 @@ class MonitorRealTimeDataCQG(Monitor):
 
     def connection(self):
         return self._connection
+    
+    @property
+    def msg_id(self):
+        # msg_id updates every time it is called. 
+        # This ID is shared by the entire Monitor object.
+        self._msg_id += 1
+        if self._msg_id > 2_000_000_000:
+            self._msg_id = 1
+        return self._msg_id 
+
     
     async def resolve_symbol(self, 
                              symbol: str, 
@@ -42,7 +66,7 @@ class MonitorRealTimeDataCQG(Monitor):
         print("realtime monitor:", symbol, msg_id, contract_ids, contract_metadata)
         print("realtime monitor2:", symbol not in contract_ids)
         if symbol not in contract_ids:
-            result_msg = await self._connection.resolve_symbol(symbol, msg_id, **kwargs)
+            result_msg = await self._connection.resolve_symbol_async(symbol, msg_id, **kwargs)
             print("resolve_sym_msg", result_msg)
             contract_ids[symbol] = result_msg.contract_id 
             contract_metadata[symbol] = result_msg
@@ -72,11 +96,17 @@ class MonitorRealTimeDataCQG(Monitor):
         # condition correct: 1) recv real_time_market_data, 2) right ID, 3) recv
         # quote data.
         for attempt in range(self.total_send_cycle):
-            client_msg = ClientMsg()
-            subscription = client_msg.market_data_subscriptions.add()
-            subscription.contract_id = contract_id
-            subscription.request_id = self.msg_id # Everytime this is called, it increase by 1
-            subscription.level = level
+            client_msg = build_realtime_data_request_msg(contract_id,
+                                                         self.msg_id,
+                                                         level)
+
+# =============================================================================
+#             client_msg = ClientMsg()
+#             subscription = client_msg.market_data_subscriptions.add()
+#             subscription.contract_id = contract_id
+#             subscription.request_id = self.msg_id # Everytime this is called, it increase by 1
+#             subscription.level = level
+# =============================================================================
             # Send message
             self._connection._client.send_client_message(client_msg)
             #print("----------------------------")
@@ -124,11 +154,14 @@ class MonitorRealTimeDataCQG(Monitor):
     
     async def reset_tracker(self, contract_id: int) -> None:
         # A function to cancel subscription for the real-time data
-        client_msg = ClientMsg()
-        subscription = client_msg.market_data_subscriptions.add()
-        subscription.contract_id = contract_id
-        subscription.request_id = self.msg_id
-        subscription.level = 0
+        client_msg = build_reset_tracker_request_msg(self.msg_id, contract_id)
+# =============================================================================
+#         client_msg = ClientMsg()
+#         subscription = client_msg.market_data_subscriptions.add()
+#         subscription.contract_id = contract_id
+#         subscription.request_id = self.msg_id
+#         subscription.level = 0
+# =============================================================================
         self._connection._client.send_client_message(client_msg)
         i = 0
         #while True:

@@ -24,13 +24,5 @@ class Monitor(Protocol):
     def connection(self):
         return self._connection
     
-    @property
-    def msg_id(self):
-        # msg_id updates every time it is called. 
-        # This ID is shared by the entire Monitor object.
-        self._msg_id += 1
-        if self._msg_id > 2_000_000_000:
-            self._msg_id = 1
-        return self._msg_id 
 
 
