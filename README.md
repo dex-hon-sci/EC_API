@@ -18,7 +18,7 @@ WebSocket and TSL layers.
   - [Strategy Building](#strategy-building)
   - [Monitoring and Data Feed](#monitoring-and-data-feed)
 
-## Module Reviews
+## Module Review
 `EC_API` contains the following modules:
 | Module | Description |
 |-----------|-------------|
@@ -36,6 +36,12 @@ WebSocket and TSL layers.
 Here are some usage examples. 
 We use the CQG connection as an example in this demonstration.
 
+### Interfacing with Exchanges
+The messaging architecture follows the following:
+![plot](./images/msg_architecture_v1.jpg)
+
+From v0.1.0 onward, `EC_API` is designed to be async-native. All functions 
+are to be awaitable.
 
 ### Sending Orders
 To facilitate a connection, 
@@ -392,6 +398,9 @@ To monitor Real-time Data (WIP)
 
 
 ## Project Structure
+
+
+
 -----------------------
     ├── EC_API
     │   ├── connect                   <- In charge of server connections and authentication.
