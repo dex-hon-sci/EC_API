@@ -115,8 +115,9 @@ class ConnectCQG(Connect):
             **kwargs
             )
         
-        key = ("user_session_statuses", self.msg_id)
-        fut = self._router.register(key)
+        msg_key = ("logon_result", self.msg_id)
+        #msg_key = ("user_session_statuses", self.msg_id)
+        fut = self._router.register(msg_key)
         await self._transport.send(client_msg)
         reply = await asyncio.wait_for(fut, timeout=5.0)
         #status = cqg_session.parse_logon_status(reply)

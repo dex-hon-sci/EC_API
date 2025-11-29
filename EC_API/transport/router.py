@@ -14,7 +14,7 @@ from EC_API.msg_validation.cqg.mapping import MAP_RESPONSES_TYPES_STR
 from EC_API.msg_validation.cqg.mapping import MAP_STATUS_ENUMS  # optional
 
 
-Key = Tuple[str, int]  # (msg_type, request_id)
+MsgKey = Tuple[str, int]  # (msg_type, request_id)
 
 
 class MessageRouter:
@@ -26,9 +26,9 @@ class MessageRouter:
     """
 
     def __init__(self) -> None:
-        self._pending: Dict[Key, asyncio.Future] = {}
+        self._pending: dict[MsgKey, asyncio.Future] = {}
 
-    def register(self, key: Key) -> asyncio.Future:
+    def register(self, key: MsgKey) -> asyncio.Future:
         loop = asyncio.get_running_loop()
         fut = loop.create_future()
         self._pending[key] = fut
