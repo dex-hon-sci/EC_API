@@ -5,6 +5,8 @@ Created on Wed Jul 30 10:41:38 2025
 
 @author: dexter
 """
+import os
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import asyncio
 # Python Package imports
@@ -13,15 +15,12 @@ import numpy as np
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.cqg.realtime_data import MonitorRealTimeDataCQG
 
-#HOST_NAME = 'wss://demoapi.cqg.com:443'
-#USRNAME = 'EulerWMD'
-#PW = 'Li@96558356'
-
-HOST_NAME = "wss://api.cqg.com:443"
-USRNAME = "EulerCapitalData"
-PW = "EulerData1$"
-PRIVATE_LABEL = "EulerCapital"
-CLIENT_APP_ID = "EulerCapitalWMD"
+load_dotenv() # Loads variables from .env
+CQG_host_url = os.getenv("CQG_API_host_name_live")
+CQG_live_data_acc = os.getenv("CQG_API_data_live_usrname")
+CQG_live_data_pw = os.getenv("CQG_API_data_live_pw")
+CQG_live_data_privatelabel = os.getenv("CQG_API_data_live_private_label")
+CQG_live_data_client_app_id = os.getenv("CQG_API_data_live_client_app_id")
 
 
 # =============================================================================
@@ -35,9 +34,9 @@ CLIENT_APP_ID = "EulerCapitalWMD"
 
 SYMS = ["CLE", "HOE", "RBE"]
 
-CC = ConnectCQG(HOST_NAME, USRNAME, PW)
-CC.logon(client_app_id=CLIENT_APP_ID,
-         private_label=PRIVATE_LABEL)
+CC = ConnectCQG(CQG_host_url, CQG_live_data_acc, CQG_live_data_pw)
+CC.logon(client_app_id=CQG_live_data_client_app_id,
+         private_label=CQG_live_data_privatelabel)
 Mon = MonitorRealTimeDataCQG(CC)
 
 CONTRACT_IDS = dict()
