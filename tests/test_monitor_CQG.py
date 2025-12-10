@@ -13,9 +13,16 @@ import numpy as np
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.cqg.realtime_data import MonitorRealTimeDataCQG
 
-HOST_NAME = 'wss://demoapi.cqg.com:443'
-USRNAME = 'EulerWMD'
-PW = 'Li@96558356'
+#HOST_NAME = 'wss://demoapi.cqg.com:443'
+#USRNAME = 'EulerWMD'
+#PW = 'Li@96558356'
+
+HOST_NAME = "wss://api.cqg.com:443"
+USRNAME = "EulerCapitalData"
+PW = "EulerData1$"
+PRIVATE_LABEL = "EulerCapital"
+CLIENT_APP_ID = "EulerCapitalWMD"
+
 
 # =============================================================================
 # host_name = 'wss://demoapi.cqg.com:443'
@@ -29,7 +36,8 @@ PW = 'Li@96558356'
 SYMS = ["CLE", "HOE", "RBE"]
 
 CC = ConnectCQG(HOST_NAME, USRNAME, PW)
-CC.logon()
+CC.logon(client_app_id=CLIENT_APP_ID,
+         private_label=PRIVATE_LABEL)
 Mon = MonitorRealTimeDataCQG(CC)
 
 CONTRACT_IDS = dict()
