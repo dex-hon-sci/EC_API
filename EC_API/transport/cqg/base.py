@@ -28,10 +28,10 @@ class TransportCQG:
             self, 
             host_name: str, 
             loop: asyncio.AbstractEventLoop,
-            client = Optional[webapi_client.WebApiClient]
+            client: Optional[webapi_client.WebApiClient] = None #
             ):
         self._loop = loop
-        self._client = client or webapi_client.WebApiClient()
+        self._client = webapi_client.WebApiClient() if client is None else client
         self._host_name = host_name
 
         # thread-safe outbound queue (ClientMsg to send)
@@ -49,7 +49,7 @@ class TransportCQG:
     # --- Thread based msg 
     def start(self) -> None:
         """Start IO thread (must call connect() before this)."""
-
+        
         def _io_loop():
             while not self._stop_evt.is_set():
                 # send all pending outbound messages
@@ -64,6 +64,7 @@ class TransportCQG:
                     server_msg = self._client.receive_server_message()
                 except Exception:
                     # log + break
+                    #print(server_msg is None)
                     break
 
                 if server_msg is not None:
@@ -80,6 +81,7 @@ class TransportCQG:
         self._stop_evt.set()
         if self._thread:
             self._thread.join(timeout=1.0)
+            
         self._client.disconnect()
     # --------------------
     
