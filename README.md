@@ -13,6 +13,7 @@ WebSocket and TSL layers.
 ## Table of contents
 
 - [Modules Review](#module-reviews)
+- [Interfacing with Exchanges](#interfacing-with-exchanges)
 - [Usage](#usage)
   - [Sending Orders](#sending-orders)
   - [Strategy Building](#strategy-building)
@@ -22,26 +23,29 @@ WebSocket and TSL layers.
 `EC_API` contains the following modules:
 | Module | Description |
 |-----------|-------------|
-| `connect` | Connection module that is in charge of authentication and message<br> hear-back. |
-| `ext` | External codes. Trade routing API codes are in here.  |
-| `monitor` | Monitor module takes care of information request, open-order<br>tracking, and real-time data request. Specify `DataFeed` input<br>for strategy here.|
+| `common`  | It contains the common object schema used across the EC<br>application system, such as: `Metrics`, `DataFeed`, etc.|
+| `connect` | The connection module is in charge of authentication and<br>message hear-back. |
+| `ext` | External codes. Trade routing API codes are in here. |
+| `monitor` | The monitor module takes care of information request, open-order<br>tracking, and real-time data request. Specify `DataFeed` input<br>for strategy here.|
 | `msg_validation` | It is in charge of server message validation. After sending<br>a client request, the server response message goes through<br>message validation process in this module. The functions match<br>the message ID and map them with the acceptable message type<br>to ensure accurate pairing between client-server messages. |
 | `op_strategy` | It defines the format for operational strategy (`OpStrategy`).<br> Key components for strategy building, such as `OpSignal`<br>that controls the life-cycle of signals, as well as `ActionNode`<br> and `ActionTree` (a finite-state machine) that controls<br>order flow and execution, are in this module. |
 | `ordering` | It handles `LiveOrder` type objects and how we send order requests <br>to the exchanges. |
 | `payload` | It contains the `Payload` class where parameter validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
+| `protocol`  | Vendor specific protocol are stored here. RPC style request-<br>response pairing and external-internal enums mappings are in this<br>module. |
+| `transport` | The transport module control message routing and thread-<br>handling. Synchronous codes from vendors transition into async through<br>the `Transport` objects by separate working threads<br>for sending and receiving messages. |
 | `utility` | It contains utility functions for the package.  |
 
-
-## Usage
-Here are some usage examples. 
-We use the CQG connection as an example in this demonstration.
-
-### Interfacing with Exchanges
+## Interfacing with Exchanges
 The messaging architecture follows the following:
 ![plot](./images/msg_architecture_v1.jpg)
 
 From v0.1.0 onward, `EC_API` is designed to be async-native. All functions 
 are to be awaitable.
+
+## Usage
+Here are some usage examples. 
+We use the CQG connection as an example in this demonstration.
+
 
 ### Sending Orders
 To facilitate a connection, 
