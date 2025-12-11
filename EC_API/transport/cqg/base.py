@@ -46,43 +46,95 @@ class TransportCQG:
         """Connect underlying CQG client (blocking, called once)."""
         self._client.connect(self._host_name)
 
-    # --- Thread based msg 
+    # --- writer and reader loops -------------
+    def _send_loop(self) -> None:
+        # writer loop for send
+         
+        while not self._stop_evt.is_set():
+            msg = self._out_q.get()
+            if msg is None:
+                break  # sentinel for shutdown
+            try:
+                self._client.send_client_message(msg)
+            except Exception:
+                # log, maybe set a flag, etc.
+                break
+            
+    def _recv_loop(self) -> None:
+        # reader loop for recv
+
+        while not self._stop_evt.is_set():
+            try:
+                server_msg = self._client.receive_server_message()
+            except Exception:
+                # log, break on fatal error
+                break
+
+            if server_msg is None:
+                # sentinel or EOF
+                break
+
+            asyncio.run_coroutine_threadsafe(
+                self._in_q.put(server_msg),
+                self._loop,
+            ) 
+    
+    # --- Thread based msg ---------
     def start(self) -> None:
         """Start IO thread (must call connect() before this)."""
         
-        def _io_loop():
-            while not self._stop_evt.is_set():
-                # send all pending outbound messages
-                try:
-                    while True:
-                        msg = self._out_q.get_nowait()
-                        self._client.send_client_message(msg)
-                except queue.Empty:
-                    pass
-
-                try:
-                    server_msg = self._client.receive_server_message()
-                except Exception:
-                    # log + break
-                    #print(server_msg is None)
-                    break
-
-                if server_msg is not None:
-                    asyncio.run_coroutine_threadsafe(
-                        self._in_q.put(server_msg),
-                        self._loop,
-                    )
-
-        self._thread = threading.Thread(target=_io_loop, daemon=True)
-        self._thread.start()
+# =============================================================================
+#         def _io_loop():
+#             while not self._stop_evt.is_set():
+#                 # send all pending outbound messages
+#                 try:
+#                     while True:
+#                         msg = self._out_q.get_nowait()
+#                         self._client.send_client_message(msg)
+#                 except queue.Empty:
+#                     print("Empty out_queue")
+#                     pass
+# 
+#                 try:
+#                     server_msg = self._client.receive_server_message()
+#                 except Exception:
+#                     print("No server_msg recv")
+# 
+#                     # log + break
+#                     #print(server_msg is None)
+#                     pass
+# 
+#                 if server_msg is not None:
+#                     asyncio.run_coroutine_threadsafe(
+#                         self._in_q.put(server_msg),
+#                         self._loop,
+#                     )
+# =============================================================================
+        self._send_thread = threading.Thread(
+            target=self._send_loop, daemon=True
+        )
+        self._recv_thread = threading.Thread(
+            target=self._recv_loop, daemon=True
+        )
+                    
+        self._send_thread.start()
+        self._recv_thread.start()
         
     def stop(self) -> None:
-        """Stop IO thread and close CQG connection."""
+        """Stop IO thread and close CQG connection."""        
         self._stop_evt.set()
-        if self._thread:
-            self._thread.join(timeout=1.0)
-            
-        self._client.disconnect()
+        # wake send loop
+        self._out_q.put(None)
+        # close client to poke receive
+        try:
+            self._client.disconnect()
+        except Exception:
+            pass
+        
+        if self._send_thread:
+            self._send_thread.join(timeout=1.0)
+        if self._recv_thread:
+            self._recv_thread.join(timeout=1.0)
     # --------------------
     
     # --- Public API -----
