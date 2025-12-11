@@ -24,7 +24,6 @@ CQG_live_data_pw = os.getenv("CQG_API_data_live_pw")
 CQG_live_data_privatelabel = os.getenv("CQG_API_data_live_private_label")
 CQG_live_data_client_app_id = os.getenv("CQG_API_data_live_client_app_id")
 
-# Fakeclient
 # Send - not blocking
 # Send - enqueue, io_loop pick up and send
 # send -
@@ -33,6 +32,7 @@ CQG_live_data_client_app_id = os.getenv("CQG_API_data_live_client_app_id")
 # Recv - recieve in order
 
 class FakeCQGClient:
+    # For the dependecy injection in unit tests
     def __init__(self):
         self.connected = False
         self.disconnected = False
@@ -64,7 +64,58 @@ class FakeCQGClient:
         """Helper: push a message so transport.recv() can eventually see it."""
         self._incoming.put(msg)
         
-        
+# --- Send operations -------------
+@pytest.mark.asyncio
+async def test_transport_send2queue():
+    # testing send 
+    loop = asyncio.get_running_loop()
+    fake_client = FakeCQGClient()
+    transport = TransportCQG(
+        host_name="demo_host",
+        loop=loop,
+        client=fake_client,  
+    )
+    print(transport.raw_client)
+    transport.connect()
+    transport.start()
+    
+    print("thread list", threading.enumerate())
+
+    # Build a dummy client message (no real fields needed for this test)
+    msg1 = ClientMsg()
+    msg1.logon.user_name = "TEST1"
+    msg1.logon.private_label = "test_send_forwards_1"
+    
+    msg2 = ClientMsg()
+    msg2.logon.user_name = "TEST2"
+    msg2.logon.private_label = "test_send_forwards_2"
+    
+    msg3 = ClientMsg()
+    msg3.logon.user_name = "TEST3"
+    msg3.logon.private_label = "test_send_forwards_3"
+
+    await transport.send(msg1) # test send
+    await asyncio.sleep(0.1) # Give IO thread a moment to run
+    await transport.send(msg2)
+    await asyncio.sleep(0.1) 
+    await transport.send(msg3)
+    await asyncio.sleep(0.1) 
+
+    # check if the send_client_message was called
+    print("fk_msgs", fake_client.sent_messages)
+    label_1 = fake_client.sent_messages[0].logon.private_label
+    assert label_1 == "test_send_forwards_1"
+    label_2 = fake_client.sent_messages[1].logon.private_label
+    assert label_2 == "test_send_forwards_2"
+    label_3 = fake_client.sent_messages[2].logon.private_label
+    assert label_3 == "test_send_forwards_3"
+    transport.stop()
+    
+# --- Recv operations -------------
+
+
+#asyncio.run(test_transport_send2queue())
+
 #--- Life cycle -------------------
 @pytest.mark.asyncio
 async def test_transport_lifecycle() -> None:
@@ -75,15 +126,19 @@ async def test_transport_lifecycle() -> None:
     # test if Transport can start and stop
     loop = asyncio.get_running_loop()
     transport = TransportCQG(
-        host_name=CQG_host_url,
+        host_name="demo_host",
         loop=loop,
+        client=FakeCQGClient()
     )
+    print(transport.raw_client)
+
     transport.connect()
     transport.start()
     #print('out2',threading.enumerate())
-    assert len(threading.enumerate()) == 2
+    assert len(threading.enumerate()) == 3
     #print(threading.enumerate()[1].__dict__)
-    assert '_io_loop' in threading.enumerate()[1]._name
+    assert '_send_loop' in threading.enumerate()[1]._name
+    assert '_recv_loop' in threading.enumerate()[2]._name
     transport.stop()
     await asyncio.sleep(2.0)
     #print('out3',threading.enumerate()) 
@@ -135,7 +190,6 @@ async def test_transport_lifecycle() -> None:
 
 # receving message in the right 
 
-#asyncio.run(test_transport_lifecycle())
 
 # =============================================================================
 # class FakeEngine:
