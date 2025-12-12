@@ -18,7 +18,7 @@ class TransportCQG:
     
     """
     Wraps the blocking CQG WebApiClient with:
-      - one IO thread doing send/recv
+      - Two IO thread doing send/recv
       - a thread-safe outbound queue
       - an asyncio inbound queue
     Only incharge of sending messages. Recv msg is controlled by the router
@@ -49,7 +49,6 @@ class TransportCQG:
     # --- writer and reader loops -------------
     def _send_loop(self) -> None:
         # writer loop for send
-         
         while not self._stop_evt.is_set():
             msg = self._out_q.get()
             if msg is None:
@@ -62,7 +61,6 @@ class TransportCQG:
             
     def _recv_loop(self) -> None:
         # reader loop for recv
-
         while not self._stop_evt.is_set():
             try:
                 server_msg = self._client.receive_server_message()
@@ -81,42 +79,13 @@ class TransportCQG:
     
     # --- Thread based msg ---------
     def start(self) -> None:
-        """Start IO thread (must call connect() before this)."""
-        
-# =============================================================================
-#         def _io_loop():
-#             while not self._stop_evt.is_set():
-#                 # send all pending outbound messages
-#                 try:
-#                     while True:
-#                         msg = self._out_q.get_nowait()
-#                         self._client.send_client_message(msg)
-#                 except queue.Empty:
-#                     print("Empty out_queue")
-#                     pass
-# 
-#                 try:
-#                     server_msg = self._client.receive_server_message()
-#                 except Exception:
-#                     print("No server_msg recv")
-# 
-#                     # log + break
-#                     #print(server_msg is None)
-#                     pass
-# 
-#                 if server_msg is not None:
-#                     asyncio.run_coroutine_threadsafe(
-#                         self._in_q.put(server_msg),
-#                         self._loop,
-#                     )
-# =============================================================================
         self._send_thread = threading.Thread(
             target=self._send_loop, daemon=True
         )
         self._recv_thread = threading.Thread(
             target=self._recv_loop, daemon=True
         )
-                    
+        
         self._send_thread.start()
         self._recv_thread.start()
         
@@ -140,12 +109,7 @@ class TransportCQG:
     # --- Public API -----
     async def send(self, client_msg: ClientMsg) -> None:
         """Async-friendly send: enqueue a message for the IO thread."""
-        #def _put():
-        #    self._out_q.put(client_msg)
         self._out_q.put(client_msg)
-        
-        # run _put in a threadpool so we don't block the event loop
-        #await asyncio.get_running_loop().run_in_executor(None, _put)
         
     async def recv(self) -> ServerMsg:
         return await self._in_q.get()
@@ -153,5 +117,4 @@ class TransportCQG:
     
     @property
     def raw_client(self) -> webapi_client.WebApiClient:
-        """Expose underlying client if you absolutely need it (try not to)."""
         return self._client    
