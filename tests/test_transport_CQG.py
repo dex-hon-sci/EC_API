@@ -10,6 +10,7 @@ import queue
 import threading
 import asyncio
 import os
+import time
 from dotenv import load_dotenv
 # Python Package imports
 import pytest
@@ -104,6 +105,7 @@ async def test_transport_send2queue():
     label_3 = fake_client.sent_messages[2].logon.private_label
     assert label_3 == "test_send_forwards_3"
     transport.stop()
+    assert fake_client.disconnected is True
     
 # --- Recv-only operations -------------
 @pytest.mark.asyncio
@@ -148,6 +150,7 @@ async def test_transport_recv2async_queue() -> None:
     res_code3 = recv_msg3.logon_result.result_code
     assert res_code3 == 102
     transport.stop()
+    assert fake_client.disconnected is True
 
 #--- Life cycle -------------------
 @pytest.mark.asyncio
@@ -158,10 +161,11 @@ async def test_transport_lifecycle() -> None:
 
     # test if Transport can start and stop
     loop = asyncio.get_running_loop()
+    fake_client = FakeCQGClient()
     transport = TransportCQG(
         host_name="demo_host",
         loop=loop,
-        client=FakeCQGClient()
+        client=fake_client
     )
     print(transport.raw_client)
 
@@ -173,6 +177,7 @@ async def test_transport_lifecycle() -> None:
     assert '_send_loop' in threading.enumerate()[1]._name
     assert '_recv_loop' in threading.enumerate()[2]._name
     transport.stop()
+    assert fake_client.disconnected is True
     await asyncio.sleep(2.0)
     #print('out3',threading.enumerate()) 
     assert len(threading.enumerate()) == 1
@@ -180,12 +185,74 @@ async def test_transport_lifecycle() -> None:
 # --- Send + Recv operations -------------
 @pytest.mark.asyncio
 async def test_transport_concurrent_sendandrecv() -> None:
+    
+    N = 20
     # Test for non-blocking behaviour
+    loop = asyncio.get_running_loop()
+    fake_client = FakeCQGClient()
 
-    pass
+    transport = TransportCQG(
+        host_name="demo_host",
+        loop=loop,
+        client=fake_client,
+    )
+    
+    transport.connect()
+    transport.start()
+    
+    async def sender():
+        for i in range(N):
+            msg = ClientMsg()
+            msg.logon.user_name = f"USER_{i}"
+            msg.logon.private_label = f"OUT_{i}"
+            await transport.send(msg)
+            # Tiny delay to interleave with receiver
+            await asyncio.sleep(0.001)
+    
+    async def receiver() -> tuple[list, float]:
+        received_ids = []
+        start = time.monotonic()
+        
+        for _ in range(N):
+            msg = await asyncio.wait_for(transport.recv(), timeout=1.0)
+            received_ids.append(msg.logon_result.result_code)
+        
+        elapsed = time.monotonic() - start
+        return received_ids, elapsed
+    
+    async def pusher():
+        # Push messages into fake_client._incoming, which recv_loop will read
+        for i in range(N):
+            smsg = ServerMsg()
+            smsg.logon_result.result_code = i
+            fake_client.push_incoming(smsg)
+            await asyncio.sleep(0.001)
+    
+    # Run coroutines to send and recv
+    # Run them all together
+    recv_task = asyncio.create_task(receiver())
+    await asyncio.gather(sender(), pusher())
+    received_ids, elapsed = await recv_task
+    print(received_ids, elapsed)
+    
+    # 1) Check outbound hit the fake client in order
+    assert len(fake_client.sent_messages) == N
+    out_labels = [m.logon.private_label for m in fake_client.sent_messages]
+    assert out_labels == [f"OUT_{i}" for i in range(N)]
+    
+    # 2) Check inbound ordering
+    assert received_ids == [i for i in range(N)]
+    
+    # 3) Check we didn't spend "forever" waiting. This doesn't prove low latency,
+    #    but it detects obvious blocking / deadlocks. Tune bound as needed.
+    assert elapsed < 1.0
+    
+    transport.stop()
 
-#asyncio.run(test_transport_recv2async_queue())
+    assert fake_client.disconnected is True
 
+
+#asyncio.run(test_transport_concurrent_sendandrecv())
 
 # =============================================================================
 # class FakeEngine:
