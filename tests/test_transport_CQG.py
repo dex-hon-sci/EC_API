@@ -17,7 +17,6 @@ import pytest
 # EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.transport.cqg.base import TransportCQG
-from EC_API.transport.router import extract_request_id
 
 load_dotenv()
 CQG_host_url = os.getenv("CQG_API_host_name_live")
@@ -70,12 +69,9 @@ async def test_transport_send2queue():
         loop=loop,
         client=fake_client,  
     )
-    print(transport.raw_client)
     transport.connect()
     transport.start()
     
-    print("thread list", threading.enumerate())
-
     # Build a dummy client message (no real fields needed for this test)
     msg1 = ClientMsg()
     msg1.logon.user_name = "TEST1"
@@ -89,22 +85,24 @@ async def test_transport_send2queue():
     msg3.logon.user_name = "TEST3"
     msg3.logon.private_label = "test_send_forwards_3"
 
-    await transport.send(msg1) # test send
-    await asyncio.sleep(0.1) # Give IO thread a moment to run
-    await transport.send(msg2)
-    await asyncio.sleep(0.1) 
-    await transport.send(msg3)
-    await asyncio.sleep(0.1) 
-
-    # check if the send_client_message was called
-    print("fk_msgs", fake_client.sent_messages)
-    label_1 = fake_client.sent_messages[0].logon.private_label
-    assert label_1 == "test_send_forwards_1"
-    label_2 = fake_client.sent_messages[1].logon.private_label
-    assert label_2 == "test_send_forwards_2"
-    label_3 = fake_client.sent_messages[2].logon.private_label
-    assert label_3 == "test_send_forwards_3"
+    private_labels = [f"test_send_forwards_{i+1}" for i in range(3)]
+        
+    for i, msg in enumerate([msg1, msg2, msg3]):
+        await transport.send(msg)
+    
+        duration = time.monotonic() + 1.0
+        while len(fake_client.sent_messages) < i+1 and time.monotonic() < duration:
+            await asyncio.sleep(0.01)
+            
+        label = fake_client.sent_messages[i].logon.private_label
+        assert label == private_labels[i]
+        
     transport.stop()
+    threads = [t for t in threading.enumerate() if t.name.startswith("TransportCQG")]
+    deadline = time.monotonic() + 2.0
+    while threads and time.monotonic() < deadline:
+        await asyncio.sleep(0.01)
+    assert threads == []
     assert fake_client.disconnected is True
     
 # --- Recv-only operations -------------
@@ -134,23 +132,21 @@ async def test_transport_recv2async_queue() -> None:
     fake_client.push_incoming(msg1)
     fake_client.push_incoming(msg2)
     fake_client.push_incoming(msg3)
-    print(threading.enumerate())
-    recv_msg1 = await transport.recv()
-    await asyncio.sleep(0.1)
-    recv_msg2 = await transport.recv()
-    await asyncio.sleep(0.1) 
-    recv_msg3 = await transport.recv()
-    await asyncio.sleep(0.1) 
     
-    #print(recv_msg1, recv_msg2, recv_msg3)
-    res_code1 = recv_msg1.logon_result.result_code
-    assert res_code1 == 0
-    res_code2 = recv_msg2.logon_result.result_code
-    assert res_code2 == 101
-    res_code3 = recv_msg3.logon_result.result_code
-    assert res_code3 == 102
+    for i, ele in enumerate([0, 101, 102]):
+        recv_msg = await asyncio.wait_for(transport.recv(), timeout=1.0)            
+        res_code = recv_msg.logon_result.result_code        
+        assert res_code == ele
+
     transport.stop()
+    
+    threads = [t for t in threading.enumerate() if t.name.startswith("TransportCQG")]
+    deadline = time.monotonic() + 2.0
+    while threads and time.monotonic() < deadline:
+        await asyncio.sleep(0.01)
+    assert threads == []
     assert fake_client.disconnected is True
+
 
 #--- Life cycle -------------------
 @pytest.mark.asyncio
@@ -158,7 +154,9 @@ async def test_transport_lifecycle() -> None:
     # Lifecycle - After connect() and start(), is one IO thread running?
     # Lifecycle - After stop(), does that IO thread exit?
     # Lifecycle - Is the CQG client disconnected cleanly?
-
+    def _find_threads(prefix: str):
+        return [t for t in threading.enumerate() if t.name.startswith(prefix)]
+    
     # test if Transport can start and stop
     loop = asyncio.get_running_loop()
     fake_client = FakeCQGClient()
@@ -168,19 +166,21 @@ async def test_transport_lifecycle() -> None:
         client=fake_client
     )
     print(transport.raw_client)
-
     transport.connect()
     transport.start()
-    #print('out2',threading.enumerate())
-    assert len(threading.enumerate()) == 3
-    #print(threading.enumerate()[1].__dict__)
-    assert '_send_loop' in threading.enumerate()[1]._name
-    assert '_recv_loop' in threading.enumerate()[2]._name
+    print([t.name for t in threading.enumerate()])
+    
+    threads = _find_threads("TransportCQG")
+    assert any("send_loop" in t.name for t in threads)
+    assert any("recv_loop" in t.name for t in threads)
     transport.stop()
+
+    deadline = time.monotonic() + 2.0
+    while _find_threads("TransportCQG") and time.monotonic() < deadline:
+        await asyncio.sleep(0.01)
+    assert _find_threads("TransportCQG") == []
     assert fake_client.disconnected is True
-    await asyncio.sleep(2.0)
-    #print('out3',threading.enumerate()) 
-    assert len(threading.enumerate()) == 1
+
     
 # --- Send + Recv operations -------------
 @pytest.mark.asyncio
@@ -233,7 +233,6 @@ async def test_transport_concurrent_sendandrecv() -> None:
     recv_task = asyncio.create_task(receiver())
     await asyncio.gather(sender(), pusher())
     received_ids, elapsed = await recv_task
-    print(received_ids, elapsed)
     
     # 1) Check outbound hit the fake client in order
     assert len(fake_client.sent_messages) == N
@@ -248,11 +247,46 @@ async def test_transport_concurrent_sendandrecv() -> None:
     assert elapsed < 1.0
     
     transport.stop()
-
+    threads = [t for t in threading.enumerate() if t.name.startswith("TransportCQG")]
+    deadline = time.monotonic() + 2.0
+    while threads and time.monotonic() < deadline:
+        await asyncio.sleep(0.01)
+    assert threads == []
     assert fake_client.disconnected is True
 
+@pytest.mark.asyncio
+async def test_transport_shutdown_on_disconnect():
+    loop = asyncio.get_running_loop()
+    fake_client = FakeCQGClient()
+    transport = TransportCQG(
+        host_name="demo_host",
+        loop=loop,
+        client=fake_client,
+    )
 
-#asyncio.run(test_transport_concurrent_sendandrecv())
+    # 1) Start transport
+    transport.connect()
+    transport.start()
+
+    # 2) Push one incoming message: should be received normally
+    from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+    msg1 = ServerMsg()
+    msg1.logon_result.result_code = 0
+    fake_client.push_incoming(msg1)
+
+    got1 = await asyncio.wait_for(transport.recv(), timeout=1.0)
+    assert got1.logon_result.result_code == 0
+
+    transport.stop()
+    
+    threads = [t for t in threading.enumerate() if t.name.startswith("TransportCQG")]
+    deadline = time.monotonic() + 2.0
+    while threads and time.monotonic() < deadline:
+        await asyncio.sleep(0.01)
+    assert threads == []
+    assert fake_client.disconnected is True
+    
+
 
 # =============================================================================
 # class FakeEngine:
