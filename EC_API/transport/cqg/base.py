@@ -80,10 +80,12 @@ class TransportCQG:
     # --- Thread based msg ---------
     def start(self) -> None:
         self._send_thread = threading.Thread(
-            target=self._send_loop, daemon=True
+            target=self._send_loop, daemon=True,
+            name = "TransportCQG-send_loop"
         )
         self._recv_thread = threading.Thread(
-            target=self._recv_loop, daemon=True
+            target=self._recv_loop, daemon=True,
+            name = "TransportCQG-recv_loop"
         )
         
         self._send_thread.start()
