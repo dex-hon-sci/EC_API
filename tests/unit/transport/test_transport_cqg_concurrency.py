@@ -20,7 +20,6 @@ def _find_threads(prefix: str):
 
 @pytest.mark.asyncio
 async def test_transport_concurrent_sendandrecv() -> None:
-    
     N = 20
     # Test for non-blocking behaviour
     loop = asyncio.get_running_loop()
