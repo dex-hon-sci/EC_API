@@ -16,10 +16,10 @@ from EC_API.ordering.enums import (
     )
 
 def build_trade_subscription_msg(
-        trade_subscription_id: int, 
-        subscribe: bool,
-        sub_scope: int,
-        skip_orders_snapshot: bool
+    trade_subscription_id: int, 
+    subscribe: bool,
+    sub_scope: int,
+    skip_orders_snapshot: bool
     ) -> ClientMsg:
     
     client_msg = ClientMsg()
@@ -37,17 +37,17 @@ def build_trade_subscription_msg(
     return client_msg
 
 def build_new_order_request_msg(
-        account_id: int,
-        request_id: int,
-        contract_id: int = 0, # Get this from contractmetadata
-        cl_order_id: str = "", 
-        order_type: OrderType = OrderType.ORDER_TYPE_MKT, 
-        duration: Duration = Duration.DURATION_DAY, 
-        side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
-        qty_significant: int = 0, # make sure qty are in Decimal (int) not float
-        qty_exponent: int = 0, 
-        is_manual: bool = False,
-        **kwargs
+    account_id: int,
+    request_id: int,
+    contract_id: int = 0, # Get this from contractmetadata
+    cl_order_id: str = "", 
+    order_type: OrderType = OrderType.ORDER_TYPE_MKT, 
+    duration: Duration = Duration.DURATION_DAY, 
+    side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
+    qty_significant: int = 0, # make sure qty are in Decimal (int) not float
+    qty_exponent: int = 0, 
+    is_manual: bool = False,
+    **kwargs
     ) -> ClientMsg:
     
     default_kwargs = {
@@ -73,7 +73,6 @@ def build_new_order_request_msg(
     order_request.new_order.order.order_type = order_type
     order_request.new_order.order.duration = duration
     order_request.new_order.order.side = side
-    
     
     order_request.new_order.order.qty.significand = qty_significant
     order_request.new_order.order.qty.exponent = qty_exponent
@@ -117,6 +116,7 @@ def build_modify_order_request_msg(
         cl_order_id: str = "", 
         **kwargs
     ) -> ClientMsg:
+    
     default_kwargs = {
         'when_utc_timestamp': datetime.datetime.now(timezone.utc),
         'qty': None, 
@@ -169,22 +169,105 @@ def build_modify_order_request_msg(
         
     return client_msg
          
-def build_modify_order_request_msg() -> ClientMsg:
-    return 
 
-def build_cancel_order_request_msg() -> ClientMsg:
-    return 
+def build_cancel_order_request_msg(
+    account_id: int, 
+    request_id: int,
+    order_id: int = 0, 
+    orig_cl_order_id: str = "", 
+    cl_order_id: str = "",  
+    **kwargs
+    ) -> ClientMsg:
+    
+    default_kwargs = {
+        'when_utc_timestamp': datetime.datetime.now(timezone.utc).timestamp()
+        }
+    kwargs = dict(default_kwargs, **kwargs)
+    
+    client_msg = ClientMsg()
+    order_request = client_msg.order_requests.add()
+    order_request.request_id = request_id
+    order_request.cancel_order.order_id = order_id
+    order_request.cancel_order.account_id = account_id
+    order_request.cancel_order.orig_cl_order_id = orig_cl_order_id
+    order_request.cancel_order.cl_order_id = cl_order_id
+    order_request.cancel_order.when_utc_timestamp = kwargs['when_utc_timestamp']
+    return  client_msg
+ 
 
-def build_cancelall_order_request_msg() -> ClientMsg:
-    return 
-
-
+def build_cancelall_order_request_msg(
+    account_id: int,
+    request_id: int,
+    cl_order_id: str = "",
+    **kwargs
+    )-> ClientMsg:
+    default_kwargs = {
+        'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+        }
+    kwargs = dict(default_kwargs, **kwargs)
+    
+    client_msg = ClientMsg()
+    order_request = client_msg.order_requests.add()
+    order_request.request_id = request_id
+    order_request.cancel_all_orders.cl_order_id = cl_order_id
+    order_request.cancel_all_orders.when_utc_timestamp = kwargs['when_utc_timestamp']
+    return client_msg
+ 
 def build_suspend_order_request_msg() -> ClientMsg:
     return 
 
-def build_liquidateall_order_request_msg() -> ClientMsg:
-    
+def build_activate_order_request_msg() -> ClientMsg:
     return 
 
-def build_goflat_order_request_msg() -> ClientMsg:
-    return 
+
+def build_liquidateall_order_request_msg(
+    account_id: int,
+    request_id: int,
+    contract_id: int = 0,
+    cl_order_id: str = "",
+    **kwargs
+    ) -> ClientMsg:
+    default_kwargs = {
+        'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+        'is_short': None,
+        'current_day_only': None
+        }
+    kwargs = dict(default_kwargs, **kwargs)
+    
+    client_msg = ClientMsg()
+    order_request = client_msg.order_requests.add()
+    order_request.request_id = request_id
+    
+    account_position_filters = order_request.liquidate_all.account_position_filters.add()
+    account_position_filters.account_id = account_id
+    account_position_filters.contract_id = contract_id
+    
+    if kwargs['account_position_filters'] is not None:
+        account_position_filters.is_short = kwargs['is_short']
+    if kwargs['current_day_only'] is not None:
+        account_position_filters.current_day_only = kwargs['current_day_only']
+    
+    order_request.liquidate_all.cl_order_id = cl_order_id
+    order_request.liquidate_all.when_utc_timestamp = kwargs['when_utc_timestamp']
+    
+    return client_msg
+ 
+
+def build_goflat_order_request_msg(
+    account_id: int,
+    request_id: int,
+    **kwargs
+    ) -> ClientMsg:
+    default_kwargs = {
+        'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+        'execution_source_code': None, 
+        'speculation_type': None
+        }
+    kwargs = dict(default_kwargs, **kwargs)
+
+    client_msg = ClientMsg()
+    order_request = client_msg.order_requests.add()
+    order_request.request_id = request_id
+    order_request.go_flat.account_ids.append(account_id)
+    order_request.go_flat.when_utc_timestamp = kwargs['when_utc_timestamp']
+ 

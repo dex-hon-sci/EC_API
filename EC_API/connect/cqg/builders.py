@@ -5,7 +5,7 @@ Created on Fri Nov 28 17:54:16 2025
 
 @author: dexter
 """
-from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
+from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 
 
 def build_logon_msg(
