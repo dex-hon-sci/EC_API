@@ -34,7 +34,7 @@ def build_logon_msg(
     logon.private_label = private_label
 
     if 'session_settings' in kwargs:
-        logon.session_settings.append(kwargs['session_settings'])
+        logon.session_settings.add(kwargs['session_settings'])
     return client_msg
 
 def build_logoff_msg(txt_msg: str="logoff") -> ClientMsg:
@@ -55,21 +55,31 @@ def build_restore_msg(
     restore_msg = ClientMsg()
     restore_request = restore_msg.restore_or_join_session 
     restore_request.client_app_id = client_app_id
-    restore_request.protocol_version_minor = protocol_version_major
-    restore_request.protocol_version_major = protocol_version_minor
+    restore_request.protocol_version_major = protocol_version_major
+    restore_request.protocol_version_minor = protocol_version_minor
     restore_request.session_token = session_token
     return restore_msg
 
-def build_ping_msg(msg_id: str) -> ClientMsg:
+def build_ping_msg(ping_utc_time: int) -> ClientMsg:
     client_msg = ClientMsg()
-    pr = client_msg.user_session_request.ping_request  # adjust
-    pr.request_id = msg_id
+    pr = client_msg.ping
+    pr.ping_utc_time = ping_utc_time
+    return client_msg
+
+def build_pong_msg(
+    ping_utc_time: int, 
+    pong_utc_time: int
+    ) -> ClientMsg:
+    client_msg = ClientMsg()
+    pr = client_msg.pong
+    pr.ping_utc_time = ping_utc_time
+    pr.pong_utc_time = pong_utc_time
     return client_msg
 
 def build_resolve_symbol_msg(                       
         symbol_name: str, 
-        msg_id: int, 
-        subscribe: bool = None, 
+        request_id: int, 
+        subscribe: bool | None = None, 
         **kwargs
     ) -> ClientMsg:
     
@@ -77,13 +87,15 @@ def build_resolve_symbol_msg(
     information_request = client_msg.information_requests.add()
     
     # This example assume one symbol only.
-    information_request.id = msg_id
+    information_request.id = request_id
     if subscribe is not None:
         information_request.subscribe = subscribe
         
     information_request.symbol_resolution_request.symbol = symbol_name
     
     if 'instrument_group_request' in kwargs:
-        information_request.instrument_group_request = kwargs['instrument_group_request']
+        information_request.instrument_group_request.add(
+            kwargs['instrument_group_request']
+            )
         
     return client_msg

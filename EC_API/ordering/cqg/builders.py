@@ -8,12 +8,44 @@ Created on Fri Nov 28 21:14:37 2025
 from datetime import datetime, timezone
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
+from EC_API.ext.common.shared_1_pb2 import NamedValue
 from EC_API.ordering.enums import (
     SubScope,
     OrderType,
     Duration,
     RequestType
     )
+
+
+NEW_ORDER_OPTIONAL_FIELDS = {
+    'good_thru_date': ('good_thru_date', int),
+    'scaled_limit_price': ('scaled_limit_price', int),
+    'scaled_stop_price': ('scaled_stop_price', int),
+    'when_utc_timestamp': ('when_utc_timestamp', datetime),
+    'scaled_trail_offset': ('scaled_trail_offset',),
+    'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime),
+    'suspend': ('suspend', bool)
+    }
+    
+MODIFY_ORDER_OPTIONAL_FIELDS = {
+    'qty': ('qty', int), 
+    'scaled_limit_price': ('scaled_limit_price', int), 
+    'scaled_stop_price': ('scaled_stop_price', int),
+    'remove_activation_time': ('remove_activation_time', bool), 
+    'remove_suspension_utc_time': ('remove_suspension_utc_time', bool), 
+    'activation_utc_timestamp': ('activation_utc_timestamp', datetime),
+    'duration': ('duration', int), 
+    'good_thru_date': ('good_thru_date', int), 
+    'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime),
+    'activation_utc_timestamp': ('activation_utc_timestamp', datetime),
+    'extra_attributes': ('extra_attributes', NamedValue)
+    }
+
+GOFLAT_ORDER_OPTIONAL_FIELDS = {
+    'when_utc_timestamp': ('when_utc_timestamp', datetime),
+    'execution_source_code': ('execution_source_code',), 
+    'speculation_type': ('execution_source_code',)    
+    }
 
 def build_trade_subscription_msg(
     trade_subscription_id: int, 
@@ -50,6 +82,9 @@ def build_new_order_request_msg(
     **kwargs
     ) -> ClientMsg:
     
+    if side is None:
+        raise ValueError("side is required")
+        
     default_kwargs = {
              'when_utc_time': datetime.now(timezone.utc),
              'exec_instructions': None,
@@ -118,7 +153,7 @@ def build_modify_order_request_msg(
     ) -> ClientMsg:
     
     default_kwargs = {
-        'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+        'when_utc_timestamp': datetime.now(timezone.utc),
         'qty': None, 
         'scaled_limit_price': None,
         'scaled_stop_price': None,
@@ -163,7 +198,7 @@ def build_modify_order_request_msg(
     extra_attributes_data = kwargs.get('extra_attributes')
     if extra_attributes_data:
       for name, value in extra_attributes_data.items():
-        extra_attribute = order_request.new_order.order.extra_attributes.add()
+        extra_attribute = order_request.modify_order.extra_attributes.add()
         extra_attribute.name = name
         extra_attribute.value = value
         
@@ -180,7 +215,7 @@ def build_cancel_order_request_msg(
     ) -> ClientMsg:
     
     default_kwargs = {
-        'when_utc_timestamp': datetime.datetime.now(timezone.utc).timestamp()
+        'when_utc_timestamp': datetime.now(timezone.utc).timestamp()
         }
     kwargs = dict(default_kwargs, **kwargs)
     
@@ -202,7 +237,7 @@ def build_cancelall_order_request_msg(
     **kwargs
     )-> ClientMsg:
     default_kwargs = {
-        'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+        'when_utc_timestamp': datetime.now(timezone.utc),
         }
     kwargs = dict(default_kwargs, **kwargs)
     
@@ -228,7 +263,7 @@ def build_liquidateall_order_request_msg(
     **kwargs
     ) -> ClientMsg:
     default_kwargs = {
-        'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+        'when_utc_timestamp': datetime.now(timezone.utc),
         'is_short': None,
         'current_day_only': None
         }
@@ -259,7 +294,7 @@ def build_goflat_order_request_msg(
     **kwargs
     ) -> ClientMsg:
     default_kwargs = {
-        'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+        'when_utc_timestamp': datetime.now(timezone.utc),
         'execution_source_code': None, 
         'speculation_type': None
         }
