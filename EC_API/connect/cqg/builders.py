@@ -44,11 +44,11 @@ def build_logoff_msg(txt_msg: str="logoff") -> ClientMsg:
     return client_msg
     
 def build_restore_msg(
-        client_app_id: str, 
-        protocol_version_major: int, 
-        protocol_version_minor: int,
-        session_token: str,
-        **kwargs
+    client_app_id: str, 
+    protocol_version_major: int, 
+    protocol_version_minor: int,
+    session_token: str,
+    **kwargs
     ) -> ClientMsg:
     # Restore request taken from class attributes
     restore_msg = ClientMsg()
