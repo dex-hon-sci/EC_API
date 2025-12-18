@@ -6,9 +6,11 @@ Created on Fri Nov 28 21:14:37 2025
 @author: dexter
 """
 from datetime import datetime, timezone
+from typing import Any
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.ext.common.shared_1_pb2 import NamedValue
+from EC_API.protocol.cqg.builder_util import apply_optional_fields, assert_defaults_types
 from EC_API.ordering.enums import (
     SubScope,
     OrderType,
@@ -17,41 +19,127 @@ from EC_API.ordering.enums import (
     )
 
 
-NEW_ORDER_OPTIONAL_FIELDS = {
+NEW_ORDER_OPTIONAL_FIELDS = { #(key, type, transform_func)
+    'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
+    'good_thru_date': ('good_thru_date', int, None),
+    'scaled_limit_price': ('scaled_limit_price', int, None),
+    'scaled_stop_price': ('scaled_stop_price', int, None),
     'when_utc_timestamp': ('when_utc_timestamp', datetime),
-    'good_thru_date': ('good_thru_date', int),
-    'scaled_limit_price': ('scaled_limit_price', int),
-    'scaled_stop_price': ('scaled_stop_price', int),
-    'when_utc_timestamp': ('when_utc_timestamp', datetime),
-    'scaled_trail_offset': ('scaled_trail_offset',),
-    'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime),
-    'suspend': ('suspend', bool)
+    'scaled_trail_offset': ('scaled_trail_offset', int, None),
+    'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime, None),
+    'suspend': ('suspend', bool, None)
     }
     
 MODIFY_ORDER_OPTIONAL_FIELDS = {
-    'when_utc_timestamp': ('when_utc_timestamp', datetime),
-    'qty': ('qty', int), 
-    'scaled_limit_price': ('scaled_limit_price', int), 
-    'scaled_stop_price': ('scaled_stop_price', int),
-    'remove_activation_time': ('remove_activation_time', bool), 
-    'remove_suspension_utc_time': ('remove_suspension_utc_time', bool), 
-    'activation_utc_timestamp': ('activation_utc_timestamp', datetime),
-    'duration': ('duration', int), 
-    'good_thru_date': ('good_thru_date', int), 
-    'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime),
-    'activation_utc_timestamp': ('activation_utc_timestamp', datetime),
-    'extra_attributes': ('extra_attributes', NamedValue)
+    'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
+    'qty': ('qty', int, None), # Sensitive fields obly take exact types and no transform func
+    'scaled_limit_price': ('scaled_limit_price', int, None), 
+    'scaled_stop_price': ('scaled_stop_price', int, None),
+    'remove_activation_time': ('remove_activation_time', bool, None), 
+    'remove_suspension_utc_time': ('remove_suspension_utc_time', bool, None), 
+    'activation_utc_timestamp': ('activation_utc_timestamp', datetime, None),
+    'duration': ('duration', int, None), 
+    'good_thru_date': ('good_thru_date', int, None), 
+    'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime, None),
+    'activation_utc_timestamp': ('activation_utc_timestamp', datetime, None),
+    'extra_attributes': ('extra_attributes', NamedValue, None)
     }
+
 LIQIDATEALL_ORDER_OPTIONL_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime),
-    'is_short': ('is_short', bool),
-    'current_day_only': ('current_day_only', bool)
+    'is_short': ('is_short', bool, None),
+    'current_day_only': ('current_day_only', bool, None)
     }
+
 GOFLAT_ORDER_OPTIONAL_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime),
-    'execution_source_code': ('execution_source_code', str), 
-    'speculation_type': ('speculation_type', int)    
+    'execution_source_code': ('execution_source_code', str, str), 
+    'speculation_type': ('speculation_type', int, int)    
     }
+
+
+
+def build_new_order_request_msg_2(
+    account_id: int,
+    request_id: int,
+    contract_id: int = 0, # Get this from contractmetadata
+    cl_order_id: str = "", 
+    order_type: OrderType = OrderType.ORDER_TYPE_MKT, 
+    duration: Duration = Duration.DURATION_DAY, 
+    side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
+    qty_significant: int = 0, # make sure qty are in Decimal (int) not float
+    qty_exponent: int = 0, 
+    is_manual: bool = False,
+    ) -> ClientMsg:
+    
+    if not isinstance(request_id, int):
+        raise TypeError("request_id must be int")
+    if not isinstance(account_id, int):
+        raise TypeError("account_id must be int")   
+    
+    client_msg = ClientMsg()
+    order_request = client_msg.order_requests.add()
+    order_request.request_id = request_id
+    order_request.new_order.order.account_id = account_id
+    order_request.new_order.order.contract_id = contract_id
+    order_request.new_order.order.cl_order_id = cl_order_id
+    order_request.new_order.order.order_type = order_type
+    order_request.new_order.order.duration = duration
+    order_request.new_order.order.side = side
+    order_request.new_order.order.qty.significand = qty_significant
+    order_request.new_order.order.qty.exponent = qty_exponent
+    order_request.new_order.order.is_manual = is_manual
+    
+    return 
+    
+
+def build_modify_order_request_msg_2(
+    account_id: int, 
+    request_id: int,
+    order_id: str = "", # Get this from the previous Order 
+    orig_cl_order_id: str = "", 
+    cl_order_id: str = "", 
+    **kwargs
+    ) -> ClientMsg:
+    
+    defaults = {
+    'when_utc_time': datetime.now(timezone.utc),
+    'exec_instructions': None,
+    'good_thru_date': None,
+    'scaled_limit_price': None,
+    'scaled_stop_price': None,
+    'extra_attributes': None,
+    'scaled_trail_offset': None,
+    'good_thru_utc_timestamp': None,
+    'suspend': None,
+    'algo_strategy': "CQG ARRIVALPRICE"
+    }
+    if not isinstance(request_id, int):
+        raise TypeError("request_id must be int")
+    if not isinstance(account_id, int):
+        raise TypeError("account_id must be int")
+    if not isinstance(order_id, str):
+        raise TypeError("order_id must be non-empty str")
+    
+    client_msg = ClientMsg()
+    order_request = client_msg.order_requests.add()
+    order_request.request_id = request_id
+    order_request.modify_order.order_id = order_id
+    order_request.modify_order.account_id = account_id
+    order_request.modify_order.orig_cl_order_id = orig_cl_order_id
+    order_request.modify_order.cl_order_id = cl_order_id
+
+    assert_defaults_types(defaults, MODIFY_ORDER_OPTIONAL_FIELDS)
+
+    # Merge: caller kwargs override defaults
+    merged: dict[str, Any] = {**defaults, **kwargs}
+    
+    apply_optional_fields(client_msg,
+                          values=kwargs, 
+                          spec=MODIFY_ORDER_OPTIONAL_FIELDS)
+    
+    return client_msg
+
 
 def build_trade_subscription_msg(
     trade_subscription_id: int, 
@@ -114,7 +202,6 @@ def build_new_order_request_msg(
     order_request.new_order.order.order_type = order_type
     order_request.new_order.order.duration = duration
     order_request.new_order.order.side = side
-    
     order_request.new_order.order.qty.significand = qty_significant
     order_request.new_order.order.qty.exponent = qty_exponent
     order_request.new_order.order.is_manual = is_manual
@@ -198,8 +285,8 @@ def build_modify_order_request_msg(
         ]
     
     for key in optional_kwargs_keys:
-        if kwargs[key] is not None:
-            setattr(order_request.modify_order, key, kwargs[key])
+        if kwargs.get(key) is not None:
+            setattr(order_request.modify_order, key, kwargs.get(key))
             
     extra_attributes_data = kwargs.get('extra_attributes')
     if extra_attributes_data:

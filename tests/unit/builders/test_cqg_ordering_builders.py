@@ -18,7 +18,7 @@ def test_build_trade_subscription_msg() -> None:
 def test_build_new_order_request_msg() -> None:
     pass
 
-def build_modify_order_request_msg() -> None:
+def test_build_modify_order_request_msg() -> None:
     msg = build_modify_order_request_msg_2(
         ACCOUNT_ID, REQUEST_ID,
         order_id = 200, 
