@@ -7,17 +7,16 @@ Created on Fri Nov 28 17:54:16 2025
 """
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 
-
 def build_logon_msg(
-        user_name: str,
-        password: str,
-        client_app_id: str ='WebApiTest', 
-        client_version: str ='python-client-test-2-240',
-        protocol_version_major: int = 2,
-        protocol_version_minor: int = 240, 
-        drop_concurrent_session: bool = False,
-        private_label: str = "WebApiTest",
-        **kwargs
+    user_name: str,
+    password: str,
+    client_app_id: str ='WebApiTest', 
+    client_version: str ='python-client-test-2-240',
+    protocol_version_major: int = 2,
+    protocol_version_minor: int = 240, 
+    drop_concurrent_session: bool = False,
+    private_label: str = "WebApiTest",
+    **kwargs
     ) -> ClientMsg:
     # create a client_msg based on the protocol.
     client_msg = ClientMsg()

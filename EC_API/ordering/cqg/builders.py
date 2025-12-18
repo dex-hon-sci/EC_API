@@ -18,6 +18,7 @@ from EC_API.ordering.enums import (
 
 
 NEW_ORDER_OPTIONAL_FIELDS = {
+    'when_utc_timestamp': ('when_utc_timestamp', datetime),
     'good_thru_date': ('good_thru_date', int),
     'scaled_limit_price': ('scaled_limit_price', int),
     'scaled_stop_price': ('scaled_stop_price', int),
@@ -28,6 +29,7 @@ NEW_ORDER_OPTIONAL_FIELDS = {
     }
     
 MODIFY_ORDER_OPTIONAL_FIELDS = {
+    'when_utc_timestamp': ('when_utc_timestamp', datetime),
     'qty': ('qty', int), 
     'scaled_limit_price': ('scaled_limit_price', int), 
     'scaled_stop_price': ('scaled_stop_price', int),
@@ -40,11 +42,15 @@ MODIFY_ORDER_OPTIONAL_FIELDS = {
     'activation_utc_timestamp': ('activation_utc_timestamp', datetime),
     'extra_attributes': ('extra_attributes', NamedValue)
     }
-
+LIQIDATEALL_ORDER_OPTIONL_FIELDS = {
+    'when_utc_timestamp': ('when_utc_timestamp', datetime),
+    'is_short': ('is_short', bool),
+    'current_day_only': ('current_day_only', bool)
+    }
 GOFLAT_ORDER_OPTIONAL_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime),
-    'execution_source_code': ('execution_source_code',), 
-    'speculation_type': ('execution_source_code',)    
+    'execution_source_code': ('execution_source_code', str), 
+    'speculation_type': ('speculation_type', int)    
     }
 
 def build_trade_subscription_msg(
