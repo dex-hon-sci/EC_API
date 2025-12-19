@@ -12,11 +12,11 @@ from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.ext.common.shared_1_pb2 import NamedValue
 from EC_API.protocol.cqg.builder_util import apply_optional_fields, assert_defaults_types
-from EC_API.ordering.enums import (
+from EC_API.ordering.enums import RequestType
+from EC_API.ordering.cqg.enums import (
     SubScope,
     OrderType,
     Duration,
-    RequestType
     )
 
 
@@ -33,13 +33,13 @@ NEW_ORDER_OPTIONAL_FIELDS = { #(key, type, transform_func)
     
 MODIFY_ORDER_OPTIONAL_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
-    'qty': ('qty', int, None), # Sensitive fields obly take exact types and no transform func
+    #'qty': ('qty', int, None), # Sensitive fields obly take exact types and no transform func
     'scaled_limit_price': ('scaled_limit_price', int, None), 
     'scaled_stop_price': ('scaled_stop_price', int, None),
     'remove_activation_time': ('remove_activation_time', bool, None), 
     'remove_suspension_utc_time': ('remove_suspension_utc_time', bool, None), 
     'activation_utc_timestamp': ('activation_utc_timestamp', datetime, None),
-    'duration': ('duration', int, None), 
+    'duration': ('duration', Duration, None), 
     'good_thru_date': ('good_thru_date', int, None), 
     'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime, None),
     'activation_utc_timestamp': ('activation_utc_timestamp', datetime, None),
@@ -100,12 +100,12 @@ def build_modify_order_request_msg(
     order_id: str = "", # Get this from the previous Order 
     orig_cl_order_id: str = "", 
     cl_order_id: str = "", 
+    qty: int | None = None,
     **kwargs
     ) -> ClientMsg:
 
     defaults = {
     'when_utc_timestamp': datetime.now(timezone.utc),
-    'qty': None, 
     'scaled_limit_price': None,
     'scaled_stop_price': None,
     'remove_activation_time': None,
@@ -123,8 +123,6 @@ def build_modify_order_request_msg(
     if not isinstance(order_id, str):
         raise TypeError("order_id must be non-empty str")
     
-    
-    
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
     order_request.request_id = request_id
@@ -133,11 +131,11 @@ def build_modify_order_request_msg(
     order_request.modify_order.orig_cl_order_id = orig_cl_order_id
     order_request.modify_order.cl_order_id = cl_order_id
     
-    if kwargs['qty'] != None:
-        if kwargs['qty'] == 0:
+    if qty is not None:
+        if qty == 0:
             return 0.0, 0
-        exponent = int(math.floor(math.log10(abs(kwargs['qty']))))
-        significand = kwargs['qty'] / (10**exponent)
+        exponent = int(math.floor(math.log10(abs(qty))))
+        significand = qty / (10**exponent)
 
         order_request.modify_order.qty.significand = int(significand)
         order_request.modify_order.qty.exponent = int(exponent)
@@ -147,7 +145,7 @@ def build_modify_order_request_msg(
     # Merge: caller kwargs override defaults
     merged: dict[str, Any] = {**defaults, **kwargs}
     
-    apply_optional_fields(client_msg,
+    apply_optional_fields(order_request.modify_order,
                           values=merged, 
                           spec=MODIFY_ORDER_OPTIONAL_FIELDS)
     

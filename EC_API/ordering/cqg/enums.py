@@ -23,10 +23,16 @@ class SubScope(Enum):
     SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES
 
 class Side(Enum):
-    SIDE_BUY = Ord.Side.SIDE_BUY
-    SIDE_SELL = Ord.Side.SIDE_SELL
+    BUY = "BUY"
+    SELL = "SELL"
 
 class OrderType(Enum):
+    MKT = "Market"
+    LMT = "Limit"
+    STP = "Stop"
+    STL = "Stop-Limit"
+    CROSS = "Cross"
+    
     ORDER_TYPE_MKT = Ord.OrderType.ORDER_TYPE_MKT
     ORDER_TYPE_LMT = Ord.OrderType.ORDER_TYPE_LMT
     ORDER_TYPE_STP = Ord.OrderType.ORDER_TYPE_STP
