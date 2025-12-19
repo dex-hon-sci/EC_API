@@ -24,7 +24,9 @@ from EC_API.monitor.cqg.builders import(
 
 class MonitorRealTimeDataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
-        self._connection = connection
+        self._conn = connection
+        self._transport = self._conn._transport
+        
         self._msg_id: int = 200 # just a starting number for message id
         self.symbols: set[str] = set()
         
@@ -34,14 +36,13 @@ class MonitorRealTimeDataCQG(Monitor):
         self._transport = CQGTransport()
         self._router = MessageRouter()
 
-
         self.total_recv_cycle: int = 20
         self.total_send_cycle: int = 2
         self.recv_cycle_delay: int = 0
         self.send_cycle_delay: int = 0
 
-    def connection(self):
-        return self._connection
+    def conn(self):
+        return self._conn
     
     @property
     def msg_id(self):
@@ -66,7 +67,7 @@ class MonitorRealTimeDataCQG(Monitor):
         print("realtime monitor:", symbol, msg_id, contract_ids, contract_metadata)
         print("realtime monitor2:", symbol not in contract_ids)
         if symbol not in contract_ids:
-            result_msg = await self._connection.resolve_symbol_async(symbol, msg_id, **kwargs)
+            result_msg = await self._conn.resolve_symbol_async(symbol, msg_id, **kwargs)
             print("resolve_sym_msg", result_msg)
             contract_ids[symbol] = result_msg.contract_id 
             contract_metadata[symbol] = result_msg
@@ -108,7 +109,7 @@ class MonitorRealTimeDataCQG(Monitor):
 #             subscription.level = level
 # =============================================================================
             # Send message
-            self._connection._client.send_client_message(client_msg)
+            self._conn._client.send_client_message(client_msg)
             #print("----------------------------")
             #print(f"contract_id={contract_id}, Attempt: {attempt}, send_request with ID {contract_id}")
             #print('request_real_time')
@@ -116,7 +117,7 @@ class MonitorRealTimeDataCQG(Monitor):
             #while True:
             while i < self.total_recv_cycle:
                 #print(f"Trial {i}: msg_id: {subscription.request_id}")
-                server_msg = self._connection._client.receive_server_message()
+                server_msg = self._conn._client.receive_server_message()
                 #print(server_msg)
                 i+=1
                 # 1) Condition for having receieved a real_time_market_data
@@ -162,12 +163,12 @@ class MonitorRealTimeDataCQG(Monitor):
 #         subscription.request_id = self.msg_id
 #         subscription.level = 0
 # =============================================================================
-        self._connection._client.send_client_message(client_msg)
+        self._conn._client.send_client_message(client_msg)
         i = 0
         #while True:
         while i < self.total_recv_cycle:
             #print(f"Trial {i}: msg_id: {subscription.request_id}")
-            server_msg = self._connection._client.receive_server_message()
+            server_msg = self._conn._client.receive_server_message()
             i+=1
             
             if len(server_msg.market_data_subscription_statuses)>0:

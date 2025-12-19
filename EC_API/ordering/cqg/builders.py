@@ -5,6 +5,7 @@ Created on Fri Nov 28 21:14:37 2025
 
 @author: dexter
 """
+import math
 from datetime import datetime, timezone
 from typing import Any
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
@@ -59,7 +60,7 @@ GOFLAT_ORDER_OPTIONAL_FIELDS = {
 
 
 
-def build_new_order_request_msg_2(
+def build_new_order_request_msg(
     account_id: int,
     request_id: int,
     contract_id: int = 0, # Get this from contractmetadata
@@ -93,7 +94,7 @@ def build_new_order_request_msg_2(
     return 
     
 
-def build_modify_order_request_msg_2(
+def build_modify_order_request_msg(
     account_id: int, 
     request_id: int,
     order_id: str = "", # Get this from the previous Order 
@@ -101,18 +102,19 @@ def build_modify_order_request_msg_2(
     cl_order_id: str = "", 
     **kwargs
     ) -> ClientMsg:
-    
+
     defaults = {
-    'when_utc_time': datetime.now(timezone.utc),
-    'exec_instructions': None,
-    'good_thru_date': None,
+    'when_utc_timestamp': datetime.now(timezone.utc),
+    'qty': None, 
     'scaled_limit_price': None,
     'scaled_stop_price': None,
+    'remove_activation_time': None,
+    'remove_suspension_utc_time': None,
+    'duration': None, 
+    'good_thru_date': None,
+    'good_thru_utc_timestamp': None, 
+    'activation_utc_timestamp': None,
     'extra_attributes': None,
-    'scaled_trail_offset': None,
-    'good_thru_utc_timestamp': None,
-    'suspend': None,
-    'algo_strategy': "CQG ARRIVALPRICE"
     }
     if not isinstance(request_id, int):
         raise TypeError("request_id must be int")
@@ -121,6 +123,8 @@ def build_modify_order_request_msg_2(
     if not isinstance(order_id, str):
         raise TypeError("order_id must be non-empty str")
     
+    
+    
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
     order_request.request_id = request_id
@@ -128,14 +132,23 @@ def build_modify_order_request_msg_2(
     order_request.modify_order.account_id = account_id
     order_request.modify_order.orig_cl_order_id = orig_cl_order_id
     order_request.modify_order.cl_order_id = cl_order_id
+    
+    if kwargs['qty'] != None:
+        if kwargs['qty'] == 0:
+            return 0.0, 0
+        exponent = int(math.floor(math.log10(abs(kwargs['qty']))))
+        significand = kwargs['qty'] / (10**exponent)
 
+        order_request.modify_order.qty.significand = int(significand)
+        order_request.modify_order.qty.exponent = int(exponent)
+        
     assert_defaults_types(defaults, MODIFY_ORDER_OPTIONAL_FIELDS)
 
     # Merge: caller kwargs override defaults
     merged: dict[str, Any] = {**defaults, **kwargs}
     
     apply_optional_fields(client_msg,
-                          values=kwargs, 
+                          values=merged, 
                           spec=MODIFY_ORDER_OPTIONAL_FIELDS)
     
     return client_msg
@@ -162,7 +175,7 @@ def build_trade_subscription_msg(
         account_summary_parameters.requested_fields.extend([8,15,16])
     return client_msg
 
-def build_new_order_request_msg(
+def build_new_order_request_msg_o(
     account_id: int,
     request_id: int,
     contract_id: int = 0, # Get this from contractmetadata
@@ -236,7 +249,7 @@ def build_new_order_request_msg(
     
     return client_msg
 
-def build_modify_order_request_msg(
+def build_modify_order_request_msg_o(
         account_id: int, 
         request_id: int,
         order_id: int = 0, # Get this from the previous Order 
