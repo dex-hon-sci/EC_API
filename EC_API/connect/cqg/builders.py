@@ -76,10 +76,10 @@ def build_pong_msg(
     return client_msg
 
 def build_resolve_symbol_msg(                       
-        symbol_name: str, 
-        request_id: int, 
-        subscribe: bool | None = None, 
-        **kwargs
+    symbol_name: str, 
+    request_id: int, 
+    subscribe: bool | None = None, 
+    **kwargs
     ) -> ClientMsg:
     
     client_msg = ClientMsg()
@@ -93,8 +93,7 @@ def build_resolve_symbol_msg(
     information_request.symbol_resolution_request.symbol = symbol_name
     
     if 'instrument_group_request' in kwargs:
-        information_request.instrument_group_request.add(
-            kwargs['instrument_group_request']
-            )
+        information_request.instrument_group_request.instrument_group_id = kwargs['instrument_group_request']
         
+ 
     return client_msg

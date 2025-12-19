@@ -41,7 +41,6 @@ class ConnectCQG(Connect):
         self.protocol_version_major: int = None
         self.protocol_version_minor: int = None
 
-        
         self._state: ConnectionState = ConnectionState.UNKNOWN
         self._task: Optional[asyncio.Task] = None
 
@@ -96,18 +95,20 @@ class ConnectCQG(Connect):
         self._transport.connect()
         self._transport.start()
         self._router_task = asyncio.create_task(self._router_loop())
+        
+    def stop(self) -> None:
+        pass
 
     # -----------------------
     async def connect(self) -> None:
         self._transport.connect()
-    #async def connect(self):
-    #    self._client.connect(self._host_name)
+    
     def disconnect(self)->None:
         self._client.disconnect()
         
     # -----------------------
     # ---- Router Loop ------
-    async def _router_loop_o(self) -> None:
+    async def _router_loop(self) -> None:
         while not self._stop_evt.is_set():
             pass
     # -----------------------
@@ -163,15 +164,6 @@ class ConnectCQG(Connect):
             self.protocol_version_minor, 
             session_token,
             **kwargs)
-# =============================================================================
-#         # Restore request taken from class attributes
-#         restore_msg = ClientMsg()
-#         restore_request = restore_msg.restore_or_join_session 
-#         restore_request.client_app_id = self.client_app_id
-#         restore_request.protocol_version_minor = self.protocol_version_major
-#         restore_request.protocol_version_major = self.protocol_version_minor
-#         
-# =============================================================================
 
         self._client.send_client_message(restore_msg)
         
@@ -179,6 +171,7 @@ class ConnectCQG(Connect):
             server_msg_restore = self._client.receive_server_message()
             if len(server_msg_restore.restore_or_join_session_result)>0:
                 return server_msg_restore
+            
     async def ping(self):
         ping_msg = build_ping_msg(self.msg_id)
         ## Routing and transport
@@ -187,30 +180,24 @@ class ConnectCQG(Connect):
     # ------------------------
     
     # --- transport ----------       
-    async def _router_loop(self):
-        while True:
-            msg = await self._transport.recv()
-            msg_type = msg.WhichOneof("message")
-            
-            if cqg_mapping.is_symbol_resolution(msg):
-                key = cqg_mapping.extract_router_key(msg)
-                if key is not None:
-                    self._router.on_message(key, msg)
-            else:
-                pass
-                ### cases sit here or make an custom function
+# =============================================================================
+#     async def _router_loop(self):
+#         while True:
+#             msg = await self._transport.recv()
+#             msg_type = msg.WhichOneof("message")
+#             
+#             if cqg_mapping.is_symbol_resolution(msg):
+#                 key = cqg_mapping.extract_router_key(msg)
+#                 if key is not None:
+#                     self._router.on_message(key, msg)
+#             else:
+#                 pass
+#                 ### cases sit here or make an custom function
+# =============================================================================
 
-    #async def recv_msg_async(self):
-    #    #await asyncio.sleep(0.1)
-    #    async with self._recv_lock:
-    #        return await asyncio.to_thread(
-    #            self.resolve_symbol, symbol_name, msg_id, subscribe, **kwargs
-    #            )
-    # ------------------------
     # --- Symbol resolution ----------       
-    async def resolve_symbol_async(self):
+    async def resolve_symbol(self):
         pass
-    # ------------------------
     
     async def resolve_symbol_async(self, 
                                    symbol_name: str, 
@@ -278,6 +265,15 @@ class ConnectCQG(Connect):
 #         client_msg = ClientMsg()
 #         logoff = client_msg.logoff
 #         logoff.text_message = "logoff test"
+# =============================================================================
+# =============================================================================
+#         # Restore request taken from class attributes
+#         restore_msg = ClientMsg()
+#         restore_request = restore_msg.restore_or_join_session 
+#         restore_request.client_app_id = self.client_app_id
+#         restore_request.protocol_version_minor = self.protocol_version_major
+#         restore_request.protocol_version_major = self.protocol_version_minor
+#         
 # =============================================================================
 
 # =============================================================================
