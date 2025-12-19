@@ -18,10 +18,65 @@ class RequestType(Enum):
     NEW_ORDER = "new_order_request"
     MODIFY_ORDER = "modify_order_request"
     CANCEL_ORDER = "cancel_order_request"
+    SUSPEND_ORDER = "suspend_order_request"
     ACTIVATE_ORDER = "activate_order_request"
     CANCELALL_ORDER = "cancelall_order_request"
     LIQUIDATEALL_ORDER = "liquidateall_order_request"
     GOFLAT_ORDER = "goflat_order_request"
+    
+class SubScope(Enum):
+    SUBSCRIPTION_SCOPE_ORDERS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
+    SUBSCRIPTION_SCOPE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
+    SUBSCRIPTION_SCOPE_COLLATERAL = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL
+    SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+    SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS
+    SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES
+
+class Side(Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+
+class OrderType(Enum):
+    MKT = "Market"
+    LMT = "Limit"
+    STP = "Stop"
+    STL = "Stop-Limit"
+    CROSS = "Cross"
+    
+class Duration(Enum):
+    DAY = "Day"
+    GTC = "Good-Till-Cancel"
+    GTD = "Good-Till-Date"
+    GTT = "Good-Till-Time"
+    FOK = "Fill-Or-Kill"
+    FAK = "Fill-And-Kill"
+    ATO = "At-The-Open"
+    ATC = "At-The-Close"
+    GFA = "Good-For-Auction"
+    
+class ExecInstruction(Enum):
+    pass
+
+    
+class OrderStatus(Enum):
+    IN_TRANSIT = "In-Transit"  # Original order is sent to execution system.
+    REJECTED = "Rejected"  # Order is rejected.
+    WORKING = "Working"  # Order is acknowledged by execution system and perhaps partially filled.
+    EXPIRED = "Expired"  # Order is expired.
+    IN_CANCEL = "In-Cancel"  #Cancel request is sent to execution system.
+    IN_MODIFY = "In-Modify"  # Modify request is sent to execution system.
+    CANCELLED = "Cancelled"  # Order is canceled.
+    FILLED = "Filled"  # Order is completely filled by execution system.
+    SUSPENDED = "Suspended"  # Order is waiting submission to execution system.
+    DISCONNECTED = "Disconnected"  # Order may be canceled because a disconnect occurred.
+    ACTIVEAT = "Activate"  # Order will be placed at a specified time (waiting execution system to start accepting orders).
+    APPROVE_REQUIRED = "Approved-required"  # Cross order is sent to exchange and waiting for approval from exchange and/or counter-parties.
+    APPROVED_BY_EXCHANGE = "Approved-by-exchange" 
+    APPROVE_REJECTED = "Approve-Rejected" 
+    MATCHED = "Matched" 
+    PARTIALLY_MATCHED = "Partially-Matched" 
+    TRADE_BROKEN = "Trade-Broken" 
+
 # =============================================================================
 #     
 # class SubScope(Enum):
@@ -50,7 +105,16 @@ class RequestType(Enum):
 #     DURATION_GTT = Ord.Duration.DURATION_GTT
 #     DURATION_FOK = Ord.Duration.DURATION_FOK
 #     DURATION_FAK = Ord.Duration.DURATION_FAK
+#     DURATION_ATO = Ord.Duration.DURATION_ATO# class Duration(Enum):
+#     DURATION_DAY = Ord.Duration.DURATION_DAY
+#     DURATION_GTC = Ord.Duration.DURATION_GTC
+#     DURATION_GTD = Ord.Duration.DURATION_GTD
+#     DURATION_GTT = Ord.Duration.DURATION_GTT
+#     DURATION_FOK = Ord.Duration.DURATION_FOK
+#     DURATION_FAK = Ord.Duration.DURATION_FAK
 #     DURATION_ATO = Ord.Duration.DURATION_ATO
+#     DURATION_ATC = Ord.Duration.DURATION_ATC
+#     DURATION_GFA = Ord.Duration.DURATION_GFA
 #     DURATION_ATC = Ord.Duration.DURATION_ATC
 #     DURATION_GFA = Ord.Duration.DURATION_GFA
 # 
