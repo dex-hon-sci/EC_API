@@ -10,9 +10,8 @@ This Enum file contain the most relevant enums for ordering.
 # Python imports
 from enum import Enum
 # EC_API imports
-from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
-from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
-from EC_API.ext.common.shared_1_pb2 import OrderStatus
+#from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
+#from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
 
 class RequestType(Enum):
     NEW_ORDER = "new_order_request"
@@ -25,12 +24,12 @@ class RequestType(Enum):
     GOFLAT_ORDER = "goflat_order_request"
     
 class SubScope(Enum):
-    SUBSCRIPTION_SCOPE_ORDERS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
-    SUBSCRIPTION_SCOPE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-    SUBSCRIPTION_SCOPE_COLLATERAL = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL
-    SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
-    SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS
-    SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES
+    ORDERS = "Orders"
+    POSITIONS = "Positions"
+    COLLATERAL = "Collateral"
+    ACCOUNT_SUMMARY = "Account-Summary"
+    EXCHANGE_POSITIONS = "Exchange-Positions"
+    EXCHANGE_BALANCES = "Exchange-Positions"
 
 class Side(Enum):
     BUY = "BUY"
@@ -55,7 +54,19 @@ class Duration(Enum):
     GFA = "Good-For-Auction"
     
 class ExecInstruction(Enum):
-    pass
+    NONE = "None"
+    AON = "All-Or-None"
+    ICEBERG = "Iceberg"
+    TRAIL = "Trailing"
+    FUNARI = ""
+    MIT = ""
+    MLM = ""
+    POSTONLY = ""
+    MTL = ""
+    AUCTION = ""
+    ATANYPRICE = ""
+    LMT_PRARGD = ""
+    ICO = ""
 
     
 class OrderStatus(Enum):

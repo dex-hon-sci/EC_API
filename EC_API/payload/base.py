@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 # EC_API imports
 from EC_API.connect.base import Connect
 from EC_API.ordering.base import LiveOrder
-from EC_API.ordering.enums import SubScope, OrderStatus
+from EC_API.ordering.cqg.enums import SubScope, OrderStatus
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
