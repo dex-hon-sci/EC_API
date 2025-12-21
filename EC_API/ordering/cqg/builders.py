@@ -7,49 +7,151 @@ Created on Fri Nov 28 21:14:37 2025
 """
 import math
 from datetime import datetime, timezone
-from typing import Any
-from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
+from typing import Any, Union
+# EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.ext.common.shared_1_pb2 import NamedValue
 from EC_API.protocol.cqg.builder_util import apply_optional_fields, assert_defaults_types
-from EC_API.ordering.enums import RequestType
+from EC_API.ordering.enums import (
+    Side, SubScope,
+    OrderType, Duration,
+    ExecInstruction
+    )
 from EC_API.ordering.cqg.enums import (
-    SubScope,
-    OrderType,
-    Duration,
+    SubScopeCQG,
+    OrderTypeCQG,
+    DurationCQG,
+    ExecInstructionCQG
     )
 
+acceptable_request_specific_fields = {
+    "symbol_name": str,
+    'cl_order_id': str, 
+    "order_type": OrderType,
+    "duration": Duration,
+    "side": Side,
+    "qty_significant": int,
+    "qty_exponent": int,
+    "is_manual": bool,
+    "exec_instructions": ExecInstruction, 
+    "good_thru_date": datetime.datetime,
+    "scaled_limit_price": int,
+    "scaled_stop_price": int,
+    'extra_attributes': dict,
+    'scaled_trail_offset': int,
+    'suspend': bool,
+    'algo_strategy': str,
+    }
+
+essentials_request_specific_field_types = {
+    'cl_order_id': str, 
+    'order_type': OrderType, 
+    'duration': Duration,
+    'side': Side, 
+    'qty_significant': int,
+    }
+
+# =============================================================================
+#     account_id: int,
+#     request_id: int,
+#     contract_id: int = 0, # Get this from contractmetadata
+#     cl_order_id: str = "", 
+#     order_type: OrderType | OrderTypeCQG = OrderType.ORDER_TYPE_MKT, 
+#     duration: Duration = Duration.DURATION_DAY, 
+#     side: Side = None, # Delibrate choice here to return error msg if no side is provided
+#     qty_significant: int = 0, # make sure qty are in Decimal (int) not float
+#     qty_exponent: int = 0, 
+# =============================================================================
+
+TRADE_SUBSCRIPTION_REQUIRED_FIELD = {
+    
+    }
+
+NEW_ORDER_REQUIRED_FIELDS = {
+    'account_id': ('account_id', int, int),
+    'request_id': ('request_id', int, int),
+    'contract_id': ('contract_id', int, int),
+    'cl_order_id': ('cl_order_id', str, str), 
+    'order_type': ('order_type', Union[OrderType, OrderTypeCQG], None), 
+    'duration': ('duration', Union[Duration, DurationCQG], None),
+    'side': ('side', Side, None),
+    'qty_significant': ('qty_significant', int, int),
+    'qty_exponent': ('qty_exponent', int, int), 
+    }
 
 NEW_ORDER_OPTIONAL_FIELDS = { #(key, type, transform_func)
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
     'good_thru_date': ('good_thru_date', int, None),
     'scaled_limit_price': ('scaled_limit_price', int, None),
     'scaled_stop_price': ('scaled_stop_price', int, None),
-    'when_utc_timestamp': ('when_utc_timestamp', datetime),
     'scaled_trail_offset': ('scaled_trail_offset', int, None),
     'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime, None),
     'suspend': ('suspend', bool, None)
     }
+
+MODIFY_ORDER_REQUIRED_FIELDS = {
+    'account_id': ('account_id', int, int),
+    'request_id': ('request_id', int, int),
+    'order_id': ('order_id', int, None),
+    'orig_cl_order_id': ('orig_cl_order_id', str, str), 
+    'cl_order_id': ('cl_order_id', str, str), 
+    }
     
 MODIFY_ORDER_OPTIONAL_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
-    #'qty': ('qty', int, None), # Sensitive fields obly take exact types and no transform func
     'scaled_limit_price': ('scaled_limit_price', int, None), 
     'scaled_stop_price': ('scaled_stop_price', int, None),
+    'qty': ('qty', int, None), # Sensitive fields obly take exact types and no transform func
     'remove_activation_time': ('remove_activation_time', bool, None), 
     'remove_suspension_utc_time': ('remove_suspension_utc_time', bool, None), 
-    'activation_utc_timestamp': ('activation_utc_timestamp', datetime, None),
-    'duration': ('duration', Duration, None), 
+    'duration': ('duration', Union[Duration, DurationCQG], None), 
     'good_thru_date': ('good_thru_date', int, None), 
     'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime, None),
     'activation_utc_timestamp': ('activation_utc_timestamp', datetime, None),
     'extra_attributes': ('extra_attributes', NamedValue, None)
     }
 
+
+CANCEL_ORDER_REQUIRED_FIELDS = {
+    
+    }
+
+CANCEL_ORDER_OPTIONAL_FIELDS = {
+    
+    }
+
+CANCELALL_ORDER_REQUIRED_FIELDS = {
+    
+    }
+
+CANCELALL_ORDER_OPTIONAL_FIELDS = {
+    
+    }
+
+SUSPEND_ORDER_REQUIRED_FIELDS = {
+    
+    }
+
+SUSPEND_ORDER_OPTIONAL_FIELDS = {
+    
+    }
+
+ACTIVATE_ORDER_REQUIRED_FIELDS = {
+    }
+ACTIVATE_ORDER_OPTIONAL_FIELDS = {
+    }
+
+LIQIDATEALL_ORDER_REQUIRED_FIELDS = {
+    }
+
 LIQIDATEALL_ORDER_OPTIONL_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime),
     'is_short': ('is_short', bool, None),
     'current_day_only': ('current_day_only', bool, None)
+    }
+
+GOFLAT_ORDER_REQUIRED_FIELDS = {
+    
     }
 
 GOFLAT_ORDER_OPTIONAL_FIELDS = {
@@ -65,13 +167,28 @@ def build_new_order_request_msg(
     request_id: int,
     contract_id: int = 0, # Get this from contractmetadata
     cl_order_id: str = "", 
-    order_type: OrderType = OrderType.ORDER_TYPE_MKT, 
-    duration: Duration = Duration.DURATION_DAY, 
-    side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
+    order_type: OrderType | OrderTypeCQG = OrderType.ORDER_TYPE_MKT, 
+    duration: Duration | DurationCQG = Duration.DURATION_DAY, 
+    side: Side = None, # Delibrate choice here to return error msg if no side is provided
     qty_significant: int = 0, # make sure qty are in Decimal (int) not float
     qty_exponent: int = 0, 
     is_manual: bool = False,
+    **kwargs
     ) -> ClientMsg:
+    
+    defaults = {
+    'exec_instructions':None,
+    'good_thru_date': None,
+    'scaled_limit_price': None, 
+    'scaled_stop_price': None,
+    'when_utc_timestamp': datetime.datetime.now(timezone.utc),
+    "sub_scope": 1,
+    'suspend': None,
+    'scaled_trail_offset' : None
+    }
+    
+    kwargs = dict(defaults, **kwargs)
+    print('kwargs',kwargs)
     
     if not isinstance(request_id, int):
         raise TypeError("request_id must be int")
@@ -91,7 +208,21 @@ def build_new_order_request_msg(
     order_request.new_order.order.qty.exponent = qty_exponent
     order_request.new_order.order.is_manual = is_manual
     
-    return 
+    assert_defaults_types(defaults, MODIFY_ORDER_OPTIONAL_FIELDS)
+
+    # Merge: caller kwargs override defaults
+    merged: dict[str, Any] = {**defaults, **kwargs}
+    
+    apply_optional_fields(order_request.modify_order,
+                          values=merged, 
+                          spec=MODIFY_ORDER_OPTIONAL_FIELDS)
+    
+    if kwargs['exec_instructions'] is not None:
+        order_request.new_order.order.exec_instructions.append(kwargs['exec_instructions'])
+
+    
+    return client_msg
+
     
 
 def build_modify_order_request_msg(
@@ -100,7 +231,7 @@ def build_modify_order_request_msg(
     order_id: str = "", # Get this from the previous Order 
     orig_cl_order_id: str = "", 
     cl_order_id: str = "", 
-    qty: int | None = None,
+    #qty: int | None = None,
     **kwargs
     ) -> ClientMsg:
 
@@ -108,6 +239,7 @@ def build_modify_order_request_msg(
     'when_utc_timestamp': datetime.now(timezone.utc),
     'scaled_limit_price': None,
     'scaled_stop_price': None,
+    'qty': None,
     'remove_activation_time': None,
     'remove_suspension_utc_time': None,
     'duration': None, 
@@ -116,6 +248,8 @@ def build_modify_order_request_msg(
     'activation_utc_timestamp': None,
     'extra_attributes': None,
     }
+    
+    
     if not isinstance(request_id, int):
         raise TypeError("request_id must be int")
     if not isinstance(account_id, int):
@@ -149,6 +283,10 @@ def build_modify_order_request_msg(
                           values=merged, 
                           spec=MODIFY_ORDER_OPTIONAL_FIELDS)
     
+    if kwargs['extra_attributes'] != None:
+        order_request.modify_order.extra_attributes.append(kwargs['extra_attributes'])
+
+    
     return client_msg
 
 
@@ -178,9 +316,9 @@ def build_new_order_request_msg_o(
     request_id: int,
     contract_id: int = 0, # Get this from contractmetadata
     cl_order_id: str = "", 
-    order_type: OrderType = OrderType.ORDER_TYPE_MKT, 
-    duration: Duration = Duration.DURATION_DAY, 
-    side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
+    order_type: OrderType | OrderTypeCQG = OrderType.ORDER_TYPE_MKT, 
+    duration: Duration | DurationCQG = Duration.DURATION_DAY, 
+    side: Side = None, # Delibrate choice here to return error msg if no side is provided
     qty_significant: int = 0, # make sure qty are in Decimal (int) not float
     qty_exponent: int = 0, 
     is_manual: bool = False,

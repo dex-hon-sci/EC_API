@@ -16,7 +16,6 @@ from EC_API.ordering.enums import (
 from EC_API.ordering.cqg.enums import (
     SubScopeCQG, OrderTypeCQG,
     DurationCQG, ExecInstructionCQG,
-    #OrderStatusCQG
     )
 
 # Vendor Enum -> Int Enum (Int Regular+Int vendor) -> Payload Enum

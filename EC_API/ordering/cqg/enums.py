@@ -10,32 +10,16 @@ This Enum file contain the CQG specific enums type for ordering.
 """
 # Python imports
 from enum import Enum, auto
-# EC_API imports
-from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
-from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
-from EC_API.ext.common.shared_1_pb2 import OrderStatus
     
 class SubScopeCQG(Enum):
-    #SUBSCRIPTION_SCOPE_ORDERS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
-    #SUBSCRIPTION_SCOPE_POSITIONS = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
     COLLATERAL = auto()
-    #SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY = TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
     POSITIONS = auto()
     BALANCES = auto()
-
-#class Side(Enum):
-#    BUY = "BUY"
-#    SELL = "SELL"
 
 class OrderTypeCQG(Enum):
     CROSS = "Cross"
     
-    
 class DurationCQG(Enum):
-    #DURATION_DAY = auto()
-    #DURATION_GTC = auto()
-    #DURATION_GTD = auto()
-    #DURATION_FOK = auto()
     DURATION_GTT = auto()
     DURATION_FAK = auto()
     DURATION_ATO = auto()
@@ -43,14 +27,9 @@ class DurationCQG(Enum):
     DURATION_GFA = auto()
 
 class ExecInstructionCQG(Enum):
-    #EXEC_INSTRUCTION_NONE = Ord.ExecInstruction.EXEC_INSTRUCTION_NONE
-    #EXEC_INSTRUCTION_AON = Ord.ExecInstruction.EXEC_INSTRUCTION_AON
-    #EXEC_INSTRUCTION_ICEBERG = Ord.ExecInstruction.EXEC_INSTRUCTION_ICEBERG
-    #EXEC_INSTRUCTION_TRAIL = Ord.ExecInstruction.EXEC_INSTRUCTION_TRAIL
     FUNARI = auto()
     MIT = auto()
     MLM = auto()
-    #EXEC_INSTRUCTION_POSTONLY = Ord.ExecInstruction.EXEC_INSTRUCTION_POSTONLY
     MTL = auto()
     AUCTION = auto()
     ATANYPRICE = auto()
