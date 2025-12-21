@@ -36,10 +36,14 @@ def assert_defaults_types(
     """
     for k, v in defaults.items():
         if k not in spec:
-            raise KeyError(f"Default key '{k}' not found in optional spec")
+            raise KeyError(f"Default key '{k}' not found in default spec")
         proto_attr, accepted, transform = spec[k]
         if v is None:
             continue
+        
+        if not isinstance(v, _as_types_tuple(accepted)):
+            raise TypeError(f"default:{k} must be {_type_name(accepted)}, got {type(v).__name__}")
+
         _assert_type(f"default:{k}", v, accepted)
         # Optional: also validate transform doesn't explode at import time.
         # But DON'T apply transform here; just check type of input.
