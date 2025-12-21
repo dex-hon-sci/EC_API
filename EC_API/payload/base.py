@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 # EC_API imports
 from EC_API.connect.base import Connect
 from EC_API.ordering.base import LiveOrder
-from EC_API.ordering.cqg.enums import SubScope, OrderStatus
+from EC_API.ordering.cqg.enums import SubScopeCQG, OrderStatusCQG
+from EC_API.ordering.enums import SubScope, OrderStatus
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
@@ -83,7 +84,9 @@ class ExecutePayload:
         self.ordering_enums: OrderStatus = OrderStatus
         
         
-    def change_payload_status(self, server_msg) -> None:
+    def change_payload_status(self, server_msg) -> None: 
+        # Decrepated, change to enum_mapping in ordering
+        # Move this to parsers
         #SENT_CASES = ()
         #FILL_CASES = ()
         #VOID_CASES = ()

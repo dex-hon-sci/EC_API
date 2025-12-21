@@ -7,7 +7,7 @@ Created on Sat Dec 20 06:52:02 2025
 """
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as CQG_TS
 from EC_API.ext.WebAPI.order_2_pb2 import Order as CQG_Ord
-from EC_API.ext.WebAPI.order_2_pb2 import OrderStatus as CQG_OrdStatus
+from EC_API.ext.common.shared_1_pb2 import OrderStatus as CQG_OrdStatus
 from EC_API.ordering.enums import (
     SubScope, Side, OrderType,
     Duration, ExecInstruction,
