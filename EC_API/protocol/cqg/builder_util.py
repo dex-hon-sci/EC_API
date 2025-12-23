@@ -47,9 +47,6 @@ def assert_input_types(
         if not isinstance(v, _as_types_tuple(accepted)):
             raise TypeError(f"default:{k} must be {_type_name(accepted)}, got {type(v).__name__}")
 
-        #_assert_type(f"default:{k}", v, accepted)
-        # Optional: also validate transform doesn't explode at import time.
-        # But DON'T apply transform here; just check type of input.
 
 def apply_optional_fields(
     target: Any, # The Msg

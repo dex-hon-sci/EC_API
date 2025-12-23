@@ -8,6 +8,7 @@ Created on Thu Aug  7 09:44:04 2025
 import random
 import time
 import pickle
+from decimal import Decimal
 from typing import Callable
 
 def random_string(length: int=16) -> str:
@@ -30,6 +31,50 @@ def random_string(length: int=16) -> str:
     # The amount to (56,800,235,584) possibilities
     code = ''.join([random.choice(base) for i in range(length)])
     return code
+
+def float_to_significand_exponent():
+    pass
+
+def foo(value: Decimal):
+    # Normalize removes trailing zeros (e.g., 1.2500 -> 1.25)
+    # which keeps the significand as small as possible.
+    normalized = value.normalize()
+    
+    # as_tuple() returns (sign, digits_tuple, exponent)
+    # sign: 0 for +, 1 for -
+    # digits: e.g., (1, 2, 5)
+    # exponent: e.g., -2
+    sign, digits, exponent = normalized.as_tuple()
+    
+    # Reconstruct the integer significand from the digits tuple
+    significand = int("".join(map(str, digits)))
+    
+    # Apply the sign
+    if sign:
+        significand = -significand
+        
+    return significand, exponent
+
+def to_significand_sint64_exponent_sint32(n: int | float):
+    """
+    Converts an integer into an integer significand (sint64) 
+    and an exponent (sint32) such that: n = significand * 10^exponent.
+    """
+    d = Decimal(str(n)).normalize()
+    sign, digits, exponent = d.as_tuple()
+    
+    # Reconstruct integer significand from the digits tuple
+    significand = int("".join(map(str, digits)))
+    if sign: # 1 is negative in Decimal tuple
+        significand = -significand
+
+    # Your Bounds Checks (Keep these, they are great!)
+    if not (-(2**63) <= significand < 2**63):
+        raise ValueError("Significand exceeds sint64 range")
+    if not (-(2**31) <= exponent < 2**31):
+        raise ValueError("Exponent exceeds sint32 range")
+
+    return significand, exponent
 
 
 def time_it(func: Callable) -> Callable:

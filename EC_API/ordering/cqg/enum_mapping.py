@@ -67,8 +67,7 @@ ExecInstruction_MAP_INT2CQG = {
     ExecInstructionCQG.AUCTION: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_AUCTION,
     ExecInstructionCQG.ATANYPRICE: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ATANYPRICE,
     ExecInstructionCQG.LMT_PRARGD: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_LMT_PRARGD,
-    ExecInstructionCQG.ICO: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICO,
-
+    ExecInstructionCQG.ICO: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICO
     }
 
 OrderStatus_MAP_INT2CQG = {
