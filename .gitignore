@@ -1,6 +1,37 @@
+# Python
 *.pyc
+*.pyd
+*.pyo
+*.so
 __pycache__/
+
+# Environment
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Data
 *.pkl
-dist/
+*.csv
+
+# Archives
+*.zip
+*.tar
+*.gz
+
+# Package
 build/
+dist/
+*.egg-info/
+
+# Pytest+coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
 

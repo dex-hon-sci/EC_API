@@ -1,0 +1,32 @@
+# Never ship git metadata
+recursive-exclude .git *
+recursive-exclude .github *
+recursive-exclude .gitignore *
+recursive-exclude .gitattributes *
+
+# Python caches
+recursive-exclude __pycache__ *
+recursive-exclude *.pyc
+recursive-exclude *.pyo
+
+# Test and tooling caches
+recursive-exclude .pytest_cache *
+recursive-exclude .mypy_cache *
+recursive-exclude .ruff_cache *
+recursive-exclude .tox *
+recursive-exclude .coverage
+recursive-exclude htmlcov *
+
+# Local environment / secrets
+recursive-exclude .env *
+recursive-exclude .venv *
+recursive-exclude venv *
+recursive-exclude env *
+
+# Build outputs
+recursive-exclude build *
+recursive-exclude dist *
+recursive-exclude *.egg-info *
+
+# Optional: if you don’t want to ship images in distributions
+# recursive-exclude images *

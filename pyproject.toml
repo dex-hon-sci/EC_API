@@ -15,11 +15,37 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
+license = { text = "Proprietary"}
 
 [project.urls]
 Homepage = "https://github.com/dex-hon-sci/EC_API"
 #Issues = "https://github.com/yourusername/my_package_name/issues"
 
-[tool.setuptools.packages.find]
-exclude = ["images/*"]
+[tool.setuptools]
+# IMPORTANT: only search packages under the EC_API directory
+package-dir = { "" = "." }
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["EC_API*"]
+
+exclude = [
+ "images/*",
+  "tests*",
+  "EC_API.tests*",
+  "**/__pycache__",
+  "**/*.pyc",
+  "**/*.pyo",
+  "**/*.pyd",
+  "build*",
+  "dist*",
+  "*.egg-info*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
