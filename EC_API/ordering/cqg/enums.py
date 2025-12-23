@@ -13,18 +13,18 @@ from enum import Enum, auto
     
 class SubScopeCQG(Enum):
     COLLATERAL = auto()
-    POSITIONS = auto()
-    BALANCES = auto()
+    EXCHANGE_POSITIONS = auto()
+    EXCHANGE_BALANCES = auto()
 
 class OrderTypeCQG(Enum):
     CROSS = "Cross"
     
 class DurationCQG(Enum):
-    DURATION_GTT = auto()
-    DURATION_FAK = auto()
-    DURATION_ATO = auto()
-    DURATION_ATC = auto()
-    DURATION_GFA = auto()
+    GTT = auto()
+    FAK = auto()
+    ATO = auto()
+    ATC = auto()
+    GFA = auto()
 
 class ExecInstructionCQG(Enum):
     FUNARI = auto()

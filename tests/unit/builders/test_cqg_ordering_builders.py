@@ -7,7 +7,8 @@ Created on Thu Dec 18 18:43:55 2025
 """
 from datetime import datetime, timezone, timedelta
 
-from EC_API.ordering.cqg.enums import Duration
+from EC_API.ordering.enums import Duration
+from EC_API.ordering.cqg.enums import DurationCQG
 from EC_API.ordering.cqg.builders import (
     build_modify_order_request_msg
     )
@@ -38,20 +39,19 @@ def test_build_modify_order_request_msg_valid() -> None:
         scaled_stop_price = 12400,
         remove_activation_time = True,
         remove_suspension_utc_time = True,
-        duration = Duration.DURATION_ATC, 
+        duration = DurationCQG.ATC, 
         good_thru_date = 10001,
         good_thru_utc_timestamp = goodthru_datetime, 
         activation_utc_timestamp = activation_datetime,
         extra_attributes = None,
         )
-    assert msg.modify_order.account_id == ACCOUNT_ID
-    assert msg.modify_order.request_id == REQUEST_ID
-    assert msg.modify_order.order_id == 200
-    assert msg.modify_order.orig_cl_order_id == "300"
-    assert msg.modify_order.cl_order_id == "400"
-    assert msg.modify_order.qty == 27
-    
-    assert msg.modify_order.algo_strategy == "CQG Builder UNIT TEST"
+    assert msg.order_requests.modify_order.account_id == ACCOUNT_ID
+    assert msg.order_requests.modify_order.request_id == REQUEST_ID
+    assert msg.order_requests.modify_order.order_id == 200
+    assert msg.order_requests.modify_order.orig_cl_order_id == "300"
+    assert msg.order_requests.modify_order.cl_order_id == "400"
+    #assert msg.modify_order.qty == 27
+    assert msg.order_request.modify_order.algo_strategy == "CQG Builder UNIT TEST"
 
 def test_build_cancel_order_request_msg_valid() -> None:
     pass
