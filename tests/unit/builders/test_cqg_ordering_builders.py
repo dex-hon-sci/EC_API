@@ -116,7 +116,22 @@ def test_build_modify_order_request_msg_valid() -> None:
     assert msg.order_requests[0].modify_order.activation_utc_timestamp.nanos == activation_datetime.microsecond * 1000
 
 def test_build_cancel_order_request_msg_valid() -> None:
-    pass
+    DT = datetime.now(timezone.utc)
+    msg = build_cancel_order_request_msg(
+        ACCOUNT_ID, REQUEST_ID,
+        order_id = "70", 
+        orig_cl_order_id = "og_cl001", 
+        cl_order_id = "cl002",
+        when_utc_timestamp = DT
+        )
+    assert msg.order_requests[0].request_id == REQUEST_ID
+    assert msg.order_requests[0].cancel_order.account_id == ACCOUNT_ID
+    assert msg.order_requests[0].cancel_order.order_id == "70"
+    assert msg.order_requests[0].cancel_order.orig_cl_order_id == "og_cl001"
+    assert msg.order_requests[0].cancel_order.cl_order_id == "cl002"
+    assert msg.order_requests[0].cancel_order.when_utc_timestamp.seconds == int(DT.timestamp())
+    assert msg.order_requests[0].cancel_order.when_utc_timestamp.nanos == DT.microsecond * 1000
+    
 
 def test_build_cancelall_order_request_msg_valid() -> None:
     pass
@@ -139,7 +154,7 @@ def test_build_goflat_order_request_msg_valid() -> None:
         execution_source_code = "Goflat_unit_test", 
         speculation_type = 1 # SpeculationType Enum, fix this late
         )
-    print(msg)
+
     assert msg.order_requests[0].request_id == REQUEST_ID
     assert msg.order_requests[0].go_flat.account_ids[0] == ACCOUNT_ID
     assert msg.order_requests[0].go_flat.when_utc_timestamp.seconds == int(goflat_datetime.timestamp())
