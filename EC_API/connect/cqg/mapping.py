@@ -11,7 +11,7 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LOR
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff
 from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as Restore
 
-CONNMSG2CONNSTATE_MAP = {
+CONNMSG2CONNSTATE_MAP = { # Move these two parsers
     # Failed Logon attempts but connection still intact
     LOR.ResultCode.RESULT_CODE_FAILURE: ConnectionState.CONNECTED_DEFAULT,
     LOR.ResultCode.RESULT_CODE_NO_ONETIME_PASSWORD: ConnectionState.CONNECTED_DEFAULT,

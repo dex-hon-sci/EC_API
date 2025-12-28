@@ -17,7 +17,7 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import (
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
     build_restore_msg, build_ping_msg,
-    build_pong_msg, build_resolve_symbol_msg
+    build_resolve_symbol_msg
     )
 
 def test_build_logon_msg_valid() -> None:

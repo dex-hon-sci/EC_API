@@ -51,7 +51,6 @@ class ExecInstruction(Enum):
     TRAIL = "Trailing"
     POSTONLY = "Post-Only"
 
-
 class OrderStatus(Enum):
     # REJECTED, WORKING, CANCELLED, FILLED, EXPIRED: Big Five
     # IN_TRANSIT, IN_CANCEL, IN_MODIFY: Pending
