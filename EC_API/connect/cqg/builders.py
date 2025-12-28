@@ -6,6 +6,14 @@ Created on Fri Nov 28 17:54:16 2025
 @author: dexter
 """
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
+from EC_API.protocol.cqg.builder_util import (
+    apply_optional_fields, 
+    assert_input_types
+    )
+from EC_API.connect.cqg.fields import (
+    LOGON_REQUIRED_FIELDS,
+    LOGON_OPTIONAL_FIELDS,
+    )
 
 def build_logon_msg(
     user_name: str,
@@ -18,6 +26,14 @@ def build_logon_msg(
     private_label: str = "WebApiTest",
     **kwargs
     ) -> ClientMsg:
+    
+    kwargs = dict({}, **kwargs)    
+    params = locals().copy()
+    params.pop('kwargs')
+    
+    assert_input_types(params, LOGON_REQUIRED_FIELDS)
+    assert_input_types(kwargs, LOGON_OPTIONAL_FIELDS)
+    
     # create a client_msg based on the protocol.
     client_msg = ClientMsg()
     
