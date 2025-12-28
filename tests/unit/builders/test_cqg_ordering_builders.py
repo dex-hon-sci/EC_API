@@ -140,7 +140,6 @@ def test_build_cancel_order_request_msg_valid() -> None:
     assert msg.order_requests[0].cancel_order.when_utc_timestamp.seconds == int(DT.timestamp())
     assert msg.order_requests[0].cancel_order.when_utc_timestamp.nanos == DT.microsecond * 1000
     
-
 def test_build_cancelall_order_request_msg_valid() -> None:
     pass
 

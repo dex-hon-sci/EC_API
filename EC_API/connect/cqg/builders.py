@@ -11,8 +11,12 @@ from EC_API.protocol.cqg.builder_util import (
     assert_input_types
     )
 from EC_API.connect.cqg.fields import (
-    LOGON_REQUIRED_FIELDS,
-    LOGON_OPTIONAL_FIELDS,
+    LOGON_REQUEST_REQUIRED_FIELDS,
+    LOGON_REQUEST_OPTIONAL_FIELDS,
+    LOGOFF_REQUEST_REQUIRED_FIELDS,
+    RESTORE_REQUEST_REQUIRED_FIELDS,
+    PING_REQUEST_REQUIRED_FIELDS,
+    RESOLVE_SYM_REQUEST_REQUIRED_FIELDS
     )
 
 def build_logon_msg(
@@ -31,8 +35,8 @@ def build_logon_msg(
     params = locals().copy()
     params.pop('kwargs')
     
-    assert_input_types(params, LOGON_REQUIRED_FIELDS)
-    assert_input_types(kwargs, LOGON_OPTIONAL_FIELDS)
+    assert_input_types(params, LOGON_REQUEST_REQUIRED_FIELDS)
+    #assert_input_types(kwargs, LOGON_OPTIONAL_FIELDS)
     
     # create a client_msg based on the protocol.
     client_msg = ClientMsg()
@@ -53,6 +57,9 @@ def build_logon_msg(
     return client_msg
 
 def build_logoff_msg(txt_msg: str="logoff") -> ClientMsg:
+    params = locals().copy()    
+    assert_input_types(params, LOGOFF_REQUEST_REQUIRED_FIELDS)
+
     # Logoff. Invoke this everytime when a connection is dropped
     client_msg = ClientMsg()
     logoff = client_msg.logoff
@@ -66,6 +73,11 @@ def build_restore_msg(
     session_token: str,
     **kwargs
     ) -> ClientMsg:
+    params = locals().copy()
+    params.pop('kwargs')
+    
+    assert_input_types(params, RESTORE_REQUEST_REQUIRED_FIELDS)
+
     # Restore request taken from class attributes
     restore_msg = ClientMsg()
     restore_request = restore_msg.restore_or_join_session 
@@ -76,6 +88,9 @@ def build_restore_msg(
     return restore_msg
 
 def build_ping_msg(ping_utc_time: int) -> ClientMsg:
+    params = locals().copy()
+    assert_input_types(params, PING_REQUEST_REQUIRED_FIELDS)
+
     client_msg = ClientMsg()
     pr = client_msg.ping
     pr.ping_utc_time = ping_utc_time
@@ -85,6 +100,7 @@ def build_pong_msg(
     ping_utc_time: int, 
     pong_utc_time: int
     ) -> ClientMsg:
+
     client_msg = ClientMsg()
     pr = client_msg.pong
     pr.ping_utc_time = ping_utc_time
@@ -97,7 +113,11 @@ def build_resolve_symbol_msg(
     subscribe: bool | None = None, 
     **kwargs
     ) -> ClientMsg:
-    
+    params = locals().copy()
+    params.pop('kwargs')
+
+    assert_input_types(params, RESOLVE_SYM_REQUEST_REQUIRED_FIELDS)
+
     client_msg = ClientMsg()
     information_request = client_msg.information_requests.add()
     
