@@ -74,5 +74,5 @@ def apply_optional_fields(
         # Transform is for normalization ONLY (e.g. datetime -> epoch_ms)
         if transform is not None:
             v = transform(v)
-
+        print(proto_attr, accepted)
         setattr(target, proto_attr, v)
