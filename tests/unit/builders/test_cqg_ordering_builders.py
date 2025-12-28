@@ -7,15 +7,15 @@ Created on Thu Dec 18 18:43:55 2025
 """
 from datetime import datetime, timezone, timedelta
 from EC_API.ext.WebAPI.order_2_pb2 import Order as CQG_Ord
-#from EC_API.ext.common.shared_1_pb2 import 
-
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as CQG_TS
 from EC_API.ordering.enums import Duration, Side, OrderType
-from EC_API.ordering.cqg.enums import DurationCQG, ExecInstructionCQG
+from EC_API.ordering.cqg.enums import DurationCQG, ExecInstructionCQG, SubScopeCQG
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg,
     build_new_order_request_msg,
     build_modify_order_request_msg,
     build_cancel_order_request_msg,
+    build_activate_order_request_msg,
     build_goflat_request_msg,
     )
 
@@ -23,8 +23,16 @@ ACCOUNT_ID = 000000
 REQUEST_ID = 100
 
 def test_build_trade_subscription_msg_valid() -> None:
-    ...
-    #assert msg.order_requests[0].modify_order.algo_strategy == "CQG Builder UNIT TEST"
+    msg = build_trade_subscription_msg(
+        10, subscribe= True,
+        sub_scope = SubScopeCQG.EXCHANGE_POSITIONS,
+        skip_orders_snapshot = True
+        )
+                          
+    assert msg.trade_subscriptions[0].id == 10
+    assert msg.trade_subscriptions[0].subscribe == True
+    assert msg.trade_subscriptions[0].skip_orders_snapshot == True 
+    assert msg.trade_subscriptions[0].subscription_scopes[0] == CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS
 
 def test_build_new_order_request_msg_valid() -> None:
     
@@ -140,7 +148,22 @@ def test_build_suspend_order_request_msg_valid() -> None:
     pass
 
 def test_build_activate_order_request_msg_valid() -> None:
-    pass
+    DT = datetime.now(timezone.utc)
+    msg = build_activate_order_request_msg(
+        account_id = ACCOUNT_ID, 
+        request_id = REQUEST_ID, 
+        order_id = "ORD_ID001", 
+        orig_cl_order_id = "og1001", 
+        cl_order_id = "1002", 
+        when_utc_timestamp=DT
+        )
+    assert msg.order_requests[0].request_id == REQUEST_ID
+    assert msg.order_requests[0].activate_order.account_id == ACCOUNT_ID
+    assert msg.order_requests[0].activate_order.order_id == "ORD_ID001"
+    assert msg.order_requests[0].activate_order.orig_cl_order_id == "og1001"
+    assert msg.order_requests[0].activate_order.cl_order_id == "1002"
+    assert msg.order_requests[0].activate_order.when_utc_timestamp.seconds == int(DT.timestamp())
+    assert msg.order_requests[0].activate_order.when_utc_timestamp.nanos == DT.microsecond * 1000
 
 def test_build_liquidateall_order_request_msg_valid() -> None:
     pass

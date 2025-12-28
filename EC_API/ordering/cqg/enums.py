@@ -17,7 +17,7 @@ class SubScopeCQG(Enum):
     EXCHANGE_BALANCES = auto()
 
 class OrderTypeCQG(Enum):
-    CROSS = "Cross"
+    CROSS = auto()
     
 class DurationCQG(Enum):
     GTT = auto()
