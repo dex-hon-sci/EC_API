@@ -8,7 +8,6 @@ Created on Fri Nov 28 21:00:05 2025
 from datetime import datetime
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 
-
 def build_realtime_data_request_msg(
     contract_id: int, 
     msg_id: int, 

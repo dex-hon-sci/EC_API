@@ -22,6 +22,14 @@ from EC_API.monitor.cqg.builders import(
     build_reset_tracker_request_msg
     )
 
+
+class MonitorDataCQG(Monitor):
+    def __init__(self, connection: ConnectCQG):
+        self._loop = asyncio.get_running_loop()
+        self._transport = CQGTransport()
+        self._router = MessageRouter()
+
+
 class MonitorRealTimeDataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._conn = connection
