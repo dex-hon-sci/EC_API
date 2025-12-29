@@ -23,6 +23,23 @@ from EC_API.connect.cqg.builders import (
     build_restore_msg
     )
 
+Key = tuple[str, int]
+
+def server_msg_type(msg: ServerMsg) -> str:
+    return msg.WhichOneof("message")  # CQG oneof "message"
+
+# Table-driven request_id extraction for RPC replies
+def extract_router_key(msg: ServerMsg) -> Optional[Key]:
+    mt = server_msg_type(msg)
+    ...
+# Streaming classifiers (examples)
+def is_realtime_tick(msg: ServerMsg) -> bool:
+    return server_msg_type(msg) == "real_time_market_data"
+
+def is_order_update_stream(msg: ServerMsg) -> bool:
+    # depending on CQG config you might get updates in trade_snapshot etc.
+    return server_msg_type(msg) in {"order_statuses", "trade_snapshot"}
+
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
     # subscriptions related functions
@@ -96,9 +113,13 @@ class ConnectCQG(Connect):
         self._transport.start()
         self._router_task = asyncio.create_task(self._router_loop())
         
-    def stop(self) -> None:
-        pass
-
+    async def stop(self) -> None:
+        self._stop_evt.set()
+        try:
+            self._transport.stop()
+        finally:
+            if self._task:
+                self._task.cancel()
     # -----------------------
     async def connect(self) -> None:
         self._transport.connect()
@@ -111,6 +132,26 @@ class ConnectCQG(Connect):
     async def _router_loop(self) -> None:
         while not self._stop_evt.is_set():
             pass
+        
+    async def _router_loop(self) -> None:
+        while not self._stop_evt.is_set():
+            msg: ServerMsg = await self._transport.recv()
+
+            # 1) RPC routing (futures)
+            key = extract_router_key(msg)
+            if key is not None and self._router.on_message(key, msg):
+                continue
+
+            # 2) streaming dispatch
+            if is_realtime_tick(msg):
+                await self.tick_q.put(msg)
+                continue
+
+            if is_order_update_stream(msg):
+                await self.exec_q.put(msg)
+                continue
+
+            await self.misc_q.put(msg)
     # -----------------------
 
     # RPC methods
