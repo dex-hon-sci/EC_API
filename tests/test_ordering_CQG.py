@@ -15,7 +15,7 @@ from EC_API.ext.WebAPI.trade_routing_2_pb2 import (
     )
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.utility.base import random_string
-from EC_API.ordering.cqg.live_order import CQGLiveOrder
+from EC_API.ordering.cqg.live_order import LiveOrderCQG
 from EC_API.ordering.enums import (
     SubScope,
     OrderType,
@@ -128,7 +128,7 @@ def test_success_pos_status_requests(symbol_name: str) -> None:
         "is_manual": False,
         }
 
-    CLOrder = CQGLiveOrder(CONNECT, 
+    CLOrder = LiveOrderCQG(CONNECT, 
                            symbol_name = request_details['symbol_name'], 
                            request_id = int(random_string(length=10)), 
                            account_id = ACCOUNT_ID,
@@ -155,7 +155,7 @@ def test_success_collateral_status_requests(symbol_name: str) -> None:
         "is_manual": False,
         }
 
-    CLOrder = CQGLiveOrder(CONNECT, 
+    CLOrder = LiveOrderCQG(CONNECT, 
                            symbol_name = request_details['symbol_name'], 
                            request_id = int(random_string(length=10)), 
                            account_id = ACCOUNT_ID,
@@ -181,7 +181,7 @@ def test_account_summary_status_requests(symbol_name: str) -> None:
         "is_manual": False,
         }
     
-    CLOrder = CQGLiveOrder(CONNECT, 
+    CLOrder = LiveOrderCQG(CONNECT, 
                            symbol_name = request_details['symbol_name'], 
                            request_id = int(random_string(length=10)), 
                            account_id = ACCOUNT_ID,

@@ -17,7 +17,7 @@ from EC_API.ordering.enums import (
     ExecInstruction,
     OrderStatus
     )
-from EC_API.ordering.cqg.live_order import CQGLiveOrder
+from EC_API.ordering.cqg.live_order import LiveOrderCQG
 
 
 class NewOrderCases(object):
@@ -44,7 +44,7 @@ class NewOrderCases(object):
             "is_manual": False,
             }
         
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id =int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -68,7 +68,7 @@ class NewOrderCases(object):
     
             }
         
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id =int(random_string()), 
                                account_id = self.account_id)
@@ -90,7 +90,7 @@ class NewOrderCases(object):
             "qty_exponent": 0, 
             "is_manual": False,
             }
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id =int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -114,7 +114,7 @@ class NewOrderCases(object):
             "scaled_limit_price": scaled_limit_price,
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -141,7 +141,7 @@ class NewOrderCases(object):
             "scaled_limit_price": scaled_limit_price
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string()), 
                                account_id = self.account_id)
@@ -168,7 +168,7 @@ class NewOrderCases(object):
             "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_ICEBERG,
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -195,7 +195,7 @@ class NewOrderCases(object):
             "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_FUNARI
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -221,7 +221,7 @@ class NewOrderCases(object):
             "scaled_stop_price": scaled_stop_price
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -250,7 +250,7 @@ class NewOrderCases(object):
             "scaled_trail_offset": 10
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -275,7 +275,7 @@ class NewOrderCases(object):
             "scaled_stop_price": scaled_stop_price
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -307,7 +307,7 @@ class NewOrderCases(object):
             "scaled_trail_offset": scaled_trail_offset
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -339,7 +339,7 @@ class NewOrderCases(object):
             "good_thru_date": GOOD_THRU_DATE
             }
     
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -391,7 +391,7 @@ class ModifyOrderCases(object):
             "orig_cl_order_id": self.orig_cl_order_id,
             "qty": new_qty
             }
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -409,7 +409,7 @@ class ModifyOrderCases(object):
             "scaled_limit_price": new_LMT_price
             }
 
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -427,7 +427,7 @@ class ModifyOrderCases(object):
             "scaled_stop_price": new_STP_price
             }
 
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -456,7 +456,7 @@ class ModifyOrderCases(object):
             "scaled_limit_price": old_LMT_price,
             "scaled_stop_price": old_STP_price
             }
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = initial_request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -489,7 +489,7 @@ class CancelOrderCases(object):
             "cl_order_id": random_string(length=10),
             "orig_cl_order_id": self.orig_cl_order_id
             }
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -512,7 +512,7 @@ class CancelOrderCases(object):
             "scaled_limit_price": scaled_limit_price
             }
         
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = initial_request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -544,7 +544,7 @@ class ActivateOrderCases(object):
             "orig_cl_order_id": self.orig_cl_order_id,
             "cl_order_id": random_string(length=10),
             }
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -567,7 +567,7 @@ class ActivateOrderCases(object):
             "is_manual": False,
             "suspend": True
             }
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = initial_request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -600,7 +600,7 @@ class GoFlatOrderCases(object):
             "orig_cl_order_id": self.orig_cl_order_id,
             "cl_order_id": random_string(length=10),
             }
-        CLOrder = CQGLiveOrder(self.connect, 
+        CLOrder = LiveOrderCQG(self.connect, 
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -622,7 +622,7 @@ class GoFlatOrderCases(object):
             "is_manual": False,
             }
         
-        CLOrder_1 = CQGLiveOrder(self.connect, 
+        CLOrder_1 = LiveOrderCQG(self.connect, 
                                symbol_name = initial_request_details_1['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
@@ -642,7 +642,7 @@ class GoFlatOrderCases(object):
             "scaled_limit_price": scaled_limit_price
             }
         
-        CLOrder_2 = CQGLiveOrder(self.connect, 
+        CLOrder_2 = LiveOrderCQG(self.connect, 
                                 symbol_name = initial_request_details_2['symbol_name'], 
                                 request_id = int(random_string(length=10)), 
                                 account_id = self.account_id)

@@ -10,7 +10,7 @@ sending the payload package through the ordering function to send out liveorder.
 
 It should be independent of WebAPI provider.
 
-Signal.actions -> CQGLiveOrder -> Payload
+Signal.actions -> LiveOrder -> Payload
 
 
 """

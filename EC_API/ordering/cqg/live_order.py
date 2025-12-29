@@ -20,7 +20,7 @@ from EC_API.ordering.enums import (
     RequestType
     )
 from EC_API.ordering.base import LiveOrder
-from EC_API.transport.cqg.base import CQGTransport
+from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.router import MessageRouter
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg,
@@ -33,12 +33,12 @@ from EC_API.ordering.cqg.builders import (
     )
 from EC_API.utility.base import random_string
 
-class CQGLiveOrder(LiveOrder):
+class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange
     # This object is specific for CQG type request
     def __init__(self, 
                  #connect: ConnectCQG, 
-                 transport: CQGTransport,
+                 transport: TransportCQG,
                  router: MessageRouter,
                  symbol_name: str, 
                  request_id: int, 
