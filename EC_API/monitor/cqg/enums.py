@@ -12,3 +12,5 @@ class MktDataSubLevelCQG(Enum):
     LEVEL_SETTLEMENTS = auto()
     LEVEL_TRADES_BBA_DETAILED_DOM = auto()
     LEVEL_END_OF_DAY = auto()
+
+
