@@ -30,7 +30,8 @@ def _type_name(
 
 def assert_input_types(
     inputs: Mapping[str, Any],
-    spec: Mapping[str, tuple[str, Any, Any]]
+    spec: Mapping[str, tuple[str, Any, Any]],
+    strict: bool = False
     ) -> None:
     """
     Ensure all default values conform to the type constraints in spec.
@@ -42,7 +43,10 @@ def assert_input_types(
         proto_attr, accepted, transform = spec[k]
         
         if v is None:
-            continue
+            if not strict:
+                continue
+            else:
+                raise ValueError(f"Key {k} cannot be None.")
         
         if not isinstance(v, _as_types_tuple(accepted)):
             raise TypeError(f"default:{k} must be {_type_name(accepted)}, got {type(v).__name__}")
