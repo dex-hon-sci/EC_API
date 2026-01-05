@@ -7,17 +7,22 @@ Created on Wed Jul 30 10:01:16 2025
 """
 import datetime
 import asyncio
+from typing import Any
 from datetime import timezone
 
 from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
-from EC_API.connect.hearback import hearback, get_contract_metadata
+#from EC_API.connect.hearback import hearback, get_contract_metadata
 from EC_API.ordering.enums import (
-    SubScope,
-    OrderType,
-    Duration,
-    RequestType
+    SubScope, OrderType,
+    Duration, RequestType, 
+    ExecInstruction, OrderStatus
+    )
+from EC_API.ordering.cqg.enums import (
+    SubScopeCQG, OrderTypeCQG,
+    DurationCQG, ExecInstructionCQG,
+    OrderStatusCQG
     )
 from EC_API.ordering.base import LiveOrder
 from EC_API.transport.cqg.base import TransportCQG
@@ -37,66 +42,206 @@ class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange
     # This object is specific for CQG type request
     def __init__(self, 
-                 #connect: ConnectCQG, 
-                 transport: TransportCQG,
+                 conn: ConnectCQG, 
                  router: MessageRouter,
                  symbol_name: str, 
                  request_id: int, 
                  account_id: int,
-                 sub_scope: int = SubScope.SUBSCRIPTION_SCOPE_ORDERS,
+                 sub_scope: int = SubScope.ORDERS,
                  msg_id: int = int(random_string(length=6)), # For symbol resolutions
-                 trade_subscription_id: int = int(random_string(length=6)) # For trade_sub
+                 trade_subscription_id: int = int(random_string(length=6)), # For trade_sub
+                 auto_unsub: bool = True
                  ):
         
-# =============================================================================
-#         self._connect = connect
-#         self._symbol_name = symbol_name
-#         self.request_id = request_id
-#         self.account_id = account_id
-#         self.sub_scope = sub_scope
-#         self.msg_id = msg_id # for information report
-#         self.trade_subscription_id = trade_subscription_id # for trade subscription
-#         self.auto_unsub = True
-# =============================================================================
-        
-        self._transport = transport
+        # Message Routing
+        self._conn = conn
+        self._transport = self._conn.transport
         self._router = router
         
+        # CQG-related input parameters
         self._symbol_name = symbol_name
         self.request_id = request_id
         self.account_id = account_id
         self.sub_scope = sub_scope
         self.msg_id = msg_id
         self.trade_subscription_id = trade_subscription_id
-        self.auto_unsub = True
+        
+        # Settings
+        self.auto_unsub = auto_unsub
 
-    #@get_contract_metadata
-    def _resolve_symbols(self, 
-                         subscribe=None, 
-                         **kwargs):
-        client_msg = ClientMsg()
-        information_request = client_msg.information_requests.add()
-        information_request.id = self.msg_id
-        if subscribe is not None:
-            information_request.subscribe = subscribe
-            
-        information_request.symbol_resolution_request.symbol = self._symbol_name
-        
-        if 'instrument_group_request' in kwargs:
-            information_request.instrument_group_request = kwargs['instrument_group_request']
-        
-        self._connect.client.send_client_message(client_msg)
-        return 
+    async def resolve_symbol(self):
+        return await self._conn.resolve_symbol(self.symbol)
     
-    #@hearback
-    async def _request_trade_subscription(self,
-                                    subscribe: bool = True,
-                                    skip_orders_snapshot: bool = False):
+    async def _request_trade_subscription(
+        self, 
+        subscribe: bool = True,
+        skip_orders_snapshot: bool = False,
+        timeout: float = 1.0
+        ) -> None:
+                
         client_msg = build_trade_subscription_msg(
             trade_subscription_id=self.trade_subscription_id,
             subscribe = subscribe,
             skip_orders_snapshot = skip_orders_snapshot
             )
+        rid = 0 # < --- look up and fix
+        key = ("trade_subscription_statuses", rid)
+        fut = self._router.register(key)
+        await self._transport.send(client_msg)
+        await asyncio.wait_for(fut, timeout=timeout)
+        
+    async def _new_order_request(
+        self, 
+        request_details: dict[str, Any],
+        timeout: float = 1,
+        **kwargs
+        ) -> ServerMsg:
+        para = locals().copy()
+        
+        rid = self._conn.msg_id()
+        client_msg = build_new_order_request_msg(
+            self.account_id, 
+            rid, 
+            contract_id = request_details['contract_id'],
+            cl_order_id = request_details['cl_order_id'], 
+            order_type = request_details['order_type'], 
+            duration = request_details['duration'], 
+            side = request_details['side'],
+            qty_significant = request_details['qty_significant'], # make sure qty are in Decimal (int) not float
+            qty_exponent = request_details['qty_exponent'], 
+            is_manual = request_details['is_manual'],
+            **kwargs
+            )
+        
+        key = ("order_statuses", rid)
+        fut = self._router.register(key)
+        await self._transport.send(client_msg)
+        server_msg = await asyncio.wait_for(fut, timeout=timeout)
+        
+        #return parse_order_update(server_msg) # < -- this is the real output, build func later
+        return server_msg
+    
+    async def _modify_order_request(
+        self,
+        request_details: dict[str, Any],
+        **kwargs
+        ) -> ServerMsg:
+        rid = self._conn.msg_id()
+        client_msg = build_modify_order_request_msg(**request_details)
+            #self.account_id, 
+            #rid, 
+            #order_id = order_id,  
+            #orig_cl_order_id = orig_cl_order_id, 
+            #cl_order_id = cl_order_id, 
+            #**kwargs)
+        
+        key = ("order_statuses", rid)
+        fut = self._router.register(key)
+        await self._transport.send(client_msg)
+        server_msg = await asyncio.wait_for(fut, timeout=timeout)
+
+        return server_msg
+    
+    async def _cancel_order_request(
+        self,
+        request_details: dict[str, Any],
+        **kwargs
+        ) -> ServerMsg:
+        rid = self._conn.msg_id()
+
+        client_msg = build_cancel_order_request_msg(
+            self.account_id, 
+            rid,
+            order_id: int = 0, 
+            orig_cl_order_id: str = "", 
+            cl_order_id: str = "",
+            when_utc_timestamp: datetime = datetime.now(timezone.utc)
+
+            )
+        return 
+    
+    async def _cancel_all_oreder_request() -> ServerMsg:
+        
+        return 
+    
+    async def send_once(
+        self, 
+        request_type: RequestType,
+        request_details: dict,
+        **kwargs
+        ) -> None:
+        
+        # resolve symbol -> get CONTRACT_ID from Contractmetadata
+        CONTRACT_METADATA = self._resolve_symbols(msg_id = self.msg_id, subscribe=None)
+        CONTRACT_ID = CONTRACT_METADATA.contract_id
+
+        # Trade Subscription 
+        CONTRACT_ID = await self._request_trade_subscription(self.trade_subscription_id,
+                                                       subscribe = True,
+                                                       sub_scope = self.sub_scope
+                                                       )
+
+        match request_type:
+            case RequestType.NEW_ORDER:
+                # For new_order_request -> return OrderID
+                server_msg = await self._new_order_request(
+                    CONTRACT_ID, 
+                    **request_details
+                    )
+                
+            case RequestType.MODIFY_ORDER:
+                # For other oder_requests, use the OrderID from new_order_request
+                server_msg = await self._modify_order_request(**request_details)
+            
+            case RequestType.CANCEL_ORDER:
+                server_msg = await self._cancel_order_request(**request_details)
+            
+            case RequestType.ACRIVATE_ORDER:
+                server_msg = await self._activate_order_request(**request_details)
+            
+            case RequestType.CANCELALL_ORDER:
+                server_msg = await self._cancelall_order_request(**request_details)
+                
+            case RequestType.LIQUIDATEALL_ORDER:
+                server_msg = await self._liquidateall_order_request(
+                    CONTRACT_ID, 
+                    **request_details)
+            case RequestType.GOFLAT_ORDER:
+                server_msg = await self._goflat_order_request(**request_details)
+                
+        if self.auto_unsub:
+            # Unsubscribe from trade subscription
+            unsub_trade_msg = await self._request_trade_subscription(
+                self.trade_subscription_id,
+                subscribe = False,
+                sub_scope =self.sub_scope
+                )
+
+        return server_msg
+
+
+# =============================================================================
+#     #@get_contract_metadata
+#     def _resolve_symbols(self, 
+#                          subscribe=None, 
+#                          **kwargs):
+#         client_msg = ClientMsg()
+#         information_request = client_msg.information_requests.add()
+#         information_request.id = self.msg_id
+#         if subscribe is not None:
+#             information_request.subscribe = subscribe
+#             
+#         information_request.symbol_resolution_request.symbol = self._symbol_name
+#         
+#         if 'instrument_group_request' in kwargs:
+#             information_request.instrument_group_request = kwargs['instrument_group_request']
+#         
+#         self._connect.client.send_client_message(client_msg)
+#         return 
+# =============================================================================
+    
+    #@hearback
+
 # =============================================================================
 #         client_msg = ClientMsg()
 #         trade_sub_request = client_msg.trade_subscriptions.add()
@@ -112,34 +257,8 @@ class LiveOrderCQG(LiveOrder):
 #             account_summary_parameters.requested_fields.extend([8,15,16])
 # =============================================================================
             
-        self._connect.client.send_client_message(client_msg)
-
-        return 
 
     #@hearback
-    async def new_order_request(self, 
-                          contract_id: int = 0, # Get this from contractmetadata
-                          cl_order_id: str = "", 
-                          order_type: OrderType = OrderType.ORDER_TYPE_MKT, 
-                          duration: Duration = Duration.DURATION_DAY, 
-                          side: Ord.Side = None, # Delibrate choice here to return error msg if no side is provided
-                          qty_significant: int = 0, # make sure qty are in Decimal (int) not float
-                          qty_exponent: int = 0, 
-                          is_manual: bool = False,
-                          **kwargs) -> ServerMsg:
-        
-        client_msg = build_new_order_request_msg(self.account_id, 
-                                                 self.request_id, 
-                                                 **kwargs)
-        # 2. Route + await
-        key = ("order_statuses", self.request_id)
-        fut = self._router.register(key)
-        await self._transport.send(client_msg)
-        
-        server_msg = await asyncio.wait_for(fut, timeout=self.hearback_timeout)
-        
-        # 3. Parse reply
-        return #parse_order_update(server_msg)
     
         #self._connect.client.send_client_message(client_msg)
         #return self._connect.client, client_msg
@@ -203,68 +322,10 @@ class LiveOrderCQG(LiveOrder):
 #             extra_attribute.name = name
 #             extra_attribute.value = value    
 # =============================================================================
-        
-        
-    #@hearback
-    async def modify_order_request(self,  
-                             order_id: int = 0, # Get this from the previous Order 
-                             orig_cl_order_id: str = "", 
-                             cl_order_id: str = "", 
-                             **kwargs) -> ServerMsg: # WIP
-        default_kwargs = {
-            'when_utc_timestamp': datetime.datetime.now(timezone.utc),
-            'qty': None, 
-            'scaled_limit_price': None,
-            'scaled_stop_price': None,
-            'remove_activation_time': None,
-            'remove_suspension_utc_time': None,
-            'duration': None, 
-            'good_thru_date': None,
-            'good_thru_utc_timestamp': None, 
-            'activation_utc_timestamp': None,
-            'extra_attributes': None,
-            }
-        
-        kwargs = dict(default_kwargs, **kwargs)
-
-        client_msg = ClientMsg()
-        order_request = client_msg.order_requests.add()
-        order_request.request_id = self.request_id
-        order_request.modify_order.order_id = order_id
-        order_request.modify_order.account_id = self.account_id
-        order_request.modify_order.orig_cl_order_id = orig_cl_order_id
-        order_request.modify_order.cl_order_id = cl_order_id
-        order_request.modify_order.when_utc_timestamp = kwargs['when_utc_timestamp']
-        
-        optional_kwargs_keys = [
-            'qty', 
-            'scaled_limit_price', 
-            'scaled_stop_price',
-            'remove_activation_time', 
-            'remove_suspension_utc_time', 
-            'activation_utc_timestamp',
-            'duration', 
-            'good_thru_date', 
-            'good_thru_utc_timestamp',
-            'activation_utc_timestamp',
-            'extra_attributes'
-            ]
-        
-        for key in optional_kwargs_keys:
-            if kwargs[key] is not None:
-                setattr(order_request.modify_order, key, kwargs[key])
-                
-        extra_attributes_data = kwargs.get('extra_attributes')
-        if extra_attributes_data:
-          for name, value in extra_attributes_data.items():
-            extra_attribute = order_request.new_order.order.extra_attributes.add()
-            extra_attribute.name = name
-            extra_attribute.value = value
-        
-        self._connect.client.send_client_message(client_msg)
-
-        return self._connect.client, client_msg
-
+# =============================================================================
+# parse_order_update
+# 
+# =============================================================================
     #@hearback
     async def cancel_order_request(self, 
                              order_id: int = 0, 
@@ -405,11 +466,16 @@ class LiveOrderCQG(LiveOrder):
         match request_type:
             case RequestType.NEW_ORDER:
                 # For new_order_request -> return OrderID
-                server_msg = await self.new_order_request(CONTRACT_ID, 
-                                                    **request_details)
+                server_msg = await self.new_order_request(
+                    CONTRACT_ID, 
+                    **request_details
+                    )
+                
             case RequestType.MODIFY_ORDER:
                 # For other oder_requests, use the OrderID from new_order_request
-                server_msg = await self.modify_order_request(**request_details)
+                server_msg = await self.modify_order_request(
+                    **request_details
+                    )
             
             case RequestType.CANCEL_ORDER:
                 server_msg = await self.cancel_order_request(**request_details)

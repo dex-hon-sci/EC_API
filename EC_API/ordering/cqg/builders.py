@@ -11,7 +11,10 @@ from typing import Any, Union
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.ext.common.shared_1_pb2 import NamedValue # Throw this away later
 from EC_API.utility.base import to_significand_sint64_exponent_sint32
-from EC_API.ordering.cqg.validate import validate_input_para
+from EC_API.ordering.cqg.validate import (
+    validate_input_para, 
+    validate_required_fields
+    )
 from EC_API.protocol.cqg.builder_util import (
     apply_optional_fields, 
     assert_input_types
@@ -62,7 +65,7 @@ def build_trade_subscription_msg(
     trade_sub_request = client_msg.trade_subscriptions.add()
     trade_sub_request.id = trade_subscription_id
     trade_sub_request.subscribe = subscribe
-    trade_sub_request.subscription_scopes.append(SubScope_MAP_INT2CQG.get(sub_scope))
+    trade_sub_request.subscription_scopes.append(SubScope_MAP_INT2CQG[sub_scope])
     trade_sub_request.skip_orders_snapshot = skip_orders_snapshot
     #trade_sub_request.last_order_update_utc_timestamp = last_order_update_utc_timestamp
     
@@ -77,13 +80,13 @@ def build_trade_subscription_msg(
 def build_new_order_request_msg(
     account_id: int,
     request_id: int,
-    contract_id: int = 0, # Get this from contractmetadata
-    cl_order_id: str = "", 
+    contract_id: int,
+    cl_order_id: str, 
+    side: Side, # Delibrate choice here to return error msg if no side is provided
+    qty_significant: int, # make sure qty are in Decimal (int) not float
+    qty_exponent: int, 
     order_type: OrderType | OrderTypeCQG = OrderType.MKT, 
     duration: Duration | DurationCQG = Duration.DAY, 
-    side: Side = None, # Delibrate choice here to return error msg if no side is provided
-    qty_significant: int = 0, # make sure qty are in Decimal (int) not float
-    qty_exponent: int = 0, 
     is_manual: bool = False,
     **kwargs
     ) -> ClientMsg:
@@ -104,11 +107,14 @@ def build_new_order_request_msg(
     params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
+    full = {**params, **kwargs}
     
-    assert_input_types(params, NEW_ORDER_REQUIRED_FIELDS)
-    assert_input_types(kwargs, NEW_ORDER_OPTIONAL_FIELDS)
+    validate_required_fields(params, NEW_ORDER_REQUIRED_FIELDS)
+    
+    assert_input_types(params, NEW_ORDER_REQUIRED_FIELDS, strict = True)
+    assert_input_types(kwargs, NEW_ORDER_OPTIONAL_FIELDS, strict = False)
 
-    validate_input_para(kwargs)
+    validate_input_para(full)
     
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -116,9 +122,9 @@ def build_new_order_request_msg(
     order_requests.new_order.order.account_id = account_id
     order_requests.new_order.order.contract_id = contract_id
     order_requests.new_order.order.cl_order_id = cl_order_id
-    order_requests.new_order.order.order_type = OrderType_MAP_INT2CQG.get(order_type)
-    order_requests.new_order.order.duration = Duration_MAP_INT2CQG.get(duration)
-    order_requests.new_order.order.side = Side_MAP_INT2CQG.get(side)
+    order_requests.new_order.order.order_type = OrderType_MAP_INT2CQG[order_type]
+    order_requests.new_order.order.duration = Duration_MAP_INT2CQG[duration]
+    order_requests.new_order.order.side = Side_MAP_INT2CQG[side]
     order_requests.new_order.order.is_manual = is_manual
     
     order_requests.new_order.order.qty.significand = qty_significant
@@ -126,7 +132,7 @@ def build_new_order_request_msg(
 
     if kwargs['exec_instructions'] is not None:
         order_requests.new_order.order.exec_instructions.append(
-            ExecInstruction_MAP_INT2CQG.get(kwargs['exec_instructions'])
+            ExecInstruction_MAP_INT2CQG[kwargs['exec_instructions']]
             )
         kwargs.pop('exec_instructions')
     if kwargs['suspend'] is not None:
@@ -141,9 +147,9 @@ def build_new_order_request_msg(
 def build_modify_order_request_msg(
     account_id: int, 
     request_id: int,
-    order_id: str = "", # Get this from the previous Order 
-    orig_cl_order_id: str = "", 
-    cl_order_id: str = "", 
+    order_id: str, # Get this from the previous Order 
+    orig_cl_order_id: str, 
+    cl_order_id: str, 
     when_utc_timestamp: datetime = datetime.now(timezone.utc),
     **kwargs
     ) -> ClientMsg:
@@ -164,11 +170,14 @@ def build_modify_order_request_msg(
     params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
-    
-    assert_input_types(params, MODIFY_ORDER_REQUIRED_FIELDS)
-    assert_input_types(kwargs, MODIFY_ORDER_OPTIONAL_FIELDS)
+    full = {**params, **kwargs}
 
-    validate_input_para(kwargs)
+    validate_required_fields(params, MODIFY_ORDER_REQUIRED_FIELDS)
+
+    assert_input_types(params, MODIFY_ORDER_REQUIRED_FIELDS, strict = True)
+    assert_input_types(kwargs, MODIFY_ORDER_OPTIONAL_FIELDS, strict = False)
+
+    validate_input_para(full)
     
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -201,14 +210,16 @@ def build_modify_order_request_msg(
 def build_cancel_order_request_msg(
     account_id: int, 
     request_id: int,
-    order_id: int = 0, 
-    orig_cl_order_id: str = "", 
-    cl_order_id: str = "",
+    order_id: int, 
+    orig_cl_order_id: str, 
+    cl_order_id: str,
     when_utc_timestamp: datetime = datetime.now(timezone.utc)
     ) -> ClientMsg:
     
     params = locals().copy()
-    assert_input_types(params, CANCEL_ORDER_REQUIRED_FIELDS)
+    
+    validate_required_fields(params, CANCEL_ORDER_REQUIRED_FIELDS)
+    assert_input_types(params, CANCEL_ORDER_REQUIRED_FIELDS, strict = True)
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -224,13 +235,20 @@ def build_cancel_order_request_msg(
 def build_cancelall_order_request_msg(
     account_id: int,
     request_id: int,
-    cl_order_id: str = "",
+    cl_order_id: str,
     **kwargs
     )-> ClientMsg:
     default_kwargs = {
         'when_utc_timestamp': datetime.now(timezone.utc),
         }
     kwargs = dict(default_kwargs, **kwargs)
+    params = locals().copy()
+    params.pop('kwargs')
+    params.pop('defaults')
+    
+    validate_required_fields(params, CANCELALL_ORDER_REQUIRED_FIELDS)
+    
+    # ... to be worked on
     
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
@@ -249,11 +267,12 @@ def build_activate_order_request_msg(
     orig_cl_order_id: str, 
     cl_order_id: str,
     when_utc_timestamp: datetime,
-    #**kwargs
     ) -> ClientMsg:
 
     params = locals().copy()
-    assert_input_types(params, ACTIVATE_ORDER_REQUIRED_FIELDS)
+    
+    validate_required_fields(params, ACTIVATE_ORDER_REQUIRED_FIELDS)
+    assert_input_types(params, ACTIVATE_ORDER_REQUIRED_FIELDS, strict = True)
 
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
@@ -282,11 +301,14 @@ def build_goflat_request_msg(
     params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
+    full = {**params, **kwargs}
 
-    assert_input_types(params, GOFLAT_ORDER_REQUIRED_FIELDS)
-    assert_input_types(kwargs, GOFLAT_ORDER_OPTIONAL_FIELDS)
+    validate_required_fields(params, GOFLAT_ORDER_REQUIRED_FIELDS)
 
-    validate_input_para(kwargs)
+    assert_input_types(params, GOFLAT_ORDER_REQUIRED_FIELDS, strict = True)
+    assert_input_types(kwargs, GOFLAT_ORDER_OPTIONAL_FIELDS, strict = False)
+
+    validate_input_para(full)
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
