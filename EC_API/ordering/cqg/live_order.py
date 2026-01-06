@@ -187,6 +187,8 @@ class LiveOrderCQG(LiveOrder):
             subscribe = True,
             sub_scope = self.sub_scope
             )
+        # 2) ensure subscription (optional but recommended even for send_once)
+        #handle = await self._subs.ensure_orders_subscribed(account_id=self.account_id, timeout=timeout)
         rid = self._conn.msg_id()
 
         try:
@@ -197,29 +199,29 @@ class LiveOrderCQG(LiveOrder):
                 **request_details,  
                 }
         
-
             match request_type:
                 case RequestType.NEW_ORDER:
                     # For new_order_request -> return OrderID
-                    server_msg = await self._new_order_request(**details)
+                    server_msg = await self._new_order_request(details)
                     
                 case RequestType.MODIFY_ORDER:
                     # For other oder_requests, use the OrderID from new_order_request
-                    server_msg = await self._modify_order_request(**details)
+                    server_msg = await self._modify_order_request(details)
                 
                 case RequestType.CANCEL_ORDER:
-                    server_msg = await self._cancel_order_request(**details)
+                    server_msg = await self._cancel_order_request(details)
                 
                 case RequestType.ACRIVATE_ORDER:
-                    server_msg = await self._activate_order_request(**details)
+                    server_msg = await self._activate_order_request(details)
                 
                 case RequestType.CANCELALL_ORDER:
-                    server_msg = await self._cancelall_order_request(**details)
+                    server_msg = await self._cancelall_order_request(details)
                     
                 case RequestType.LIQUIDATEALL_ORDER:
-                    server_msg = await self._liquidateall_order_request(**details)
+                    server_msg = await self._liquidateall_order_request(details)
+                    
                 case RequestType.GOFLAT_ORDER:
-                    server_msg = await self._goflat_order_request(**details)
+                    server_msg = await self._goflat_order_request(details)
         
         finally:
             if self.auto_unsub:
@@ -233,7 +235,7 @@ class LiveOrderCQG(LiveOrder):
         return server_msg
 
 
-    async def send():
+    async def place_order():
         # a more comprehesive send that separate subscription and send
         return 
 
