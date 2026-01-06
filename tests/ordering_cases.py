@@ -48,7 +48,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id =int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
         
         assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_MKT #(1)
@@ -72,7 +72,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id =int(random_string()), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
         
         assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_MKT
@@ -94,7 +94,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id =int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                      request_details = request_details)
     
         assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_MKT
@@ -118,7 +118,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                      request_details = request_details)
     
         assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_LMT
@@ -145,7 +145,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string()), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
             
     
@@ -172,7 +172,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
         assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_LMT
@@ -199,7 +199,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
         assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_LMT
@@ -225,7 +225,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
     
@@ -235,6 +235,7 @@ class NewOrderCases(object):
     
     
     def new_order_request_BUY_STP_GTD_TRAIL(self, scaled_stop_price) -> None:
+        GOOD_THRU_DATE = None
         request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
@@ -254,7 +255,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
         assert server_msg.order_statuses[-1].order.order_type == OrderType.ORDER_TYPE_STP
@@ -279,7 +280,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type = RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type = RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
     
@@ -311,7 +312,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
         # 29. Receive OrderStatus.
@@ -343,7 +344,7 @@ class NewOrderCases(object):
                                symbol_name = request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = request_details)
     
             
@@ -395,7 +396,7 @@ class ModifyOrderCases(object):
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.MODIFY_ORDER, 
                                   request_details = modify_request_details)
 
         assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
@@ -413,7 +414,7 @@ class ModifyOrderCases(object):
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.MODIFY_ORDER, 
                                   request_details = modify_request_details)
 
         assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
@@ -431,7 +432,7 @@ class ModifyOrderCases(object):
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.MODIFY_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.MODIFY_ORDER, 
                                   request_details = modify_request_details)
 
         assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
@@ -443,7 +444,7 @@ class ModifyOrderCases(object):
                 new_STP_price: int, 
                 old_qty: int,
                 new_qty: int) -> None:
-        # Send a new order first
+        # send_once a new order first
         initial_request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
@@ -460,7 +461,7 @@ class ModifyOrderCases(object):
                                symbol_name = initial_request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details)
         
         ORDER_ID = server_msg.order_statuses[0].order_id
@@ -493,13 +494,13 @@ class CancelOrderCases(object):
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.CANCEL_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.CANCEL_ORDER, 
                                   request_details = cancel_request_details)
 
         assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
         
     def run_all(self, scaled_limit_price: int) -> None:
-        # Send a new order first
+        # send_once a new order first
         initial_request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
@@ -516,7 +517,7 @@ class CancelOrderCases(object):
                                symbol_name = initial_request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details)
         
         ORDER_ID = server_msg.order_statuses[0].order_id
@@ -548,14 +549,14 @@ class ActivateOrderCases(object):
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.ACRIVATE_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.ACRIVATE_ORDER, 
                                   request_details = activate_request_details)
 
         assert server_msg.order_statuses[-1].status == OrderStatus.FILLED
  
     
     def run_all(self):
-        # Send a new order first
+        # send_once a new order first
         initial_request_details = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
@@ -571,7 +572,7 @@ class ActivateOrderCases(object):
                                symbol_name = initial_request_details['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.NEW_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details)
 
         assert server_msg.order_statuses[0].status == OrderStatus.SUSPENDED
@@ -604,13 +605,13 @@ class GoFlatOrderCases(object):
                                symbol_name = self.symbol_name, 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg = CLOrder.send(request_type=RequestType.GOFLAT_ORDER, 
+        server_msg = CLOrder.send_once(request_type=RequestType.GOFLAT_ORDER, 
                                   request_details = activate_request_details)
 
         assert type(server_msg) == GoFlatStatus
     
     def run_all(self, scaled_limit_price: int):
-        # Send a new MKT order
+        # send_once a new MKT order
         initial_request_details_1 = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
@@ -626,10 +627,10 @@ class GoFlatOrderCases(object):
                                symbol_name = initial_request_details_1['symbol_name'], 
                                request_id = int(random_string(length=10)), 
                                account_id = self.account_id)
-        server_msg_1 = CLOrder_1.send(request_type=RequestType.NEW_ORDER, 
+        server_msg_1 = CLOrder_1.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details_1)
         
-        # Send a new LMT order
+        # send_once a new LMT order
         initial_request_details_2 = {
             "symbol_name": self.symbol_name,
             "cl_order_id": random_string(length=10),
@@ -646,8 +647,8 @@ class GoFlatOrderCases(object):
                                 symbol_name = initial_request_details_2['symbol_name'], 
                                 request_id = int(random_string(length=10)), 
                                 account_id = self.account_id)
-        server_msg_2 = CLOrder_2.send(request_type=RequestType.NEW_ORDER, 
+        server_msg_2 = CLOrder_2.send_once(request_type=RequestType.NEW_ORDER, 
                                   request_details = initial_request_details_2)
         
-        # Send GoFlat Order, check if there are any remaining orders left
+        # send_once GoFlat Order, check if there are any remaining orders left
         self.goflat_order()
