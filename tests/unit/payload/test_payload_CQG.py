@@ -40,15 +40,15 @@ def test_payload_construction_succes() -> None:
     ORDER_INFO = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 1000,
         "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
+        "exec_instructions": ExecInstruction.AON
         }
     PL1 = Payload(
           request_id = 100,
@@ -67,8 +67,8 @@ def test_CQGFormatCheck_check_crendential_fail_null() -> None:
     null_input = {
         "symbol_name": None, # missing symbol_name
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
@@ -815,7 +815,7 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_up() -> None:
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 10000, 
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"qty_significant is outside of the allowed range: \[1, 9\]."):
@@ -841,7 +841,7 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_down() -> None:
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 10000, 
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"qty_significant is outside of the allowed range: \[1, 9\]."):
@@ -867,7 +867,7 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_up() -> None:
         "qty_exponent": 2, # <-- more than allowed limit
         "is_manual": False,
         "scaled_limit_price": 10000, 
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"qty_exponent is outside of the allowed range: \[0, 1\]."):
@@ -893,7 +893,7 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_down() -> None:
         "qty_exponent": -1, # <-- less than allowed limit
         "is_manual": False,
         "scaled_limit_price": 10000, 
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"qty_exponent is outside of the allowed range: \[0, 1\]."):
