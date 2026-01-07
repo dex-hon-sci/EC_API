@@ -7,9 +7,10 @@ Created on Mon Dec 22 00:33:52 2025
 """
 from datetime import datetime
 from typing import Union
+
+from pydantic import BaseModel, Field
 # EC_API imports
 from EC_API.ext.common.shared_1_pb2 import NamedValue # Throw this away later
-
 from EC_API.ordering.enums import (
     Side, SubScope,
     OrderType, Duration,
@@ -25,6 +26,11 @@ from EC_API.ordering.cqg.enum_mapping import (
     OrderType_MAP_INT2CQG, Duration_MAP_INT2CQG, 
     ExecInstruction_MAP_INT2CQG
     )
+class ClientMsgInputsCQG:
+    pass
+
+class NewOrderRequestDetails(BaseModel):
+    ...
 
 TRADE_SUBSCRIPTION_REQUIRED_FIELD = {
     'trade_subscription_id': ('trade_subscription_id', int, int),
