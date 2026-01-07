@@ -129,9 +129,9 @@ class ConnectCQG(Connect):
         
     # -----------------------
     # ---- Router Loop ------
-    async def _router_loop(self) -> None:
-        while not self._stop_evt.is_set():
-            pass
+    #async def _router_loop(self) -> None:
+    #    while not self._stop_evt.is_set():
+    #        pass
         
     async def _router_loop(self) -> None:
         while not self._stop_evt.is_set():
@@ -206,45 +206,28 @@ class ConnectCQG(Connect):
             session_token,
             **kwargs)
 
-        self._client.send_client_message(restore_msg)
-        
-        while True:
-            server_msg_restore = self._client.receive_server_message()
-            if len(server_msg_restore.restore_or_join_session_result)>0:
-                return server_msg_restore
+        msg_key = ("logoff_result", self.msg_id)
+        fut = self._router.register(msg_key)
+        await self._transport.send(restore_msg)
+        return await asyncio.wait_for(fut, timeout=5.0)
+
+        #while True:
+        #    server_msg_restore = self._client.receive_server_message()
+        #    if len(server_msg_restore.restore_or_join_session_result)>0:
+        #        return server_msg_restore
             
     async def ping(self):
         ping_msg = build_ping_msg(self.msg_id)
         ## Routing and transport
         return ping_msg
-
-    # ------------------------
     
-    # --- transport ----------       
-# =============================================================================
-#     async def _router_loop(self):
-#         while True:
-#             msg = await self._transport.recv()
-#             msg_type = msg.WhichOneof("message")
-#             
-#             if cqg_mapping.is_symbol_resolution(msg):
-#                 key = cqg_mapping.extract_router_key(msg)
-#                 if key is not None:
-#                     self._router.on_message(key, msg)
-#             else:
-#                 pass
-#                 ### cases sit here or make an custom function
-# =============================================================================
-
-    # --- Symbol resolution ----------       
-    async def resolve_symbol(self):
-        pass
-    
-    async def resolve_symbol_async(self, 
-                                   symbol_name: str, 
-                                   msg_id: int, 
-                                   subscribe: bool = None, 
-                                   **kwargs)-> ServerMsg: #decrepated/unused
+    async def resolve_symbol(
+        self, 
+        symbol_name: str, 
+        msg_id: int, 
+        subscribe: bool = None, 
+        **kwargs
+        )-> ServerMsg: #decrepated/unused
         # after the server confirm that we login successfully, we can send information_request
         # contains the symbol_resolution_request, the real time data, historical data, 
         # tick data, and order activities are all depended on symbol_resolution_report

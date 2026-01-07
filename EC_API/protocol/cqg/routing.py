@@ -13,6 +13,18 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 
 Key = Tuple[str, int]
 
+
+# Message type mapping
+# 
+
+class RouterKeyRegistry:
+    
+    def __init__():
+        pass
+    
+    def extract_router_key():
+        pass
+
 def server_msg_type(msg: ServerMsg) -> str:
     return msg.WhichOneof("message")  # CQG oneof "message"
 

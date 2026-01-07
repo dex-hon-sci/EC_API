@@ -15,11 +15,22 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as R
 REQUEST_TO_REPLY = {
   "logon": "logon_result",
   "logoff": "logged_off",
-  "symbol_resolution": "information_reports",
-  "trade_subscribe": "trade_subscription_statuses",
-  "md_subscribe": "market_data_subscription_statuses",
-  "bar_request": "historical_data_reports",
-  "tas_request": "time_and_sales_reports",
-  "order_request": "order_statuses",
-  "historical_orders": "order_statuses",  # or "order_snapshot"/whatever CQG sends in your case
+  "restore_or_join_session": "restore_or_join_session_result",
+  "ping": "pong",
+  "pong": "ping",
+  #
+  "information_requests": "information_reports",
+  #
+  "trade_subscriptions": "trade_subscription_statuses",
+  #
+  "order_requests":"order_statuses",
+  #
+  "market_data_subscriptions": "market_data_subscription_statuses",
+  #
+  "time_and_sales_requests": "historical_data_reports",
+  "time_bar_requests": "time_and_sales_reports",
+  "volume_profile_requests": "",
+#
+  
+  "historical_orders_request": "historical_orders_report"
 }
