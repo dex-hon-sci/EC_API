@@ -21,7 +21,6 @@ def build_realtime_data_request_msg(
     subscription.contract_id = contract_id
     subscription.request_id = request_id # Everytime this is called, it increase by 1
     subscription.level = MKTDATASUBLEVEL_MAP_INT2CQG.get(level)
-
     return client_msg
 
 def build_reset_tracker_request_msg(

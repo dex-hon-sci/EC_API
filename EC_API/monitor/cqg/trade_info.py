@@ -5,22 +5,26 @@ Created on Thu Aug  7 10:13:43 2025
 
 @author: dexter
 """
+import asyncio
 from datetime import datetime
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
-from EC_API.connect.hearback import hearback
 from EC_API.monitor.base import Monitor
+from EC_API.monitor.cqg.builders import build_trade_info_request_msg
 
 # MonitorActiveOrder/ MonitorActivePosition
 class MonitorTradeCQG(Monitor):
     def __init__(self, 
                  connection: ConnectCQG, 
                  account_id: int):
-        self._connection = connection
-        self.account_id = account_id
-        self._msg_id = 100
+        self._conn = connection
+        self._transport = self._conn._transport
 
-    @hearback
+        self.account_id = account_id
+        
+    def _rid(self) -> int:
+        return self.conn.msg_id
+
     async def request_historical_orders(self,
                                   from_date: datetime, 
                                   to_date: datetime) -> ServerMsg:
@@ -28,15 +32,29 @@ class MonitorTradeCQG(Monitor):
         from_date_timestamp = from_date.timestamp()
         to_date_timestamp = to_date.timestamp()
         
-        client_msg = ClientMsg()
+        rid = self._rid
+        client_msg = build_trade_info_request_msg( 
+            self.account_id, 
+            self._rid,
+            from_date,
+            to_date
+            )
+                                     
+        key = ("", rid)
+        fut = self._router.register(key)
+        await self._transport.send(client_msg)
+        server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
+        
+        return server_msg
+        #client_msg = ClientMsg()
     
-        information_request = client_msg.information_requests.add()
-        information_request.id = self.msg_id
-        information_request.historical_orders_request.from_date = int(from_date_timestamp)
-        information_request.historical_orders_request.to_date = int(to_date_timestamp)
-        information_request.historical_orders_request.account_ids.append(self.account_id)
+        #information_request = client_msg.information_requests.add()
+        #information_request.id = self.msg_id
+        #information_request.historical_orders_request.from_date = int(from_date_timestamp)
+        #information_request.historical_orders_request.to_date = int(to_date_timestamp)
+        #information_request.historical_orders_request.account_ids.append(self.account_id)
             
-        self._connection._client.send_client_message(client_msg)
+        #self._connection._client.send_client_message(client_msg)
         return
     
     async def reset_tracker() -> ServerMsg:

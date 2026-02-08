@@ -41,26 +41,49 @@ class MonitorRealTimeDataCQG(Monitor):
         # Define client
         #self._client = webapi_client.WebApiClient()
         self._loop = asyncio.get_running_loop()
-        self._transport = CQGTransport()
+        #self._transport = CQGTransport()
         self._router = MessageRouter()
+        
+        self._contract_to_symbol: dict[int, str] = {}
+        self._per_contract_queues: dict[int, asyncio.Queue] = {} # queue for storing recv msg sorted
 
         self.total_recv_cycle: int = 20
         self.total_send_cycle: int = 2
         self.recv_cycle_delay: int = 0
         self.send_cycle_delay: int = 0
 
+    @property
     def conn(self):
         return self._conn
     
+    def _rid(self) -> int:
+        return self.conn.msg_id
+    
     @property
-    def msg_id(self):
-        # msg_id updates every time it is called. 
-        # This ID is shared by the entire Monitor object.
-        self._msg_id += 1
-        if self._msg_id > 2_000_000_000:
-            self._msg_id = 1
-        return self._msg_id 
+    def per_contract_queue(self)-> dict :
+        return self._per_contract_queue
 
+    async def _fanout_loop(self): # Basically sorting
+        # Put the latest tick into the right async queue (based on contract_id)
+        while True:
+            server_msg = await self._conn.tick_q.get()
+            #tick = parse_realtime_tick(server_msg) 
+            # function that translate tick into
+            tick = None
+
+            symbol = self._contract_to_symbol.get(tick.contract_id, "")
+            tick.symbol = symbol
+
+            q = self._per_contract_q.get(tick.contract_id)
+            if q is not None:
+                await q.put(tick)
+        
+    async def stream(self, contract_id: int):
+        pass # Get the data
+
+
+    ######################    
+    
     
     async def resolve_symbol(self, 
                              symbol: str, 
