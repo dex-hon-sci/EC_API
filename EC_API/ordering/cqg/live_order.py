@@ -50,7 +50,6 @@ class LiveOrderCQG(LiveOrder):
                  account_id: int,
                  sub_scope: int = SubScope.ORDERS,
                  #msg_id: int = int(random_string(length=6)), # For symbol resolutions
-                 trade_subscription_id: int = int(random_string(length=6)), # For trade_sub
                  auto_unsub: bool = True,
                  timeout: int | float = 1,
                  ):
@@ -66,12 +65,18 @@ class LiveOrderCQG(LiveOrder):
         self.account_id = account_id
         self.sub_scope = sub_scope
         #self.msg_id = msg_id
-        self.trade_subscription_id = trade_subscription_id
+        self.trade_subscription_id = 0
         
+        #self._per_order_queues = dict[]
+        self._order_state: dict[str, dict] = {}          # order_id -> latest parsed state
+        self._terminal_fut: dict[str, asyncio.Future] = {}  # order_id -> Future
         # Settings
         self.auto_unsub = auto_unsub
         self.timeout = timeout
-
+        
+    def rid(self):
+        return self._conn.rid
+    
     async def resolve_symbol(self):
         return await self._conn.resolve_symbol(self.symbol)
     
@@ -151,9 +156,11 @@ class LiveOrderCQG(LiveOrder):
         return server_msg
  
     async def _cancel_all_oreder_request(self) -> None:
+        ...
         return 
     
     async def liquidateall_order_request(self) -> None:
+        ...
         return 
     
     async def goflat_order_request(
