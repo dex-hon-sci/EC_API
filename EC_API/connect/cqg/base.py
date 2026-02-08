@@ -26,19 +26,28 @@ from EC_API.connect.cqg.builders import (
 Key = tuple[str, int]
 
 def server_msg_type(msg: ServerMsg) -> str:
+    
+    
+    
     return msg.WhichOneof("message")  # CQG oneof "message"
 
 # Table-driven request_id extraction for RPC replies
 def extract_router_key(msg: ServerMsg) -> Optional[Key]:
     mt = server_msg_type(msg)
     ...
+    
+    
+    
 # Streaming classifiers (examples)
 def is_realtime_tick(msg: ServerMsg) -> bool:
     return server_msg_type(msg) == "real_time_market_data"
 
 def is_order_update_stream(msg: ServerMsg) -> bool:
     # depending on CQG config you might get updates in trade_snapshot etc.
-    return server_msg_type(msg) in {"order_statuses", "trade_snapshot"}
+    return server_msg_type(msg) in {"order_statuses"}
+
+def is_trade_history(msg: ServerMsg) -> bool:
+    return server_msg_type(msg)
 
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
@@ -61,7 +70,7 @@ class ConnectCQG(Connect):
         self._state: ConnectionState = ConnectionState.UNKNOWN
         self._task: Optional[asyncio.Task] = None
 
-        self._msg_id = 10 # starting ID
+        self._rid = 10 # starting request ID
         
         # Define client
         self._client = webapi_client.WebApiClient()
@@ -70,8 +79,10 @@ class ConnectCQG(Connect):
         self._router = MessageRouter()
         
         # queues for 
-        self._marketdata_queue = asyncio.Queue()
+        self._mkt_data_queue: asyncio.Queue = asyncio.Queue()
         self._exec_queue = asyncio.Queue()
+        self._trade_exec_queue: asyncio.Queue = asyncio.Queue()
+        self._misc_queue: asyncio.Queue = asyncio.Queue()
         
         if immediate_connect:
             self._transport.connect()
@@ -86,25 +97,25 @@ class ConnectCQG(Connect):
         return self._client
     
     @property
-    def market_data_queue(self) -> asyncio.Queue: #[Tick]
+    def mkt_data_queue(self) -> asyncio.Queue: #[Tick]
         """Expose raw tick queue if some component wants direct consumption."""
-        return self._market_data_q
-
+        return self._mkt_data_queue
+    
     @property
-    def exec_queue(self) -> asyncio.Queue: #[OrderUpdate]
+    def trade_exec_queue(self) -> asyncio.Queue: #[OrderUpdate]
         """Expose raw execution update queue."""
-        return self._exec_q
+        return self._trade_exec_queue
 
     @property
     def transport(self) -> Transport:
         """Expose transport for advanced uses (e.g., custom messages)."""
         return self._transport
     
-    def msg_id(self) -> int:
-        self._msg_id += 1
-        if self._msg_id > 2_000_000_000:
-            self._msg_id = 1
-        return self._msg_id
+    def rid(self) -> int: # request
+        self._rid += 1
+        if self._rid > 2_000_000_000:
+            self._rid = 1
+        return self._rid
     # ------------------------
     
     # ---- Live cycle --------
@@ -128,11 +139,7 @@ class ConnectCQG(Connect):
         self._client.disconnect()
         
     # -----------------------
-    # ---- Router Loop ------
-    #async def _router_loop(self) -> None:
-    #    while not self._stop_evt.is_set():
-    #        pass
-        
+    # ---- Router Loop ------        
     async def _router_loop(self) -> None:
         while not self._stop_evt.is_set():
             msg: ServerMsg = await self._transport.recv()
@@ -146,11 +153,16 @@ class ConnectCQG(Connect):
             if is_realtime_tick(msg):
                 await self.tick_q.put(msg)
                 continue
-
+            
+            # 2) order update dispatch
             if is_order_update_stream(msg):
                 await self.exec_q.put(msg)
                 continue
-
+            
+            if is_trade_history(msg):
+                await self.exec_q.put(msg)
+                continue
+                
             await self.misc_q.put(msg)
     # -----------------------
 
