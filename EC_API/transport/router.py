@@ -16,11 +16,14 @@ class MessageRouter:
     def __init__(self):
         self._pending: Dict[Key, asyncio.Future] = {}
 
-    def register(self, key: Key) -> asyncio.Future:
+    def register_key(self, key: Key) -> asyncio.Future:
         fut = asyncio.get_running_loop().create_future()
-        # You can choose to error if key already exists
+        # show error if key already exists ...
         self._pending[key] = fut
         return fut
+    
+    def register_predicate():
+        pass
 
     def on_message(self, key: Key, msg: Any) -> bool:
         fut = self._pending.pop(key, None)

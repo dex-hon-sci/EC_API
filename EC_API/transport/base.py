@@ -32,11 +32,9 @@ class Transport(Protocol):
         this would typically:
           - connect the underlying client if needed
           - spin up the reader loop thread
-        """this behavior in Preferences > Help.
-New to Spyder? Read our tutorial
+        """
         ...
-this behavior in Preferences > Help.
-New to Spyder? Read our tutorial
+
     def stop(self) -> None:
         """
         Stop background IO and close the underlying connection.
