@@ -5,4 +5,9 @@ Created on Wed Jul 30 10:22:55 2025
 
 @author: dexter
 """
+from .base import ConnectCQG
 
+
+__all__ = [
+    "ConnectCQG"
+    ]
