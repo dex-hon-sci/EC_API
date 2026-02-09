@@ -6,10 +6,7 @@ Created on Thu Nov 27 21:55:11 2025
 @author: dexter
 """
 
-#from __future__ import annotations
-#import asyncio
 from typing import Protocol, Any
-
 
 class Transport(Protocol):
     """
@@ -23,7 +20,7 @@ class Transport(Protocol):
       - manage their own connection lifecycle
       - expose async send/recv for higher layers
     """
-
+    # ----
     def start(self) -> None:
         """
         Start any background IO machinery (threads, tasks, etc.).
@@ -41,7 +38,13 @@ class Transport(Protocol):
         Should be idempotent and safe to call on shutdown.
         """
         ...
+        
+    # ----
+    def _send_loop(self): ...
 
+    def _recv_loop(self): ...
+
+    # ----
     async def send(self, msg: Any) -> None:
         """
         Asynchronously enqueue or send an outbound message.

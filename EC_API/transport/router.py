@@ -5,16 +5,14 @@ Created on Wed Nov 26 16:40:57 2025
 
 @author: dexter
 """
-from __future__ import annotations
 import asyncio
-from dataclasses import dataclass
-from typing import Any, Dict, Hashable, Optional, Tuple
+from typing import Any #Hashable, Optional
 
-Key = Tuple[str, int]  # (server_msg_type, request_id)
+Key = tuple[str, int]  # (server_msg_type, request_id)
 
 class MessageRouter:
     def __init__(self):
-        self._pending: Dict[Key, asyncio.Future] = {}
+        self._pending: dict[Key, asyncio.Future] = {}
 
     def register_key(self, key: Key) -> asyncio.Future:
         fut = asyncio.get_running_loop().create_future()
@@ -80,26 +78,5 @@ class MessageRouter:
 #         fut = self._pending.pop(key, None)
 #         if fut and not fut.done():
 #             fut.set_result(server_msg)
-# 
-# =============================================================================
-
-# =============================================================================
-# def extract_request_id(msg: ServerMsg, msg_type: str) -> int:
-#     """
-#     Extract request_id from a server message, depending on its type.
-#     You already have some mapping logic in msg_validation.cqg.mapping;
-#     this function centralizes that.
-#     """
-#     # Example for information_reports and market_data_subscription_statuses.
-#     # Adapt to your actual proto structure:
-#     if msg_type == "information_reports":
-#         return msg.information_reports[0].request_id
-#     elif msg_type == "market_data_subscription_statuses":
-#         return msg.market_data_subscription_statuses.request_id
-#     elif msg_type == "order_statuses":
-#         return msg.order_statuses.request_id
-#     # ... add other cases as needed ...
-# 
-#     raise ValueError(f"Don't know how to extract request_id for msg_type={msg_type}")
 # 
 # =============================================================================

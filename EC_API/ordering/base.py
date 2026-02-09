@@ -69,23 +69,12 @@ class LiveOrder(Protocol):
 
         pass
     
-    def send(self, 
+    def send_once(self, 
              request_type: RequestType,
              request_details: dict):
         """
         Master function for running LiveOrder object. Send order requests to 
         the exchange provided some request details matching the request types.
-
-        Parameters
-        ----------
-        request_type : str
-            DESCRIPTION.
-        request_details : dict
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
 
         """
         match request_type:
