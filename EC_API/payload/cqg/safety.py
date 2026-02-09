@@ -5,7 +5,7 @@ Created on Mon Aug 11 16:32:09 2025
 
 @author: dexter
 """
-import datetime
+from datetime import datetime
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import (
     PayloadFormatCheck, 
@@ -54,7 +54,7 @@ class CQGFormatCheck(PayloadFormatCheck):
                     "qty_exponent": int,
                     "is_manual": bool,
                     "exec_instructions": ExecInstruction, 
-                    "good_thru_date": datetime.datetime,
+                    "good_thru_date": datetime,
                     "scaled_limit_price": int,
                     "scaled_stop_price": int,
                     'extra_attributes': dict,
@@ -82,7 +82,7 @@ class CQGFormatCheck(PayloadFormatCheck):
                     "symbol_name": str,
                     'orig_cl_order_id': str,
                     "cl_order_id": str, 
-                    'when_utc_timestamp': datetime.datetime,
+                    'when_utc_timestamp': datetime,
                     'qty': int, 
                     'scaled_limit_price': int,
                     'scaled_stop_price': int,
@@ -90,8 +90,8 @@ class CQGFormatCheck(PayloadFormatCheck):
                     'remove_suspension_utc_time': bool,
                     'duration': Duration, 
                     'good_thru_date': None,
-                    'good_thru_utc_timestamp': datetime.datetime, 
-                    'activation_utc_timestamp': datetime.datetime,
+                    'good_thru_utc_timestamp': datetime, 
+                    'activation_utc_timestamp': datetime,
                     'extra_attributes': dict,
                     }
                 
@@ -163,7 +163,7 @@ class CQGFormatCheck(PayloadFormatCheck):
             case RequestType.LIQUIDATEALL_ORDER:
                 acceptable_request_specific_fields = {
                     "symbol_name": str,
-                    'when_utc_timestamp': datetime.datetime,
+                    'when_utc_timestamp': datetime,
                     'is_short': bool,
                     'current_day_only': bool
                     }
@@ -171,7 +171,7 @@ class CQGFormatCheck(PayloadFormatCheck):
             case RequestType.GOFLAT_ORDER:
                 acceptable_request_specific_fields = {
                     "symbol_name": str,
-                    'when_utc_timestamp': datetime.datetime,
+                    'when_utc_timestamp': datetime,
                     'execution_source_code': bool, 
                     'speculation_type': bool
                     }
@@ -197,16 +197,16 @@ class CQGFormatCheck(PayloadFormatCheck):
     
             ## Order types check
             # For LMT orders
-            if self.order_info['order_type'] is OrderType.ORDER_TYPE_LMT:
+            if self.order_info['order_type'] is OrderType.LMT:
                 isnot_null(LMT_order_field_types, self.order_info)
                 is_correct_type(LMT_order_field_types, self.order_info)
                 
             # For STP orders
-            elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STP: 
+            elif self.order_info['order_type'] is OrderType.STP: 
                 isnot_null(STP_order_field_types, self.order_info)
                 is_correct_type(STP_order_field_types, self.order_info)
     
-            elif self.order_info['order_type'] is OrderType.ORDER_TYPE_STL:
+            elif self.order_info['order_type'] is OrderType.STL:
                 isnot_null(STL_order_field_types, self.order_info)
                 is_correct_type(STL_order_field_types, self.order_info)
                     
@@ -214,7 +214,7 @@ class CQGFormatCheck(PayloadFormatCheck):
         if self.order_info.get('duration') is not None:
             duration_GTD_field_types = {"good_thru_date": int}
     
-            if self.order_info['duration'] is Duration.DURATION_GTD:
+            if self.order_info['duration'] is Duration.GTD:
                 isnot_null(duration_GTD_field_types, self.order_info)
                 is_correct_type(duration_GTD_field_types, self.order_info)
 
@@ -223,7 +223,7 @@ class CQGFormatCheck(PayloadFormatCheck):
         if self.order_info.get('exec_instructions') is not None:
             execution_Trail_field_types = {"scaled_trail_offset": int}
             if self.order_info['exec_instructions'] is\
-                ExecInstruction.EXEC_INSTRUCTION_TRAIL:
+                ExecInstruction.TRAIL:
                 isnot_null(execution_Trail_field_types, self.order_info)
                 is_correct_type(execution_Trail_field_types, self.order_info)
 

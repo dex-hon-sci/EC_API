@@ -42,7 +42,7 @@ def test_payload_construction_succes() -> None:
         "cl_order_id": "1231314",
         "order_type": OrderType.LMT, 
         "duration": Duration.GTC, 
-        "side": Side.SIDE_BUY,
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -69,7 +69,7 @@ def test_CQGFormatCheck_check_crendential_fail_null() -> None:
         "cl_order_id": "1231314",
         "order_type": OrderType.LMT, 
         "duration": Duration.GTC, 
-        "side": Side.SIDE_BUY,
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -94,15 +94,15 @@ def test_CQGFormatCheck_check_crendential_fail_TypeError() -> None:
     wrong_type = {
         "symbol_name": 00000, # Wrong type input in symbol_name
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 1000,
         "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
+        "exec_instructions": ExecInstruction.AON
         }
     with pytest.raises(TypeError, match="Type Error, symbol_name must be: str."):
         PL = Payload(          
@@ -130,7 +130,7 @@ def test_CQGFormatCheck_check_request_specific_fields_NEW_ORDER_fail_null() -> N
         "is_manual": False,
         "scaled_limit_price": 1000,
         "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
+        "exec_instructions": ExecInstruction.AON
         }
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): order_type is missing."):
@@ -151,14 +151,14 @@ def test_CQGFormatCheck_check_request_specific_fields_NEW_ORDER_fail_TypeError()
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
         "order_type": 0, # <== wrong type 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 1000,
         "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
+        "exec_instructions": ExecInstruction.AON
         }
     
     with pytest.raises(TypeError, match=r"Type Error, order_type must be: OrderType."):
@@ -402,9 +402,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_LMT_fail_null()->N
     null_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -428,9 +428,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STP_fail_null()->N
     null_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_STP, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.STP, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -453,9 +453,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_null()->N
     null_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_STL, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.STL, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -479,9 +479,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_GTD_fail_null()->N
     null_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTD, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTD, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -505,14 +505,14 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_null()-
     null_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 1000, 
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_TRAIL,
+        "exec_instructions": ExecInstruction.TRAIL,
         #"scaled_trail_offset": 10, <-- missing scaled_trail_offset price
         }
     
@@ -532,9 +532,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_LMT_fail_TypeError
     wronginput_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -557,9 +557,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STP_fail_TypeError
     wronginput_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_STP, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.STP, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -582,9 +582,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_TypeError
     wronginput_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_STL, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.STL, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -609,9 +609,9 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_GTD_fail_TypeError
     wronginput_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT,
-        "duration": Duration.DURATION_GTD, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT,
+        "duration": Duration.GTD, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
@@ -635,14 +635,14 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_TypeErr
     wronginput_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT,
-        "duration": Duration.DURATION_GTD, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT,
+        "duration": Duration.GTD, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 1000,
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_TRAIL,
+        "exec_instructions": ExecInstruction.TRAIL,
         "scaled_trail_offset": 100.0 # <---- wrong type should be int
         }
     
@@ -663,14 +663,14 @@ def test_CQGFormatCheck_check_valid_value_LMT_price_up() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 15000, # <-- more than allowed limit
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"scaled_limit_price is outside of the allowed range: \[100, 10000\]."):
@@ -689,14 +689,14 @@ def test_CQGFormatCheck_check_valid_value_LMT_price_down() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": 90, # <-- less than allowed limit
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"scaled_limit_price is outside of the allowed range: \[100, 10000\]."):
@@ -715,14 +715,14 @@ def test_CQGFormatCheck_check_valid_value_STP_price_up() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_STP, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.STP, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_stop_price": 16000, # <-- more than allowed limit
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"scaled_stop_price is outside of the allowed range: \[100, 15000\]."):
@@ -741,14 +741,14 @@ def test_CQGFormatCheck_check_valid_value_STP_price_down() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_STP, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.STP, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_stop_price": 60, # <-- less than allowed limit
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_NONE
+        "exec_instructions": ExecInstruction.NONE
         }
     
     with pytest.raises(ValueError, match=r"scaled_stop_price is outside of the allowed range: \[100, 15000\]."):
@@ -808,9 +808,9 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_up() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 13, # <-- more than allowed limit
         "qty_exponent": 0, 
         "is_manual": False,
@@ -834,9 +834,9 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_down() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 0, # <-- less than allowed limit
         "qty_exponent": 0, 
         "is_manual": False,
@@ -860,9 +860,9 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_up() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 8,
         "qty_exponent": 2, # <-- more than allowed limit
         "is_manual": False,
@@ -886,9 +886,9 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_down() -> None:
     outoflimit_input = {
         "symbol_name": "CLEV25",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 8,
         "qty_exponent": -1, # <-- less than allowed limit
         "is_manual": False,
