@@ -13,7 +13,7 @@ from EC_API.connect.enums import ConnectionState
 from EC_API.transport.base import Transport
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.router import MessageRouter
-from EC_API.protocol.router_util import (
+from EC_API.protocol.cqg.router_util import (
         extract_router_key, 
         is_realtime_tick, 
         is_order_update_stream, 
