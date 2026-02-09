@@ -7,56 +7,39 @@ Created on Mon Aug 18 11:34:22 2025
 """
 import asyncio
 from typing import Optional
-from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
-from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
 from EC_API.connect.enums import ConnectionState
 from EC_API.transport.base import Transport
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.router import MessageRouter
-from EC_API.protocol.cqg.mapping import cqg_mapping
-
+from EC_API.protocol.router_util import (
+        extract_router_key, 
+        is_realtime_tick, 
+        is_order_update_stream, 
+        is_trade_history
+    )
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
     build_ping_msg, build_resolve_symbol_msg,
     build_restore_msg
     )
 
-Key = tuple[str, int]
+#from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
+#from EC_API.protocol.cqg.mapping import cqg_mapping
+from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg # remove this once parser functions are done
 
-def server_msg_type(msg: ServerMsg) -> str:
-    
-    
-    
-    return msg.WhichOneof("message")  # CQG oneof "message"
-
-# Table-driven request_id extraction for RPC replies
-def extract_router_key(msg: ServerMsg) -> Optional[Key]:
-    mt = server_msg_type(msg)
-    ...
-    
-    
-    
-# Streaming classifiers (examples)
-def is_realtime_tick(msg: ServerMsg) -> bool:
-    return server_msg_type(msg) == "real_time_market_data"
-
-def is_order_update_stream(msg: ServerMsg) -> bool:
-    # depending on CQG config you might get updates in trade_snapshot etc.
-    return server_msg_type(msg) in {"order_statuses"}
-
-def is_trade_history(msg: ServerMsg) -> bool:
-    return server_msg_type(msg)
 
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
     # subscriptions related functions
-    def __init__(self, 
-                 host_name: str, 
-                 user_name: str, 
-                 password: str,
-                 immediate_connect: bool = True):
+    def __init__(
+            self, 
+            host_name: str, 
+            user_name: str, 
+            password: str,
+            immediate_connect: bool = True
+        ):
         # Inputs
         self._host_name = host_name
         self._user_name = user_name
@@ -67,9 +50,11 @@ class ConnectCQG(Connect):
         self.protocol_version_major: int = None
         self.protocol_version_minor: int = None
 
-        self._state: ConnectionState = ConnectionState.UNKNOWN
+        # State Control
+        self.state: ConnectionState = ConnectionState.UNKNOWN
         self._task: Optional[asyncio.Task] = None
-
+        
+        # Generic Message parameter
         self._rid = 10 # starting request ID
         
         # Define client
@@ -78,7 +63,7 @@ class ConnectCQG(Connect):
         self._transport = TransportCQG()
         self._router = MessageRouter()
         
-        # queues for 
+        # queues for containing different server messages
         self._mkt_data_queue: asyncio.Queue = asyncio.Queue()
         self._exec_queue = asyncio.Queue()
         self._trade_exec_queue: asyncio.Queue = asyncio.Queue()
@@ -88,9 +73,14 @@ class ConnectCQG(Connect):
             self._transport.connect()
             self._transport.start()
             self._router_task = asyncio.create_task(self._router_loop())
-            #self._client.connect(self._host_name)
             
-    # --- Internal -----------
+    def rid(self) -> int: # request
+        self._rid += 1
+        if self._rid > 2_000_000_000: # Hard limit set by CQG
+            self._rid = 1
+        return self._rid
+            
+    # ---- Internal Getter Methods ----
     @property
     def client(self):
         # return client connection object
@@ -98,25 +88,26 @@ class ConnectCQG(Connect):
     
     @property
     def mkt_data_queue(self) -> asyncio.Queue: #[Tick]
-        """Expose raw tick queue if some component wants direct consumption."""
+        #"""Expose raw tick queue if some component wants direct consumption."""
         return self._mkt_data_queue
     
     @property
     def trade_exec_queue(self) -> asyncio.Queue: #[OrderUpdate]
-        """Expose raw execution update queue."""
+        #"""Expose raw execution update queue."""
         return self._trade_exec_queue
 
     @property
     def transport(self) -> Transport:
-        """Expose transport for advanced uses (e.g., custom messages)."""
         return self._transport
-    
-    def rid(self) -> int: # request
-        self._rid += 1
-        if self._rid > 2_000_000_000:
-            self._rid = 1
-        return self._rid
     # ------------------------
+    
+    # -----------------------
+    #async def connect(self) -> None:
+    #    self._transport.connect()
+    
+    #def disconnect(self)->None:
+    #    self._client.disconnect()
+    # -----------------------
     
     # ---- Live cycle --------
     def start(self) -> None:
@@ -129,21 +120,15 @@ class ConnectCQG(Connect):
         try:
             self._transport.stop()
         finally:
-            if self._task:
+            if self._task: # <---- Need to clarify this part
                 self._task.cancel()
-    # -----------------------
-    async def connect(self) -> None:
-        self._transport.connect()
-    
-    def disconnect(self)->None:
-        self._client.disconnect()
-        
-    # -----------------------
+
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
         while not self._stop_evt.is_set():
             msg: ServerMsg = await self._transport.recv()
 
+            # May wany to use registry pattern to handle this
             # 1) RPC routing (futures)
             key = extract_router_key(msg)
             if key is not None and self._router.on_message(key, msg):
@@ -166,8 +151,9 @@ class ConnectCQG(Connect):
             await self.misc_q.put(msg)
     # -----------------------
 
-    # RPC methods
-    async def logon(self, 
+    # ---- CQG messages (RPC) methods ----
+    async def logon(
+        self, 
         client_app_id: str ='WebApiTest', 
         client_version: str ='python-client-test-2-240',
         protocol_version_major: int = 2,
@@ -189,7 +175,6 @@ class ConnectCQG(Connect):
             )
         
         msg_key = ("logon_result", self.msg_id)
-        #msg_key = ("user_session_statuses", self.msg_id)
         fut = self._router.register(msg_key)
         await self._transport.send(client_msg)
         return await asyncio.wait_for(fut, timeout=5.0)
@@ -204,9 +189,11 @@ class ConnectCQG(Connect):
         await self._transport.send(client_msg)
         return await asyncio.wait_for(fut, timeout=5.0)
             
-    async def restore_request(self, 
-                              session_token: str = None, 
-                              **kwargs) -> ServerMsg:
+    async def restore_request(
+            self, 
+            session_token: str = None, 
+            **kwargs
+        ) -> ServerMsg:
         # Restoring session after dropoff
         if session_token is None:
             session_token = self.session_token
@@ -223,11 +210,6 @@ class ConnectCQG(Connect):
         await self._transport.send(restore_msg)
         return await asyncio.wait_for(fut, timeout=5.0)
 
-        #while True:
-        #    server_msg_restore = self._client.receive_server_message()
-        #    if len(server_msg_restore.restore_or_join_session_result)>0:
-        #        return server_msg_restore
-            
     async def ping(self):
         ping_msg = build_ping_msg(self.msg_id)
         ## Routing and transport
