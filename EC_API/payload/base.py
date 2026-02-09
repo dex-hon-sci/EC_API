@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 # EC_API imports
 from EC_API.connect.base import Connect
 from EC_API.ordering.base import LiveOrder
-from EC_API.ordering.cqg.enums import SubScopeCQG, OrderStatusCQG
 from EC_API.ordering.enums import SubScope, OrderStatus
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
@@ -19,15 +18,19 @@ from EC_API.payload.safety import PayloadFormatCheck
 
 @dataclass
 class Payload:
-    # An object ready to send out to the trade engine
-    # Only the Trade Engine can read the Payload object
-    # The Payload Object should contains all the necessary information for 
-    # Sending the order.
-    # Payload only concern itself with whether the order is sent or not, 
-    # it does not tell you the order status (filled or not)
-    # Payload check the format coming from Signals
-    # One Payload is suppose to be one order request 
-    # (New, modify, cancel, activate, cancelall, liquateall, goflat)
+    """
+    A vendor-agnoistic objects that contain the information needed for a 
+    live order. 
+    
+    Payload only contains information about whether the order is sent or not,
+    but not if the order has been filled or not.
+    
+    Upon instantiation, `Payload` objects perform a safety check for the 
+    input parameters. The instantiation will fail if there are any illegal
+    inputs.
+    
+    One Payload correspond to one order request.
+    """
     account_id: int = 0
     request_id: int = 0
     status: PayloadStatus = PayloadStatus.PENDING
@@ -48,33 +51,23 @@ class Payload:
                                       self.asset_safty_range)
         check_obj.run()
         
-class PayloadStatusManager:
-    def __init__(self, payload: Payload):
-        self.payload = payload
-
-    def change_status(self, server_msg) -> None:
-        match server_msg.status:
-            case OrderStatus.WORKING | OrderStatus.IN_TRANSIT | OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY | OrderStatus.ACTIVEAT:
-                self.payload.status = PayloadStatus.SENT
-            case OrderStatus.CANCELLED | OrderStatus.FILLED | OrderStatus.SUSPENDED:
-                self.payload.status = PayloadStatus.FILLED
-                # After Filled, add Order_ID to self.order_info <-- add different order status types here
-                ORDER_ID = server_msg.order_statuses[0].order_id
-                self.payload.order_info['order_id'] = ORDER_ID
-            case OrderStatus.DISCONNECTED | OrderStatus.REJECTED:
-                self.payload.status = PayloadStatus.VOID
-            case _:
-                self.payload.status = PayloadStatus.ARCHIVED
- 
 
 class ExecutePayload:
+    """
+    A wrapper class for vendor-specific `LiveOrder` objects.
+    
+    This class is meant to route `Payload` data create `LiveOrder`-like 
+    objects and perform their respective functions
+    """
     # Execution object for CQG trade rounting connection
-    def __init__(self, 
-                 connect: Connect, 
-                 payload: Payload,
-                 request_id: int,
-                 account_id: int,
-                 live_order: LiveOrder = LiveOrder):
+    def __init__(
+            self, 
+            connect: Connect, 
+            payload: Payload,
+            request_id: int,
+            account_id: int,
+            live_order: LiveOrder = LiveOrder
+        ):
         self._connect = connect 
         self.payload = payload
         self.account_id = account_id
@@ -83,45 +76,27 @@ class ExecutePayload:
         # Choose what enums are used for match cases in change payload status
         self.ordering_enums: OrderStatus = OrderStatus
         
-        
-    def change_payload_status(self, server_msg) -> None: 
-        # Decrepated, change to enum_mapping in ordering
-        # Move this to parsers
-        #SENT_CASES = ()
-        #FILL_CASES = ()
-        #VOID_CASES = ()
-        
-        match server_msg.status:
-            case OrderStatus.WORKING | OrderStatus.IN_TRANSIT | OrderStatus.IN_CANCEL | OrderStatus.IN_MODIFY | OrderStatus.ACTIVEAT:
-                self.payload.status = PayloadStatus.SENT
-            case OrderStatus.CANCELLED | OrderStatus.FILLED | OrderStatus.SUSPENDED:
-                self.payload.status = PayloadStatus.FILLED
-                # After Filled, add Order_ID to self.order_info <-- add different order status types here
-                ORDER_ID = server_msg.order_statuses[0].order_id
-                self.payload.order_info['order_id'] = ORDER_ID
-            case OrderStatus.DISCONNECTED | OrderStatus.REJECTED:
-                self.payload.status = PayloadStatus.VOID
-            case _:
-                self.payload.status = PayloadStatus.ARCHIVED
-    
     def unload(self) -> None:
         """
-        Sending order request base on the payload type
+        Sending order request base on vendor-specific format and logics.
 
         """
         # Only send payload that is pending.
         if self._payload.status == PayloadStatus.PENDING:
-            CLOrder = self.live_order(self._connect, 
-                                      symbol_name = self.payload.order_info['symbol_name'], 
-                                      request_id = self.payload.request_id, 
-                                      account_id = self.account_id,
-                                      sub_scope = self.sub_scope)
+            CLOrder = self.live_order(
+                self._connect, 
+                symbol_name = self.payload.order_info['symbol_name'], 
+                request_id = self.payload.request_id, 
+                account_id = self.account_id,
+                sub_scope = self.sub_scope
+                )
             server_msg = CLOrder.send(request_type = self.payload.order_request_type, 
                                       request_details = self.payload.order_info)
-
-            self.change_payload_status(server_msg)
             
         else:
             raise Exception("Only pending payloads can be unloaded.")
+        
+
+    
 
     
