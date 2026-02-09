@@ -9,9 +9,6 @@ This Enum file contain the most relevant enums for ordering.
 """
 # Python imports
 from enum import Enum, auto
-# EC_API imports
-#from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as TS
-#from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord #Side, OrderType, Duration
 
 class RequestType(Enum):
     NEW_ORDER = "new_order_request"

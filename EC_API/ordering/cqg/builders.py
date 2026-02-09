@@ -6,7 +6,6 @@ Created on Fri Nov 28 21:14:37 2025
 @author: dexter
 """
 from datetime import datetime, timezone
-from typing import Any, Union
 # EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.ext.common.shared_1_pb2 import NamedValue # Throw this away later
@@ -30,9 +29,9 @@ from EC_API.ordering.cqg.enums import (
     ExecInstructionCQG
     )
 from EC_API.ordering.cqg.enum_mapping import (
-    SubScope_MAP_INT2CQG, Side_MAP_INT2CQG, 
-    OrderType_MAP_INT2CQG, Duration_MAP_INT2CQG, 
-    ExecInstruction_MAP_INT2CQG
+    _SubScope_MAP_INT2CQG, _Side_MAP_INT2CQG, 
+    _OrderType_MAP_INT2CQG, _Duration_MAP_INT2CQG, 
+    _ExecInstruction_MAP_INT2CQG
     )
 from EC_API.ordering.cqg.fields import (
     TRADE_SUBSCRIPTION_REQUIRED_FIELD,
@@ -65,11 +64,11 @@ def build_trade_subscription_msg(
     trade_sub_request = client_msg.trade_subscriptions.add()
     trade_sub_request.id = trade_subscription_id
     trade_sub_request.subscribe = subscribe
-    trade_sub_request.subscription_scopes.append(SubScope_MAP_INT2CQG[sub_scope])
+    trade_sub_request.subscription_scopes.append(_SubScope_MAP_INT2CQG[sub_scope])
     trade_sub_request.skip_orders_snapshot = skip_orders_snapshot
     #trade_sub_request.last_order_update_utc_timestamp = last_order_update_utc_timestamp
     
-    if sub_scope == SubScope_MAP_INT2CQG.get(sub_scope): # SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+    if sub_scope == _SubScope_MAP_INT2CQG.get(sub_scope): # SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
         account_summary_parameters = trade_sub_request.account_summary_parameters
         # 8 means purchasing_power, 15 means current_balance, 16 means profit_loss
         account_summary_parameters.requested_fields.extend([
@@ -122,9 +121,9 @@ def build_new_order_request_msg(
     order_requests.new_order.order.account_id = account_id
     order_requests.new_order.order.contract_id = contract_id
     order_requests.new_order.order.cl_order_id = cl_order_id
-    order_requests.new_order.order.order_type = OrderType_MAP_INT2CQG[order_type]
-    order_requests.new_order.order.duration = Duration_MAP_INT2CQG[duration]
-    order_requests.new_order.order.side = Side_MAP_INT2CQG[side]
+    order_requests.new_order.order.order_type = _OrderType_MAP_INT2CQG[order_type]
+    order_requests.new_order.order.duration = _Duration_MAP_INT2CQG[duration]
+    order_requests.new_order.order.side = _Side_MAP_INT2CQG[side]
     order_requests.new_order.order.is_manual = is_manual
     
     order_requests.new_order.order.qty.significand = qty_significant
@@ -132,7 +131,7 @@ def build_new_order_request_msg(
 
     if kwargs['exec_instructions'] is not None:
         order_requests.new_order.order.exec_instructions.append(
-            ExecInstruction_MAP_INT2CQG[kwargs['exec_instructions']]
+            _ExecInstruction_MAP_INT2CQG[kwargs['exec_instructions']]
             )
         kwargs.pop('exec_instructions')
     if kwargs['suspend'] is not None:
