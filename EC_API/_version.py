@@ -7,5 +7,5 @@ Created on Wed Jul 23 15:54:32 2025
 """
 # %% VERSIONS
 # Default/Latest/Current version
-__version__ = '0.0.2'
+__version__ = '0.1.0'
 

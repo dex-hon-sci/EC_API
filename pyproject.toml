@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "EC_API"
-version = "0.0.2"
+version = "0.1.0"
 authors = [
   { name="Dexter S.-H. HON", email="dex-hon-sci@outlook.com" },
 ]

@@ -28,5 +28,5 @@ recursive-exclude build *
 recursive-exclude dist *
 recursive-exclude *.egg-info *
 
-# Optional: if you don’t want to ship images in distributions
+# Optional: 
 # recursive-exclude images *
