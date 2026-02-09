@@ -5,13 +5,11 @@ Created on Wed Jul 30 10:01:16 2025
 
 @author: dexter
 """
-import datetime
 import asyncio
 from typing import Any
 from datetime import timezone
 
-from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord 
-from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
+from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 #from EC_API.connect.hearback import hearback, get_contract_metadata
 from EC_API.ordering.enums import (
@@ -37,7 +35,6 @@ from EC_API.ordering.cqg.builders import (
     build_cancelall_order_request_msg,
     build_goflat_order_request_msg
     )
-from EC_API.utility.base import random_string
 
 class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange
@@ -92,7 +89,8 @@ class LiveOrderCQG(LiveOrder):
             subscribe = subscribe,
             skip_orders_snapshot = skip_orders_snapshot
             )
-        rid = 0 # < --- look up and fix
+        #rid = 0 # < --- look up and fix
+        rid = self._conn.msg_id()
         key = ("trade_subscription_statuses", rid)
         fut = self._router.register(key)
         await self._transport.send(client_msg)

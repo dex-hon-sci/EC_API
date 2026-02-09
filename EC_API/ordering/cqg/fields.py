@@ -21,15 +21,11 @@ from EC_API.ordering.cqg.enums import (
     DurationCQG,
     ExecInstructionCQG
     )
-from EC_API.ordering.cqg.enum_mapping import (
-    SubScope_MAP_INT2CQG, Side_MAP_INT2CQG, 
-    OrderType_MAP_INT2CQG, Duration_MAP_INT2CQG, 
-    ExecInstruction_MAP_INT2CQG
-    )
+
 class ClientMsgInputsCQG:
     pass
 
-class NewOrderRequestDetails(BaseModel):
+class NewOrderRequestDetails(BaseModel): # Work on this later
     ...
 
 TRADE_SUBSCRIPTION_REQUIRED_FIELD = {
@@ -79,7 +75,7 @@ MODIFY_ORDER_OPTIONAL_FIELDS = {
     'qty': ('qty', int, None), # Sensitive fields only take exact types and no transform func
     'remove_activation_time': ('remove_activation_time', bool, None), 
     'remove_suspension_utc_time': ('remove_suspension_utc_time', bool, None), 
-    'duration': ('duration', Union[Duration, DurationCQG], Duration_MAP_INT2CQG.get), 
+    'duration': ('duration', Union[Duration, DurationCQG], None), 
     'good_thru_date': ('good_thru_date', int, None), 
     'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime, None),
     'activation_utc_timestamp': ('activation_utc_timestamp', datetime, None),

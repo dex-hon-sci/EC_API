@@ -284,7 +284,7 @@ def build_activate_order_request_msg(
 
     return client_msg
 
-def build_goflat_request_msg(    
+def build_goflat_order_request_msg(    
     account_id: int,
     request_id: int,
     when_utc_timestamp: datetime,

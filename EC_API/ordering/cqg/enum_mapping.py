@@ -20,7 +20,7 @@ from EC_API.ordering.cqg.enums import (
 
 # Vendor Enum -> Int Enum (Int Regular+Int vendor) -> Payload Enum
 # This mapping file translate between Vendor Enum <-> Int Enum
-SubScope_MAP_INT2CQG = {
+_SubScope_MAP_INT2CQG = {
     SubScope.ORDERS: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
     SubScope.POSITIONS: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
     SubScopeCQG.COLLATERAL: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL,
@@ -29,12 +29,12 @@ SubScope_MAP_INT2CQG = {
     SubScopeCQG.EXCHANGE_BALANCES: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES    
     }
 
-Side_MAP_INT2CQG = {
+_Side_MAP_INT2CQG = {
     Side.BUY: CQG_Ord.Side.SIDE_BUY,
     Side.SELL: CQG_Ord.Side.SIDE_SELL
     }
 
-OrderType_MAP_INT2CQG = {
+_OrderType_MAP_INT2CQG = {
     OrderType.MKT: CQG_Ord.OrderType.ORDER_TYPE_MKT,
     OrderType.LMT: CQG_Ord.OrderType.ORDER_TYPE_LMT,
     OrderType.STP: CQG_Ord.OrderType.ORDER_TYPE_STP,
@@ -42,7 +42,7 @@ OrderType_MAP_INT2CQG = {
     OrderTypeCQG.CROSS: CQG_Ord.OrderType.ORDER_TYPE_CROSS
     }
 
-Duration_MAP_INT2CQG = {
+_Duration_MAP_INT2CQG = {
     Duration.DAY: CQG_Ord.Duration.DURATION_DAY,
     Duration.GTC: CQG_Ord.Duration.DURATION_GTC,
     Duration.GTD: CQG_Ord.Duration.DURATION_GTD,
@@ -54,7 +54,7 @@ Duration_MAP_INT2CQG = {
     DurationCQG.GFA: CQG_Ord.Duration.DURATION_GFA
     }
 
-ExecInstruction_MAP_INT2CQG = {
+_ExecInstruction_MAP_INT2CQG = {
     ExecInstruction.NONE: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_NONE,
     ExecInstruction.AON: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_AON,
     ExecInstruction.ICEBERG: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICEBERG,
@@ -70,7 +70,7 @@ ExecInstruction_MAP_INT2CQG = {
     ExecInstructionCQG.ICO: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICO
     }
 
-OrderStatus_MAP_INT2CQG = {
+_OrderStatus_MAP_INT2CQG = {
     CQG_OrdStatus.Status.IN_TRANSIT: OrderStatus.PENDING,
     CQG_OrdStatus.Status.REJECTED: OrderStatus.REJECTED,
     CQG_OrdStatus.Status.WORKING: OrderStatus.OPEN,

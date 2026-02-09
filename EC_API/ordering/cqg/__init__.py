@@ -9,9 +9,7 @@ Created on Tue Jul 29 13:20:02 2025
 
 from .live_order import LiveOrderCQG
 from .enums import (
-    RequestTypeCQG,
     SubScopeCQG,
-    SideCQG,
     OrderTypeCQG,
     DurationCQG,
     ExecInstructionCQG,
@@ -20,9 +18,7 @@ from .enums import (
 
 __all__ = [
     "LiveOrderCQG",
-    "RequestTypeCQG",
     "SubScopeCQG",
-    "SideCQG",
     "OrderTypeCQG",
     "DurationCQG",
     "ExecInstructionCQG",
