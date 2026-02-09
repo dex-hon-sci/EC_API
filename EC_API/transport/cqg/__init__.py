@@ -6,3 +6,6 @@ Created on Thu Nov 27 21:54:56 2025
 @author: dexter
 """
 
+from .base import TransportCQG
+
+__all__ = ["TransportCQG"]

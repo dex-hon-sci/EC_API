@@ -15,7 +15,6 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
 
 class TransportCQG:
-    
     """
     Wraps the blocking CQG WebApiClient with:
       - Two IO thread doing send/recv
@@ -117,6 +116,3 @@ class TransportCQG:
         return await self._in_q.get()
     # -------------------
     
-    @property
-    def raw_client(self) -> webapi_client.WebApiClient:
-        return self._client    
