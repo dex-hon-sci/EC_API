@@ -13,27 +13,22 @@ from google.protobuf.descriptor import FieldDescriptor
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.common.shared_1_pb2 import OrderStatus
 
+from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LgRes
+from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as RstJoinSessRes
+from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LgOff
+from EC_API.ext.WebAPI.webapi_2_pb2 import InformationReport as InfoRp
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus as TrdSubStatus
+from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus as GFltStatus
+from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscriptionStatus as MktDSubStatus
+from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as MktDSub
+from EC_API.ext.WebAPI.historical_2_pb2 import TimeAndSalesReport as TSrRep
+from EC_API.ext.WebAPI.historical_2_pb2 import BarReportStatusCode as BarRpStatusCode
+from EC_API.ext.WebAPI.historical_2_pb2 import VolumeProfileReport as VolPrfRep
+
 from server_msg_builders_CQG import *
 # Unit test for getting the right message type and id
 # Unit test for matching request-response
 # Unit Test for routing, see if messages are pop and resolve in fut 
-# 
-
-
-### Connection
-# logon_result
-# restore_or_join_session_result
-# logged_off
-# pong
-
-### information_report
-# accounts_report
-# symbol_resolution_report (v)
-# session_information_report (v)
-# historical_orders_request (v)
-# option_maturity_list_report
-# instrument_group_report
-# at_the_money_strike_report
 
 ### Orders
 # order_request_rejects
@@ -53,10 +48,7 @@ from server_msg_builders_CQG import *
 # time_and_sales_reports
 # time_bar_reports
 # volume_profile_reports
-# non_timed_bar_reports
-
-
-    
+# non_timed_bar_reports    
 def server_msg_type(msg: ServerMsg) -> str:
     all_field_names = msg.ListFields()
     print(len(all_field_names))
@@ -94,9 +86,58 @@ def server_msg_type(msg: ServerMsg) -> str:
     #return msg.WhichOneof("information_reports")  # CQG oneof "message"
 
     
-server_msg = build_logon_result_server_msg()
+server_msg1 = build_logon_result_server_msg(LgRes.ResultCode.RESULT_CODE_SUCCESS)
+server_msg2 = build_restore_or_join_session_result_server_msg(RstJoinSessRes.ResultCode.RESULT_CODE_SUCCESS)
+server_msg3 = build_concurrent_connection_join_results_server_msg(True)
+server_msg4 = build_logged_off_server_msg(LgOff.LogoffReason.LOGOFF_REASON_BY_REQUEST)
+server_msg5 = build_pong_server_msg(ping_time = int(datetime.now().timestamp()), delay = 5)
 
-#server_msg_type(server_msg)
+server_msg6 = build_symbol_resolution_report_server_msg(InfoRp.StatusCode.STATUS_CODE_SUCCESS)
+server_msg7 = build_session_info_report_server_msg(InfoRp.StatusCode.STATUS_CODE_SUCCESS)
+server_msg8 = build_historical_orders_report_server_msg(InfoRp.StatusCode.STATUS_CODE_SUCCESS)
+server_msg9 = build_option_maturity_list_report_server_msg(InfoRp.StatusCode.STATUS_CODE_SUCCESS)
+server_msg10 = build_instrument_group_report_server_msg(InfoRp.StatusCode.STATUS_CODE_SUCCESS)
+server_msg11 = build_at_the_money_strike_report_server_msg(InfoRp.StatusCode.STATUS_CODE_SUCCESS)
 
-server_msg = build_logon_result_server_msg()
-print(server_msg)
+server_msg12 = build_order_request_rejects_server_msg()
+server_msg13 = build_order_request_acks_server_msg()
+server_msg14 = build_trade_subscription_statuses_server_msg(TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS)
+server_msg15 = build_trade_snapshot_completetions_server_msg()
+server_msg16 = build_order_statuses_server_msg(OrderStatus.Status.IN_TRANSIT)
+server_msg17 = build_position_statuses_server_msg()
+server_msg18 = build_go_flat_statuses_server_msg(GFltStatus.StatusCode.STATUS_CODE_COMPLETED)
+
+server_msg19 = build_market_data_subscription_statuses_server_msg(MktDSubStatus.StatusCode.STATUS_CODE_SUCCESS)
+server_msg20 = build_real_time_market_data_server_msg()
+
+server_msg21 = build_time_and_sales_reports_server_msg(TSrRep.ResultCode.RESULT_CODE_SUCCESS)
+server_msg22 = build_time_bar_reports_server_msg(BarRpStatusCode.BAR_REPORT_STATUS_CODE_SUCCESS)
+server_msg23 = build_volume_profile_reports_server_msg(VolPrfRep.ResultCode.RESULT_CODE_SUCCESS)
+server_msg24 = build_non_timed_bar_reports_server_msg(BarRpStatusCode.BAR_REPORT_STATUS_CODE_SUCCESS)
+
+print(server_msg1)
+print(server_msg2)
+print(server_msg3)
+print(server_msg4)
+print(server_msg5)
+
+print(server_msg6)
+print(server_msg7)
+print(server_msg8)
+print(server_msg9)
+print(server_msg10)
+print(server_msg11)
+
+print(server_msg12)
+print(server_msg13)
+print(server_msg14)
+print(server_msg15)
+print(server_msg16)
+print(server_msg17)
+print(server_msg18)
+print(server_msg19)
+print(server_msg20)
+print(server_msg21)
+print(server_msg22)
+print(server_msg23)
+print(server_msg24)
