@@ -8,7 +8,6 @@ Created on Fri Nov 28 21:14:37 2025
 from datetime import datetime, timezone
 # EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
-from EC_API.ext.common.shared_1_pb2 import NamedValue # Throw this away later
 from EC_API.utility.base import to_significand_sint64_exponent_sint32
 from EC_API.ordering.cqg.validate import (
     validate_input_para, 
@@ -256,9 +255,6 @@ def build_cancelall_order_request_msg(
     order_request.cancel_all_orders.when_utc_timestamp = kwargs['when_utc_timestamp']
     return client_msg
  
-def build_suspend_order_request_msg() -> ClientMsg:
-    return 
-
 def build_activate_order_request_msg(
     account_id: int,
     request_id: int, 
@@ -354,3 +350,8 @@ def build_liquidateall_order_request_msg(
     order_request.liquidate_all.when_utc_timestamp = kwargs['when_utc_timestamp']
     
     return client_msg
+
+def build_suspend_order_request_msg() -> ClientMsg:
+    return 
+
+
