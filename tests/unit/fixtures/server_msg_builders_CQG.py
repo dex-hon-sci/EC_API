@@ -7,7 +7,6 @@ Created on Fri Jan  9 20:45:59 2026
 
 """
 from datetime import datetime, timezone
-from decimal import Decimal
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.common.shared_1_pb2 import OrderStatus, TransactionStatus
 from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LgRes
@@ -320,6 +319,7 @@ def build_position_statuses_server_msg() -> ServerMsg:
     position_statuses.account_id = 123466
     position_statuses.contract_id = 0 
     position_statuses.is_short_open_position = False
+    
     # ----
     open_positions = position_statuses.open_positions.add()
     open_positions.id = 2
