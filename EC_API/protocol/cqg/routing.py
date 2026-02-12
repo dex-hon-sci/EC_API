@@ -15,7 +15,9 @@ from google.protobuf.descriptor import FieldDescriptor
 
 Key = Tuple[str, int]
 
-
+@dataclass(frozen=True)
+class RouterKey:
+    msg_type: str
 # Message type mapping
 # 
 @dataclass(frozen=True)
@@ -23,17 +25,23 @@ class RidHit:
     rid: int
     path: Tuple[str, ...]      # e.g. ("information_reports", "historical_orders_report", "request_id")
     leaf_parent: str           # message type name that owns request_id (descriptor.name)
-
-class RouterKeyRegistry:
     
-    def __init__():
-        pass
-    
-    def extract_router_key():
-        pass
-    
-    def register_predicate():
-        pass
+def extract_info_keys(mt, payload_list) -> list[tuple]:
+    out = []
+    for info in payload_list:
+        info_id = getattr(info, "id", 0)
+        present = [fd.name for fd, _ in info.ListFields()]
+        typed = [n for n in present if n.endswith("_report") or n.endswith("_information_report")]
+        if not typed:
+            if info_id:
+                out.append(("report", "information_reports", "info_id", int(info_id)))
+            continue
+        for sub in typed:
+            if info_id:
+                out.append(("report", f"information_reports:{sub}", "info_id", int(info_id)))
+            else:
+                out.append(("report", f"information_reports:{sub}", "none", 0))
+    return out
 
 def server_msg_type(msg: ServerMsg) -> str:
     return msg.WhichOneof("message")  # CQG oneof "message"
@@ -83,11 +91,4 @@ def extract_router_key(msg: ServerMsg) -> Optional[Key]:
     return None
 
 
-# Streaming classifiers (examples)
-def is_realtime_tick(msg: ServerMsg) -> bool:
-    return server_msg_type(msg) == "real_time_market_data"
-
-def is_order_update_stream(msg: ServerMsg) -> bool:
-    # depending on CQG config you might get updates in trade_snapshot etc.
-    return server_msg_type(msg) in {"order_statuses", "trade_snapshot"}
 
