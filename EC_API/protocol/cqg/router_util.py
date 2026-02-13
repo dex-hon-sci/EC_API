@@ -18,16 +18,10 @@ logger = logging.getLogger(__name__)
 
 def server_msg_type(msg: ServerMsg) -> list[str]:
     # extract the top level server msg field
-    #temp = []
-    #for top_fd, top_val in msg.ListFields():        
-    #    if top_fd.type == FieldDescriptor.TYPE_MESSAGE:
-    #        # This works for both singular messages and repeated containers
-    #        desc = top_fd.message_type 
-    #    temp.append(desc.name)
-    #return temp
+    
     return [fd.name for fd, _ in msg.ListFields()]
 
-def extract_router_key(
+def extract_router_keys(
         server_msg: ServerMsg
     ) -> list[RouterKey]:
     msg_types = server_msg_type(server_msg)
@@ -42,11 +36,10 @@ def extract_router_key(
         if extractor is None:
             logger.info(f"Corresponding extractor for {msg_type} not found.")
             continue
-        
         try:
-            res.extend(extractor(msg_type))
+            res.extend(extractor(server_msg, msg_type))
         except:
-            # Logging Here
+            logger.info(f"Extractor failed (family={family}, mt={msg_type})")
             continue
     return res
 
