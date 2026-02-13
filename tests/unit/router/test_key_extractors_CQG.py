@@ -6,8 +6,8 @@ Created on Fri Feb 13 21:26:23 2026
 @author: dexter
 """
 
-from EC_API.protocol.cqg.key_extractors import _extractors
-from EC_API.protocol.cqg.router_util import server_msg_type, extract_router_key
+from EC_API.protocol.cqg.key_extractors import _extractors, extract_names_generic
+from EC_API.protocol.cqg.router_util import server_msg_type, extract_router_keys
 from tests.unit.fixtures.server_msg_builders_CQG import *
 
 
@@ -16,7 +16,6 @@ def test_sever_msg_type() -> None:
     for key, msg in all_msg.items():
         top_msg_type = key.split(':')[0]
         out = server_msg_type(msg)[0]
-        print(server_msg_type(msg))
         assert out == top_msg_type
         
         
@@ -32,38 +31,70 @@ def test_complete_registry() -> None:
 # Test extraction for sessions
 def test_extract_key_logon_result() -> None:
     msg = build_logon_result_server_msg()
-    router_key = extract_router_key(msg)
-    assert router_key == ('session', 'logon_result', 'single', 0)
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('session', 'logon_result', 'single', 0)
     
 def test_extract_key_restore_or_join_session_result() -> None:
     msg = build_restore_or_join_session_result_server_msg()
-    router_key = extract_router_key(msg)
-    assert router_key == ('session', 'restore_or_join_session_result', 'single', 0)
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('session', 'restore_or_join_session_result', 'single', 0)
 
 def test_extract_key_concurrent_connection_join_results() -> None:
-    msg = build_concurrent_connection_join_results_server_msg
-    router_key = extract_router_key(msg)
-    assert router_key == ('session', 'concurrent_connection_join_results', 'single', 0)
+    msg = build_concurrent_connection_join_results_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('session', 'concurrent_connection_join_results', 'single', 0)
 
 def test_extract_key_logged_off() -> None:
     msg = build_logged_off_server_msg()
-    router_key = extract_router_key(msg)
-    assert router_key == ('session', 'logged_off', 'single', 0)
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('session', 'logged_off', 'single', 0)
 
 def test_extract_key_pong() -> None:
     msg = build_pong_server_msg()
-    router_key = extract_router_key(msg)
-    assert router_key == ('session', 'pong', 'single', 0)
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('session', 'pong', 'single', 0)
 
-def test_extract_key_info_symbol_resolution_report() -> None:...
+def test_extract_key_info_symbol_resolution_report() -> None:
+    msg = build_symbol_resolution_report_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('info', 'information_reports:symbol_resolution_report', 'id', 1)
 
-def test_extract_key_info_session_information_report() -> None:...
 
-def test_extract_key_info_historical_orders_report() -> None:...
+def test_extract_key_info_session_information_report() -> None:
+    msg = build_session_info_report_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('info', 'information_reports:session_information_report', 'id', 1)
 
-def test_extract_key_info_option_maturity_list_report() -> None:...
-def test_extract_key_info_instrument_group_report() -> None:...
-def test_extract_key_info_at_the_money_strike_report() -> None:...
+def test_extract_key_info_historical_orders_report() -> None:
+    msg = build_historical_orders_report_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('info', 'information_reports:historical_orders_report', 'id', 1)
+
+def test_extract_key_info_option_maturity_list_report() -> None:
+    msg = build_option_maturity_list_report_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('info', 'information_reports:option_maturity_list_report', 'id', 1)
+
+def test_extract_key_info_instrument_group_report() -> None:
+    msg = build_instrument_group_report_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('info', 'information_reports:instrument_group_report', 'id', 1)
+
+def test_extract_key_info_at_the_money_strike_report() -> None:
+    msg = build_at_the_money_strike_report_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('info', 'information_reports:at_the_money_strike_report', 'id', 1)
 
 def test_extract_key_order_request_rejects() -> None:...
 def test_extract_key_order_request_acks() -> None:...
