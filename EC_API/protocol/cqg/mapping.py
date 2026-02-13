@@ -59,7 +59,14 @@ MAP_RESPONSES_TYPES_STR = {
     'restore_or_join_session': ["restore_or_join_session_result"],
     'logoff': ["logged_off"],
     'ping': ["pong"],
-    'information_requests': ["information_reports"],
+    'information_requests': ["information_reports",
+                             "symbol_resolution_report",
+                             "session_information_report",
+                             "historical_orders_report",
+                             "option_maturity_list_report",
+                             "instrument_group_report",
+                             "at_the_money_strike_report"
+                             ],
     'trade_subscriptions': ["trade_subscription_statuses",
                             "trade_snapshot_completions",],
     'order_requests': [
