@@ -12,7 +12,7 @@ from EC_API.connect.base import Connect
 from EC_API.connect.enums import ConnectionState
 from EC_API.transport.base import Transport
 from EC_API.transport.cqg.base import TransportCQG
-from EC_API.transport.router import MessageRouter
+from EC_API.transport.router import MessageRouter, StreamRouter
 from EC_API.protocol.cqg.router_util import (
         extract_router_key, 
         is_realtime_tick, 
@@ -61,7 +61,11 @@ class ConnectCQG(Connect):
         self._client = webapi_client.WebApiClient()
         self._loop = asyncio.get_running_loop()
         self._transport = TransportCQG()
-        self._router = MessageRouter()
+        
+        self._msg_router = MessageRouter()
+        
+        self.market_data_stream = StreamRouter()
+        self.exec_stream = StreamRouter()
         
         # queues for containing different server messages
         self._mkt_data_queue: asyncio.Queue = asyncio.Queue()
@@ -131,7 +135,7 @@ class ConnectCQG(Connect):
             # May wany to use registry pattern to handle this
             # 1) RPC routing (futures)
             key = extract_router_key(msg)
-            if key is not None and self._router.on_message(key, msg):
+            if key is not None and self._msg_router.on_message(key, msg):
                 continue
 
             # 2) streaming dispatch
