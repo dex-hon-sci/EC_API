@@ -62,14 +62,14 @@ MAP_RESPONSES_TYPES_STR = {
     'information_requests': ["information_reports"],
     'trade_subscriptions': ["trade_subscription_statuses",
                             "trade_snapshot_completions",],
-    'order_requests': ["order_statuses", 
-                       "go_flat_statuses",
-                       "order_request_rejects",
-                       "order_request_acks",
-                       "position_statuses",
-                       "collateral_statuses",
-                       "account_summary_statuses"
-                       ],
+    'order_requests': [
+        "order_statuses", 
+        "go_flat_statuses",
+        "order_request_rejects",
+        "order_request_acks",
+        "position_statuses",
+        "account_summary_statuses"
+        ],
     'market_data_subscriptions': ["market_data_subscription_statuses",
                                   "real_time_market_data"],
     'time_and_sales_requests': ["time_and_sales_reports"],
@@ -78,9 +78,6 @@ MAP_RESPONSES_TYPES_STR = {
     'non_timed_bar_requests': ["non_timed_bar_reports"]
     }
 
-def find_order_request_type()->str:
-    # For Order_request type either new_order, modify_order, cancel_order,...
-    return 
 
 def find_order_status_type(server_msg:ServerMsg)->str:
     # For Order_statues
