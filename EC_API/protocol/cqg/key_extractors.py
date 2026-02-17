@@ -7,6 +7,7 @@ Created on Fri Feb 13 20:03:25 2026
 """
 from typing import Callable, Any, Iterable
 from dataclasses import dataclass
+from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.internal.containers import (
     RepeatedCompositeFieldContainer, 
@@ -36,38 +37,6 @@ def register_extractor(msg_name: str):
         _extractors[msg_name] = func
         return func
     return decorator
-
-SERVER_MSG_FAMILY = {
-    # (1) connection/session
-    "logon_result": "session",
-    "restore_or_join_session_result": "session",
-    "concurrent_connection_join_results": "session",
-    "logged_off": "session",
-    "pong": "session",
-    # (2) info report container
-    "information_reports": "info",
-    # (3) order/account RPC & streams
-    "order_request_rejects": "rpc_reqid",
-    "order_request_acks": "rpc_reqid",
-    "trade_subscription_statuses": "sub",
-    "trade_snapshot_completions": "sub",
-    "order_statuses": "substream",
-    "position_statuses": "substream",
-    "account_summary_statuses": "substream",
-    "go_flat_statuses": "rpc_reqid",
-    # (4) realtime
-    "market_data_subscription_statuses":  "md",
-    "real_time_market_data": "mdstream",
-    # (5) historical
-    "time_and_sales_reports": "rpc_reqid",
-    "time_bar_reports": "rpc_reqid",
-    "volume_profile_reports": "rpc_reqid",
-    "non_timed_bar_reports": "rpc_reqid",
-}
-#########33
-
-from typing import Any
-from google.protobuf.message import Message
 
 def walk_fields(
         msg: Message, 
@@ -193,13 +162,78 @@ def extract_sub_router_keys(
         msg: ServerMsg, 
         msg_type: str                      
     ) -> list[RouterKey]: 
-    walk_fields()
-    return []
+    
+    TARGET = {
+        "trade_subscription_statuses",
+        "trade_snapshot_completions"
+        }
+    
+    def selector(fd, val)-> Iterable[KeyHit]:
+        if fd.message_type is not None and (fd.name in TARGET or fd.name in TARGET):
+            yield KeyHit(fd.name, None, fd.is_repeated, True)
+        
+        else:
+            if fd.name in {'id', 'subscription_id'} and not fd.is_repeated:             
+                yield KeyHit(fd.name, val, fd.is_repeated, False)
+
+    outs = walk_fields(msg, selector, max_depth=2)
+    report_type, request_id_name, request_id_val = None, None, None
+    
+    for hit in outs:
+        if report_type is None and hit.name in TARGET:
+            report_type = hit.name
+        if request_id_name is None and hit.name in {'id', 'subscription_id'}:
+            request_id_name = hit.name 
+            request_id_val = hit.value
+
+    if report_type is None or request_id_name is None:
+        return []
+    
+    return [('sub', report_type, request_id_name, request_id_val)]
 
 @register_extractor('substream')
-def extract_substream_router_keys()->list[RouterKey]: 
-    return []
+def extract_substream_router_keys(
+        msg: ServerMsg, 
+        msg_type: str                      
+    )->list[RouterKey]: 
+    TARGET = {
+        "order_statuses",
+        "position_statuses", 
+        "account_summary_statuses"
+        }
+    IDs = {
+        'order_statuses': 'order_id',
+        'position_statuses': 'contract_id'
+        }
+    
+    def selector(fd, val)-> Iterable[KeyHit]:
+        if fd.message_type is not None and (fd.name in TARGET or fd.name in TARGET):
+            yield KeyHit(fd.name, None, fd.is_repeated, True)
+        elif fd.name in {'order_id', 'contract_id'} and not fd.is_repeated:
+            yield KeyHit(fd.name, val, fd.is_repeated, False)
 
+    outs = walk_fields(msg, selector, max_depth=6)
+
+    keys = []
+    report_type, request_id_name, request_id_val = None, None, None
+    for hit in outs:
+        if report_type is None and hit.name in TARGET:
+            report_type = hit.name
+            
+            # Handle account_summary no-id behaviour
+            if  hit.name == "account_summary_statuses":
+                keys.append(('substream', report_type, 'single', 0))
+            continue
+        
+        expected_id = IDs.get(report_type)
+        if request_id_name is None and expected_id is not None and hit.name == expected_id:
+            request_id_name = hit.name
+            request_id_val = hit.value
+        
+        if report_type and request_id_name and request_id_val is not None:
+            keys.append(('substream', report_type, request_id_name, request_id_val))
+            request_id_name, request_id_val = None, None
+    return keys
 
 @register_extractor('md')
 def extract_market_data_router_keys(

@@ -17,8 +17,6 @@ def _isnot_null(target_dict: dict[str, Any], key: Any) -> None:
     if target_dict.get(key) is None:
         raise KeyError(f"Essential parameter(s): {key} is missing.")
             
-# -----------------------------
-
 def _as_types_tuple(t:Union[type, Tuple[type, ...]]) -> tuple[type, ...]:
     return t if isinstance(t, tuple) else (t,)
 

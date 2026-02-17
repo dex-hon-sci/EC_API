@@ -8,13 +8,14 @@ Created on Mon Jan 12 06:21:10 2026
 import logging
 #from google.protobuf.descriptor import Descriptor, FieldDescriptor
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
-from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
+from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR, SERVER_MSG_FAMILY
 from EC_API.protocol.cqg.key_extractors import (
-    SERVER_MSG_FAMILY, _extractors, RouterKey
+    _extractors, RouterKey
 )
 logger = logging.getLogger(__name__)
 
 def server_msg_type(msg: ServerMsg) -> list[str]:
+    print(msg)
     # extract the top level server msg field
     return [fd.name for fd, _ in msg.ListFields()]
 
