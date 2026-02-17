@@ -238,7 +238,6 @@ def build_trade_subscription_statuses_server_msg(
     trade_subscription_statuses.status_code = res
     return server_msg
 
-
 def build_trade_snapshot_completetions_server_msg() -> ServerMsg:
     server_msg = ServerMsg()
     trade_snapshot_completions = server_msg.trade_snapshot_completions.add()
@@ -371,7 +370,6 @@ def build_go_flat_statuses_server_msg(
     go_flat_statuses.request_id = 1 
     go_flat_statuses.account_id = 1210221
     go_flat_statuses.status_code = res
-    
     return server_msg
 
 ### ---- Market Data ----

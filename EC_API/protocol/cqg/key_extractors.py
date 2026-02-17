@@ -15,11 +15,7 @@ from google.protobuf.internal.containers import (
     )
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
-#("session", "logon_result", "singleton", 0)
-#("report", "information_reports:historical_orders_report", "request_id", 1234)
-#("md_sub", "market_data_subscription_statuses", "request_id", 20001)
-#("trade_sub", "trade_subscription_statuses", "subscription_id", 55555)
-#("order_ack", "order_request_rejects", "request_id", 30001)
+
 RouterKey = tuple[str, str, str, int|str]
 type Extractor_func = Callable[ServerMsg]
 _extractors: dict[str, Extractor_func] = {}
@@ -169,7 +165,7 @@ def extract_sub_router_keys(
         }
     
     def selector(fd, val)-> Iterable[KeyHit]:
-        if fd.message_type is not None and (fd.name in TARGET or fd.name in TARGET):
+        if fd.message_type is not None and fd.name in TARGET:
             yield KeyHit(fd.name, None, fd.is_repeated, True)
         
         else:
@@ -207,7 +203,7 @@ def extract_substream_router_keys(
         }
     
     def selector(fd, val)-> Iterable[KeyHit]:
-        if fd.message_type is not None and (fd.name in TARGET or fd.name in TARGET):
+        if fd.message_type is not None and fd.name in TARGET:
             yield KeyHit(fd.name, None, fd.is_repeated, True)
         elif fd.name in {'order_id', 'contract_id'} and not fd.is_repeated:
             yield KeyHit(fd.name, val, fd.is_repeated, False)
@@ -240,38 +236,29 @@ def extract_market_data_router_keys(
         msg: ServerMsg, 
         msg_type: str                      
     ):
+    TARGET = {
+        "market_data_subscription_statuses", 
+        "real_time_market_data"
+        }
+    def selector(fd, val)-> Iterable[KeyHit]:
+        if fd.message_type is not None and fd.name in TARGET:
+            yield KeyHit(fd.name, None, fd.is_repeated, True)
+        elif fd.name in {'contract_id'} and not fd.is_repeated:
+            yield KeyHit(fd.name, val, fd.is_repeated, False)
     
-    def selector(fd, val)-> Iterable[KeyHit]:...
+    outs = walk_fields(msg, selector, max_depth=6)
+    
+    keys = []
+    report_type, request_id_name, request_id_val = None, None, None
+    for hit in outs:
+        if report_type is None and hit.name in TARGET:
+            report_type = hit.name
 
-@register_extractor('md_stream')
-def extract_market_data_stream_router_keys():...
-
-# =============================================================================
-# SERVER_MSG_FAMILY = {
-#   # (1) connection/session
-#   "LogonResult": "session",
-#   "RestoreOrJoinSessionResult": "session",
-#   "ConcurrentConnectionJoin": "session",
-#   "LoggedOff": "session",
-#   "Pong": "session",
-#   # (2) info report container
-#   "InformationReport": "info",
-#   # (3) order/account RPC & streams
-#   "OrderRequestReject": "rpc_reqid",
-#   "OrderRequestAck": "rpc_reqid",
-#   "GoFlatStatus": "rpc_reqid",
-#   "TradeSubscriptionStatus": "sub",           # keyed by .id in your builder
-#   "TradeSnapshotCompletion": "sub",            # keyed by subscription_id
-#   "OrderStatus": "substream",                  # keyed by subscription_ids
-#   "PositionStatus": "substream",
-#   "AccountSummaryStatus": "substream",
-#   # (4) realtime
-#   "MarketDataSubscriptionStatus": "md",      # keyed by contract_id in your builder
-#   "RealTimeMarketData": "mdstream",            # keyed by contract_id
-#   # (5) historical
-#   "TimeAndSalesReport": "rpc_reqid",
-#   "TimeBarReport": "rpc_reqid",
-#   "VolumeProfileReport": "rpc_reqid",
-#   "NonTimedBarReport": "rpc_reqid",
-# }
-# =============================================================================
+        if request_id_name is None and hit.name == "contract_id":
+            request_id_name = hit.name
+            request_id_val = hit.value
+        
+        if report_type and request_id_name and request_id_val is not None:
+            keys.append(('md', report_type, request_id_name, request_id_val))
+            request_id_name, request_id_val = None, None
+    return keys

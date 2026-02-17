@@ -6,10 +6,9 @@ Created on Fri Feb 13 21:26:23 2026
 @author: dexter
 """
 
-from EC_API.protocol.cqg.key_extractors import _extractors, extract_names_generic
+from EC_API.protocol.cqg.key_extractors import _extractors
 from EC_API.protocol.cqg.router_util import server_msg_type, extract_router_keys
 from tests.unit.fixtures.server_msg_builders_CQG import *
-
 
 def test_sever_msg_type() -> None:
     all_msg = build_all_server_msgs()
@@ -18,15 +17,16 @@ def test_sever_msg_type() -> None:
         out = server_msg_type(msg)[0]
         assert out == top_msg_type
         
-        
 def test_complete_registry() -> None:
-   required_extractor_families = [
-       'session',  'info', 'rpc', 'sub', 'substream'
+    required_extractor_families = [
+       'session',  'info', 'md',
+       'sub', 'substream', 'rpc_reqid'
        ]
    
-   keys = list(_extractors.keys())
-   for key in keys:
-       assert key in required_extractor_families
+    keys = list(_extractors.keys())
+    for key in keys:
+        assert key in required_extractor_families
+    assert len(required_extractor_families) == len(keys)
     
 # Test extraction for sessions
 def test_extract_key_logon_result() -> None:
@@ -59,12 +59,13 @@ def test_extract_key_pong() -> None:
     assert len(router_keys) == 1
     assert router_keys[0] == ('session', 'pong', 'single', 0)
 
+# ----
+# Test extraction for information reports
 def test_extract_key_info_symbol_resolution_report() -> None:
     msg = build_symbol_resolution_report_server_msg()
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:symbol_resolution_report', 'id', 1)
-
 
 def test_extract_key_info_session_information_report() -> None:
     msg = build_session_info_report_server_msg()
@@ -81,6 +82,7 @@ def test_extract_key_info_historical_orders_report() -> None:
 def test_extract_key_info_option_maturity_list_report() -> None:
     msg = build_option_maturity_list_report_server_msg()
     router_keys = extract_router_keys(msg)
+    print(router_keys)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:option_maturity_list_report', 'id', 1)
 
@@ -95,23 +97,91 @@ def test_extract_key_info_at_the_money_strike_report() -> None:
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:at_the_money_strike_report', 'id', 1)
+# ----
+# Test extraction for order updates
+def test_extract_key_order_request_rejects() -> None:
+    msg = build_order_request_rejects_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('rpc_reqid', 'order_request_rejects', 'request_id', 1)
+    
+def test_extract_key_order_request_acks() -> None:
+    msg = build_order_request_acks_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('rpc_reqid', 'order_request_acks', 'request_id', 1)
+    
+def test_extract_key_trade_subscription_statuses() -> None:
+    msg = build_trade_subscription_statuses_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('sub', 'trade_subscription_statuses', 'id', 1)
+ 
 
-def test_extract_key_order_request_rejects() -> None:...
-def test_extract_key_order_request_acks() -> None:...
-def test_extract_key_trade_subscription_statuses() -> None:...
-def test_extract_key_trade_snapshot_completions() -> None:...
-def test_extract_key_order_statuses() -> None:...
-def test_extract_key_position_statuses() -> None:...
-def test_extract_key_account_summary_statuses() -> None:...
-def test_extract_key_go_flat_statuses() -> None:...
+def test_extract_key_trade_snapshot_completions() -> None:
+    msg = build_trade_snapshot_completetions_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('sub', 'trade_snapshot_completions', 'subscription_id', 1)
 
-def test_extract_key_market_data_subscription_statuses() -> None:...
-def test_extract_key_real_time_market_data() -> None:...
+def test_extract_key_order_statuses() -> None:
+    msg = build_order_statuses_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    
 
-def test_extract_key_time_and_sales_reports() -> None:...
-def test_extract_key_time_bar_reports() -> None:...
-def test_extract_key_volume_profile_reports() -> None:...
-def test_extract_key_non_timed_bar_reports() -> None:...
+def test_extract_key_position_statuses() -> None:
+    msg = build_position_statuses_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
 
+def test_extract_key_account_summary_statuses() -> None:
+    msg = build_account_summary_statuses_server_msg()
+    router_keys = extract_router_keys(msg)
 
-       
+    assert len(router_keys) == 1
+
+def test_extract_key_go_flat_statuses() -> None:
+    msg = build_go_flat_statuses_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('rpc_reqid', 'go_flat_statuses', 'request_id', 1)
+
+def test_extract_key_market_data_subscription_statuses() -> None:
+    msg = build_market_data_subscription_statuses_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('md', 'market_data_subscription_statuses', 'contract_id', 1)
+
+def test_extract_key_real_time_market_data() -> None:
+    msg = build_real_time_market_data_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('md', 'real_time_market_data', 'contract_id', 1)
+
+# ---- time and sales, historical data
+def test_extract_key_time_and_sales_reports() -> None:
+    msg = build_time_and_sales_reports_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('rpc_reqid', 'time_and_sales_reports', 'request_id', 1)
+
+def test_extract_key_time_bar_reports() -> None:
+    msg = build_time_bar_reports_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('rpc_reqid', 'time_bar_reports', 'request_id', 1)
+
+def test_extract_key_volume_profile_reports() -> None:
+    msg = build_volume_profile_reports_server_msg()
+    router_keys = extract_router_keys(msg)
+
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('rpc_reqid', 'volume_profile_reports', 'request_id', 1)
+
+def test_extract_key_non_timed_bar_reports() -> None:
+    msg = build_non_timed_bar_reports_server_msg()
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 1
+    assert router_keys[0] == ('rpc_reqid', 'non_timed_bar_reports', 'request_id', 1)
+

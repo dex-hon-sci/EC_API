@@ -53,7 +53,7 @@ SERVER_MSG_FAMILY = {
     "go_flat_statuses": "rpc_reqid",
     # (4) realtime
     "market_data_subscription_statuses":  "md",
-    "real_time_market_data": "mdstream",
+    "real_time_market_data": "md",
     # (5) historical
     "time_and_sales_reports": "rpc_reqid",
     "time_bar_reports": "rpc_reqid",
