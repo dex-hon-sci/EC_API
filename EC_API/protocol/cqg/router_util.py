@@ -6,7 +6,7 @@ Created on Mon Jan 12 06:21:10 2026
 @author: dexter
 """
 import logging
-from google.protobuf.descriptor import Descriptor, FieldDescriptor
+#from google.protobuf.descriptor import Descriptor, FieldDescriptor
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
 from EC_API.protocol.cqg.key_extractors import (
@@ -14,11 +14,8 @@ from EC_API.protocol.cqg.key_extractors import (
 )
 logger = logging.getLogger(__name__)
 
-
-
 def server_msg_type(msg: ServerMsg) -> list[str]:
     # extract the top level server msg field
-    
     return [fd.name for fd, _ in msg.ListFields()]
 
 def extract_router_keys(
@@ -44,17 +41,15 @@ def extract_router_keys(
     return res
 
 ##########
-
 # Streaming classifiers (examples)
 def is_realtime_tick(msg: ServerMsg) -> bool:
     return server_msg_type(msg) in {"real_time_market_data"}
 
 def is_order_update_stream(msg: ServerMsg) -> bool:
-    # depending on CQG config you might get updates in trade_snapshot etc.
     return server_msg_type(msg) in MAP_RESPONSES_TYPES_STR.get('order_requests')
 
 def is_trade_history(msg: ServerMsg) -> bool:
     return server_msg_type(msg) in {"InformationReport:historical_orders_report"}
 
-# Helper to detect message types
-def is_symbol_resolution(msg: ServerMsg) -> bool:...
+def is_symbol_resolution(msg: ServerMsg) -> bool:
+    return server_msg_type(msg) in {"InformationReport:symbol_resolution_report"}
