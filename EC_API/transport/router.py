@@ -40,22 +40,30 @@ class MessageRouter:
 class StreamRouter:
     def __init__(
             self, 
-            max_size: int = 1_000_000, 
+            max_queue_size: int = 1_000, 
             drop_if_full: bool = False
         ):
         # we assume one Stream Router per vendor
         self._subs: dict[int, list[asyncio.Queue]] = {}
-        self._max_size = max_size
+        self._max_queue_size = max_queue_size
         self._drop_if_full = drop_if_full
 
-    def subscribe(self, contract_id: int):
+    def subscribe(
+            self, 
+            contract_id: int
+        ) -> asyncio.Queue[Any]:
         q = asyncio.Queue(maxsize=self._max_queue_size) if self._max_queue_size else asyncio.Queue()
         # Add a new Queue to the list in case there is a new subscriber who
         # calls subscribe
         self._subs.setdefault(contract_id, []).append(q)
         return q
     
-    def unsubscribe(self, contract_id: int, q: asyncio.Queue):
+    def unsubscribe(
+            self, 
+            contract_id: int, 
+            q: asyncio.Queue
+        ) -> None:
+        
         lst = self._subs.get(contract_id, [])
         if q in lst:
             lst.remove(q)
@@ -66,15 +74,13 @@ class StreamRouter:
             del self._subs[contract_id]
             
     async def publish(self, contract_id: int, item: Any) -> None:
-        
+        # Put the latest data into the Async Queue inside the StreamRouter
         for q in self._subs.get(contract_id, []):
-            
             if self._drop_if_full:
                 # Drop newest (or implement drop-oldest policy)
                 continue
-            
             try:
-                q.put_nowait(item)
+                await q.put_nowait(item)
             except asyncio.QueueFull:
                 
                 if not self._drop_if_full:

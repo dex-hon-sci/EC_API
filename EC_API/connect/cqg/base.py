@@ -68,10 +68,10 @@ class ConnectCQG(Connect):
         self.exec_stream = StreamRouter()
         
         # queues for containing different server messages
-        self._mkt_data_queue: asyncio.Queue = asyncio.Queue()
-        self._exec_queue = asyncio.Queue()
-        self._trade_exec_queue: asyncio.Queue = asyncio.Queue()
-        self._misc_queue: asyncio.Queue = asyncio.Queue()
+        #self._mkt_data_queue: asyncio.Queue = asyncio.Queue() # for realtime datta
+        #self._exec_queue = asyncio.Queue()  
+        #self._trade_exec_queue: asyncio.Queue = asyncio.Queue() # for order satatuses, position
+        self._misc_queue: asyncio.Queue = asyncio.Queue() # For information report?
         
         if immediate_connect:
             self._transport.connect()
@@ -133,29 +133,32 @@ class ConnectCQG(Connect):
             msg: ServerMsg = await self._transport.recv()
 
             # May wany to use registry pattern to handle this
-            # 1) RPC routing (futures)
             key = extract_router_key(msg)
-            if key is not None and self._msg_router.on_message(key, msg):
-                continue
-
-            # 2) streaming dispatch
-            if is_realtime_tick(msg):
-                await self.tick_q.put(msg)
-                continue
-            
-            # 2) order update dispatch
-            if is_order_update_stream(msg):
-                await self.exec_q.put(msg)
-                continue
-            
-            if is_trade_history(msg):
-                await self.exec_q.put(msg)
-                continue
+            if key is not None:        
+                key_type, msg_type, msg_id_type, msg_id = key
+                # First check the obviou, ie, 
+                # 1) streaming dispatch
+                if is_realtime_tick(msg):
+                    await self.market_data_stream.publish(msg_id, msg)
+                    continue
                 
+                # 2) order update dispatch <--need to handle this better
+                if is_order_update_stream(msg):
+                    await self.exec_stream.publish(msg_id, msg)
+                    continue
+                
+                # 1) RPC routing (futures)
+                if key_type in {"rpc_reqid", "session", "sub"}:
+                    self._msg_router.on_message(key, msg)
+             
+            #if is_trade_history(msg):
+            #    await self.exec_q.put(msg)
+            #    continue
+            
             await self.misc_q.put(msg)
     # -----------------------
 
-    # ---- CQG messages (RPC) methods ----
+    # ---- CQG messages methods ----
     async def logon(
         self, 
         client_app_id: str ='WebApiTest', 

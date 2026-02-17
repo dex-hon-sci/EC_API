@@ -12,7 +12,6 @@ from EC_API.protocol.cqg.builder_util import (
     )
 from EC_API.connect.cqg.fields import (
     LOGON_REQUEST_REQUIRED_FIELDS,
-    LOGON_REQUEST_OPTIONAL_FIELDS,
     LOGOFF_REQUEST_REQUIRED_FIELDS,
     RESTORE_REQUEST_REQUIRED_FIELDS,
     PING_REQUEST_REQUIRED_FIELDS,
@@ -130,6 +129,5 @@ def build_resolve_symbol_msg(
     
     if 'instrument_group_request' in kwargs:
         information_request.instrument_group_request.instrument_group_id = kwargs['instrument_group_request']
-        
- 
+         
     return client_msg
