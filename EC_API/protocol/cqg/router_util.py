@@ -47,7 +47,7 @@ def is_realtime_tick(msg: ServerMsg) -> bool:
     return server_msg_type(msg) in {"real_time_market_data"}
 
 def is_order_update_stream(msg: ServerMsg) -> bool:
-    return server_msg_type(msg) in MAP_RESPONSES_TYPES_STR.get('order_requests')
+    return server_msg_type(msg) in {"order_statuses"}
 
 def is_trade_history(msg: ServerMsg) -> bool:
     return server_msg_type(msg) in {"InformationReport:historical_orders_report"}

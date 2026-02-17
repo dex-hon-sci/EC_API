@@ -115,6 +115,29 @@ MAP_RESPONSES_TYPES_STR = {
     }
 
 
+REQUEST_TO_REPLY = {
+  "logon": "logon_result",
+  "logoff": "logged_off",
+  "restore_or_join_session": "restore_or_join_session_result",
+  "ping": "pong",
+  "pong": "ping",
+  #
+  "information_requests": "information_reports",
+  #
+  "trade_subscriptions": "trade_subscription_statuses",
+  #
+  "order_requests":"order_statuses",
+  #
+  "market_data_subscriptions": "market_data_subscription_statuses",
+  #
+  "time_and_sales_requests": "historical_data_reports",
+  "time_bar_requests": "time_and_sales_reports",
+  "volume_profile_requests": "",
+#
+  
+  "historical_orders_request": "historical_orders_report"
+}
+
 def find_order_status_type(server_msg:ServerMsg)->str:
     # For Order_statues
     Q = {"new_order": {"request_id": server_msg.order_statuses.request_id,
