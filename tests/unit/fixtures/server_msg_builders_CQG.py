@@ -577,39 +577,4 @@ def build_all_server_msgs() -> dict[str, ServerMsg]:
         "non_timed_bar_reports": non_timed_bar_reports_server_msg,
         }
 
-# =============================================================================
-#         # (1) connection/session
-#         "LogonResult": logon_result_server_msg,
-#         "RestoreOrJoinSessionResult": restore_or_join_session_result_server_msg,
-#         "ConcurrentConnectionJoin": concurrent_connection_join_results_server_msg,
-#         "LoggedOff": logged_off_server_msg,
-#         "Pong": pong_server_msg,
-#         # (2) info report container
-#         "InformationReport:SymbolResolutionReport": symbol_resolution_report_server_msg,
-#         "InformationReport:SessionInformationReport": session_info_report_server_msg,
-#         "InformationReport:HistoricalOrdersReport": historical_orders_report_server_msg,
-#         "InformationReport:OptionMaturityListReport": option_maturity_list_report_server_msg,
-#         "InformationReport:InstrumentGroupReport": instrument_group_report_server_msg,
-#         "InformationReport:AtTheMoneyStrikeReport": at_the_money_strike_report_server_msg,
-#         # (3) order/account RPC & streams
-#         "OrderRequestReject": order_request_rejects_server_msg,
-#         "OrderRequestAck": order_request_acks_server_msg,
-#         "GoFlatStatus": go_flat_statuses_server_msg,
-#         "TradeSubscriptionStatus": trade_subscription_statuses_server_msg,
-#         "TradeSnapshotCompletion": trade_snapshot_completetions_server_msg,
-#         "OrderStatus": order_statuses_server_msg,
-#         "PositionStatus": position_statuses_server_msg,
-#         "AccountSummaryStatus": account_summary_statuses_server_msg,
-#         # (4) realtime
-#         "MarketDataSubscriptionStatus": market_data_subscription_statuses_server_msg,
-#         "RealTimeMarketData": real_time_market_data_server_msg,
-#         # (5) historical
-#         "TimeAndSalesReport": time_and_sales_reports_server_msg,
-#         "TimeBarReport": time_bar_reports_server_msg,
-#         "VolumeProfileReport": volume_profile_reports_server_msg,
-#         "NonTimedBarReport": non_timed_bar_reports_server_msg,
-#         }
-# 
-# =============================================================================
-
 
