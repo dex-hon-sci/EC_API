@@ -27,6 +27,14 @@ class MessageRouter:
                 extra={"router_key": key}
                 )
         self._pending[key] = fut
+        
+        # clearup code in case of user cancel
+        # add_done_callback
+
+        #def _cleanup(_):
+        #    self._pending.pop(key, None)
+        #     
+        #fut.add_done_callback(_cleanup)        
         return fut
 
     def on_message(self, key: RouterKey, msg: Any) -> bool:

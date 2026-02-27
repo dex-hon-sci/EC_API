@@ -70,3 +70,37 @@ async def test_fail_all_valid() -> None:
 
     assert MR._pending == {}
 
+####
+@pytest.mark.asyncio
+async def test_fail_all_does_not_override_completed_futures():
+    mr = MessageRouter()
+
+    key = ("family", "typeA", "request_id", 1)
+    fut = mr.register_key(key)
+
+    # Complete it normally
+    mr.on_message(key, "OK")
+
+    assert fut.done()
+    assert fut.result() == "OK"
+
+    # Now call fail_all
+    mr.fail_all(RuntimeError("should not affect"))
+
+    # Should still have original result
+    assert fut.result() == "OK"
+    
+@pytest.mark.asyncio
+async def test_fail_all_ignores_cancelled_futures():
+    mr = MessageRouter()
+
+    key = ("family", "typeA", "request_id", 1)
+    fut = mr.register_key(key)
+
+    fut.cancel()
+
+    # Should not crash
+    mr.fail_all(RuntimeError("connection lost"))
+
+    # Cancelled future should stay cancelled
+    assert fut.cancelled()
