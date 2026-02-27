@@ -13,13 +13,13 @@ import time
 import pytest
 # EC_API imports
 from EC_API.transport.cqg.base import TransportCQG
-from tests.unit.transport.proxy import FakeCQGClient
+from tests.unit.fixtures.proxy_clients import FakeCQGClient
 
 @pytest.mark.asyncio
 async def test_transport_lifecycle() -> None:
     # Lifecycle - After connect() and start(), is one IO thread running?
-    # Lifecycle - After stop(), does that IO thread exit?
-    # Lifecycle - Is the CQG client disconnected cleanly?
+    # Lifecycle - After stop(), check if the IO thread still exit
+    # Lifecycle - chekc if the CQG client disconnected cleanly
     def _find_threads(prefix: str):
         return [t for t in threading.enumerate() if t.name.startswith(prefix)]
     

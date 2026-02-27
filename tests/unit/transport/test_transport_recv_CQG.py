@@ -14,7 +14,7 @@ import pytest
 # EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.transport.cqg.base import TransportCQG
-from tests.unit.transport.proxy import FakeCQGClient
+from tests.unit.fixtures.proxy_clients import FakeCQGClient
 
 @pytest.mark.asyncio
 async def test_transport_recv2async_queue() -> None:

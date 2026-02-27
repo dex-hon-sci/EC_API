@@ -13,7 +13,7 @@ import pytest
 # EC_API imports
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from tests.unit.transport.proxy import FakeCQGClient
+from tests.unit.fixtures.proxy_clients import FakeCQGClient
 
 def _find_threads(prefix: str):
     return [t for t in threading.enumerate() if t.name.startswith(prefix)]
@@ -31,7 +31,8 @@ async def test_transport_concurrent_sendandrecv() -> None:
         client=fake_client,
     )
     
-    transport.connect()
+    Q = transport.connect()
+    print('connect', Q)
     transport.start()
     
     async def sender():
@@ -87,6 +88,8 @@ async def test_transport_concurrent_sendandrecv() -> None:
         await asyncio.sleep(0.01)
     assert _find_threads("TransportCQG") == []
     assert fake_client.disconnected is True
+
+asyncio.run(test_transport_concurrent_sendandrecv())
 
 @pytest.mark.asyncio
 async def test_transport_shutdown_on_disconnect():
