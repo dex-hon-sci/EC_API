@@ -17,6 +17,7 @@ class MessageRouter:
     def register_key(self, key: RouterKey) -> asyncio.Future:
         fut = asyncio.get_running_loop().create_future()
         # show error if key already exists ...
+        
         if key in self._pending.keys():
             print(f'key already exist:{key}')
         self._pending[key] = fut
