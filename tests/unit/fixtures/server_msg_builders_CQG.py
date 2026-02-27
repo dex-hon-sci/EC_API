@@ -98,18 +98,21 @@ def build_pong_server_msg(
 # account_risk_parameters_report
 # order_status_report
 def build_symbol_resolution_report_server_msg(
-        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS
+        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+        report_id: int = 1,
+        cotract_id: int = 3,
+        contract_symbol: str = "CLE",
     ) -> ServerMsg:
     server_msg = ServerMsg()
     
     information_report = server_msg.information_reports.add()
-    information_report.id = 1
+    information_report.id = report_id
     information_report.status_code = res
     
     symbol_resolution_report = server_msg.information_reports[0].symbol_resolution_report
 
-    symbol_resolution_report.contract_metadata.contract_id = 3
-    symbol_resolution_report.contract_metadata.contract_symbol = "CLE"
+    symbol_resolution_report.contract_metadata.contract_id = cotract_id
+    symbol_resolution_report.contract_metadata.contract_symbol = contract_symbol
     symbol_resolution_report.contract_metadata.correct_price_scale = 100
     symbol_resolution_report.contract_metadata.display_price_scale = 200
     symbol_resolution_report.contract_metadata.description = "Desc"
@@ -126,12 +129,13 @@ def build_symbol_resolution_report_server_msg(
     return server_msg
 
 def build_session_info_report_server_msg(
-        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS
+        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+        report_id: int = 1,
     ) -> ServerMsg:
     server_msg = ServerMsg()
 
     information_report = server_msg.information_reports.add()
-    information_report.id = 1
+    information_report.id = report_id
     information_report.status_code = res
 
     session_information_report = server_msg.information_reports[0].session_information_report
@@ -143,59 +147,70 @@ def build_session_info_report_server_msg(
     return server_msg
     
 def build_historical_orders_report_server_msg(
-        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS
+        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+        report_id: int = 1,
+        order_id: str = "1",
+        chain_order_id: str = "A"
     ) -> ServerMsg:
     TS = datetime.now(timezone.utc)
     server_msg = ServerMsg()
     
     information_report = server_msg.information_reports.add()
-    information_report.id = 1
+    information_report.id = report_id
     information_report.status_code = res
 
     historical_orders_report_order_status = information_report.historical_orders_report.order_statuses.add()
     historical_orders_report_order_status.status = OrderStatus.Status.FILLED
-    historical_orders_report_order_status.order_id = "1"
-    historical_orders_report_order_status.chain_order_id = "A"
+    historical_orders_report_order_status.order_id = order_id
+    historical_orders_report_order_status.chain_order_id = chain_order_id
     historical_orders_report_order_status.status_utc_timestamp = TS
     historical_orders_report_order_status.fill_cnt = 1
     return server_msg
 
 def build_option_maturity_list_report_server_msg(
-        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS
+        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+        report_id: int = 1,
+        option_id: str = "id_1",
+        option_name: str ="CLXXXX"
     ) -> ServerMsg:
     server_msg = ServerMsg()
     
     information_report = server_msg.information_reports.add()
-    information_report.id = 1
+    information_report.id = report_id
+
     information_report.status_code = res
 
     option_maturities = information_report.option_maturity_list_report.option_maturities.add()
-    option_maturities.id = "id_1"
-    option_maturities.name = "CLXXXX"
+    option_maturities.id = option_id
+    option_maturities.name = option_name
     option_maturities.description = "description"
     return server_msg
 
 def build_instrument_group_report_server_msg(
-        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS
+        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+        report_id: int = 1,
+        instrument_id: str = "id_1",
+        instrument_name: str = "Instrument_1"
     ) -> ServerMsg: 
     server_msg = ServerMsg()
     
     information_report = server_msg.information_reports.add()
-    information_report.id = 1
+    information_report.id = report_id
     information_report.status_code = res
 
     instruments = information_report.instrument_group_report.instruments.add()
-    instruments.id = "id_1"
-    instruments.name = "Instrument_1"
+    instruments.id = instrument_id
+    instruments.name = instrument_name
     instruments.description = "description"
     return server_msg
 
 def build_at_the_money_strike_report_server_msg(
-        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS
+        res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+        report_id: int = 1,
     ) -> ServerMsg: 
     server_msg = ServerMsg()
     information_report = server_msg.information_reports.add()
-    information_report.id = 1
+    information_report.id = report_id
     information_report.status_code = res
 
     at_the_money_strike_report = information_report.at_the_money_strike_report
@@ -211,38 +226,45 @@ def build_at_the_money_strike_report_server_msg(
 # (6) position_statuses (v)
 # (7) account_summary_statuses (v)
 # (8) go_flat_statuses (v)
-def build_order_request_rejects_server_msg() -> ServerMsg:
+def build_order_request_rejects_server_msg(
+        request_id: int = 1
+    ) -> ServerMsg:
     server_msg = ServerMsg()
     
     order_request_rejects = server_msg.order_request_rejects.add()
-    order_request_rejects.request_id = 1
+    order_request_rejects.request_id = request_id
     order_request_rejects.reject_code = 1001
     
     return server_msg
 
-def build_order_request_acks_server_msg() -> ServerMsg:
+def build_order_request_acks_server_msg(
+        request_id: int = 1
+    ) -> ServerMsg:
     server_msg = ServerMsg()
     
     order_request_acks = server_msg.order_request_acks.add()
-    order_request_acks.request_id = 1
+    order_request_acks.request_id = request_id
     order_request_acks.when = datetime.now()
     return server_msg
 
 def build_trade_subscription_statuses_server_msg(
-        res: TrdSubStatus.StatusCode = TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS
+        res: TrdSubStatus.StatusCode = TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS,
+        sub_id: int = 1
     ) -> ServerMsg:
     server_msg = ServerMsg()
     trade_subscription_statuses = server_msg.trade_subscription_statuses.add()
-    trade_subscription_statuses.id = 1
+    trade_subscription_statuses.id = sub_id
     
     trade_subscription_statuses.status_code = res
     return server_msg
 
-def build_trade_snapshot_completetions_server_msg() -> ServerMsg:
+def build_trade_snapshot_completetions_server_msg(
+        sub_id: int = 1
+    ) -> ServerMsg:
     server_msg = ServerMsg()
     trade_snapshot_completions = server_msg.trade_snapshot_completions.add()
     
-    trade_snapshot_completions.subscription_id = 1
+    trade_snapshot_completions.subscription_id = sub_id
     
     sub_scope = trade_snapshot_completions.subscription_scopes
     sub_scope.append(TrsSub.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS)
@@ -252,17 +274,21 @@ def build_trade_snapshot_completetions_server_msg() -> ServerMsg:
     return server_msg
 
 def build_order_statuses_server_msg(
-        res: OrderStatus.Status = OrderStatus.Status.IN_TRANSIT
+        res: OrderStatus.Status = OrderStatus.Status.IN_TRANSIT,
+        contract_id: int = 0,
+        sub_id: int = 1,
+        order_id: str = "order_id_1",
+        chain_order_id: str = "chain_order_id_1"
     ) -> ServerMsg:
     server_msg = ServerMsg()
     
     order_statuses = server_msg.order_statuses.add()
     
     # ----
-    order_statuses.subscription_ids.append(1)
+    order_statuses.subscription_ids.append(sub_id)
     order_statuses.status = res
-    order_statuses.order_id = "order_id_1"
-    order_statuses.chain_order_id = "chain_order_id_1"
+    order_statuses.order_id = order_id
+    order_statuses.chain_order_id = chain_order_id
     order_statuses.status_utc_timestamp = datetime.now()
     order_statuses.submission_utc_timestamp = datetime.now()
     order_statuses.fill_cnt = 0
@@ -309,16 +335,18 @@ def build_order_statuses_server_msg(
     return server_msg
 
 
-def build_position_statuses_server_msg() -> ServerMsg:    
+def build_position_statuses_server_msg(
+        subscription_ids: list[int] = [0,1,2],
+        contract_id: int = 0
+    ) -> ServerMsg:    
     server_msg = ServerMsg()
     
     position_statuses = server_msg.position_statuses.add()
-    position_statuses.subscription_ids.append(0)
-    position_statuses.subscription_ids.append(1)
-    position_statuses.subscription_ids.append(2)
+    for num in subscription_ids:
+        position_statuses.subscription_ids.append(num)
     
     position_statuses.account_id = 123466
-    position_statuses.contract_id = 0 
+    position_statuses.contract_id = contract_id
     position_statuses.is_short_open_position = False
     
     # ----
@@ -388,11 +416,13 @@ def build_market_data_subscription_statuses_server_msg(
     return server_msg
 
 
-def build_real_time_market_data_server_msg() -> ServerMsg:
+def build_real_time_market_data_server_msg(
+        contract_id: int = 1
+    ) -> ServerMsg:
     server_msg = ServerMsg()
     real_time_market_data = server_msg.real_time_market_data.add()
     
-    real_time_market_data.contract_id = 1
+    real_time_market_data.contract_id = contract_id
     
     # ----
     quotes = real_time_market_data.quotes.add()
