@@ -11,7 +11,7 @@ from google.protobuf.message import Message
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
 
-RouterKey = tuple[str, str, str, int|str]
+RouterKey = tuple[str, str, str, int|str] # (msg_family, msg_type, id_field_name, id)
 type Extractor_func = Callable[ServerMsg]
 _extractors: dict[str, Extractor_func] = {}
 

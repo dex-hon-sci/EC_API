@@ -277,7 +277,3 @@ def extract_IDs_from_server_msg(server_msg: ServerMsg,
 #liquidate_all
 #cancel_all_orders
 #suspend_order
-
-# PositionStatus, CollateralStatus, AccountSummaryStatus, 
-# RealTimeMarketData special states
-# TimeBarReport state

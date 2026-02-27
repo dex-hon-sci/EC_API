@@ -15,7 +15,6 @@ from EC_API.protocol.cqg.key_extractors import (
 logger = logging.getLogger(__name__)
 
 def server_msg_type(msg: ServerMsg) -> list[str]:
-    print(msg)
     # extract the top level server msg field
     return [fd.name for fd, _ in msg.ListFields()]
 
