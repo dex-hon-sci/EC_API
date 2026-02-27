@@ -5,7 +5,7 @@ Created on Thu Nov 27 21:55:11 2025
 
 @author: dexter
 """
-
+import logging
 import asyncio
 import threading
 import queue
@@ -13,6 +13,8 @@ from typing import Optional
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
+
+logger = logging.getLogger(__name__)
 
 class TransportCQG:
     """
@@ -42,7 +44,6 @@ class TransportCQG:
         self._thread: Optional[threading.Thread] = None
 
     def connect(self) -> None:
-        """Connect underlying CQG client (blocking, called once)."""
         self._client.connect(self._host_name)
 
     # --- writer and reader loops -------------

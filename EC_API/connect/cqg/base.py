@@ -25,8 +25,6 @@ from EC_API.connect.cqg.builders import (
     build_restore_msg
     )
 
-#from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult
-#from EC_API.protocol.cqg.mapping import cqg_mapping
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg # remove this once parser functions are done
 
 
@@ -38,7 +36,8 @@ class ConnectCQG(Connect):
             host_name: str, 
             user_name: str, 
             password: str,
-            immediate_connect: bool = True
+            immediate_connect: bool = True,
+            client: None = None
         ):
         # Inputs
         self._host_name = host_name
@@ -58,9 +57,9 @@ class ConnectCQG(Connect):
         self._rid = 10 # starting request ID
         
         # Define client
-        self._client = webapi_client.WebApiClient()
+        self._client = webapi_client.WebApiClient() if client is None else client
         self._loop = asyncio.get_running_loop()
-        self._transport = TransportCQG()
+        self._transport = TransportCQG(client=self._client)
         
         self._msg_router = MessageRouter()
         
@@ -136,7 +135,7 @@ class ConnectCQG(Connect):
             key = extract_router_key(msg)
             if key is not None:        
                 key_type, msg_type, msg_id_type, msg_id = key
-                # First check the obviou, ie, 
+                # Cheapest check first, 
                 # 1) streaming dispatch
                 if is_realtime_tick(msg):
                     await self.market_data_stream.publish(msg_id, msg)
@@ -147,15 +146,15 @@ class ConnectCQG(Connect):
                     await self.exec_stream.publish(msg_id, msg)
                     continue
                 
-                # 1) RPC routing (futures)
-                if key_type in {"rpc_reqid", "session", "sub"}:
+                # 1) RPC routing (futures), 
+                if key_type in {"rpc_reqid", "session", "sub", "info"}:
                     self._msg_router.on_message(key, msg)
              
             #if is_trade_history(msg):
             #    await self.exec_q.put(msg)
             #    continue
             
-            await self.misc_q.put(msg)
+            #await self.misc_q.put(msg) # No misc, because it will blow up
     # -----------------------
 
     # ---- CQG messages methods ----
