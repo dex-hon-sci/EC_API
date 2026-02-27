@@ -7,9 +7,13 @@ Created on Wed Nov 26 16:40:57 2025
 """
 import asyncio
 from typing import Any #Hashable, Optional
+import logging
 
-RouterKey = tuple[str, int]  # (server_msg_type, request_id)
+logger = logging.getLogger(__name__)
 
+#(msg_family, msg_type, id_field_name, id)
+RouterKey = tuple[str, str, str, int|str] 
+ 
 class MessageRouter:
     def __init__(self):
         self._pending: dict[RouterKey, asyncio.Future] = {}
@@ -17,9 +21,11 @@ class MessageRouter:
     def register_key(self, key: RouterKey) -> asyncio.Future:
         fut = asyncio.get_running_loop().create_future()
         # show error if key already exists ...
-        
         if key in self._pending.keys():
-            print(f'key already exist:{key}')
+            logger.error(
+                "router register key failed: key {key} already exist.",
+                extra={"router_key": key}
+                )
         self._pending[key] = fut
         return fut
 
