@@ -7,6 +7,7 @@ Created on Sat Dec 13 18:23:10 2025
 """
 # Python imports
 import queue
+import asyncio
 # EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
@@ -42,3 +43,17 @@ class FakeCQGClient:
     def push_incoming(self, msg: ServerMsg):
         """Helper: push a message so transport.recv() can eventually see it."""
         self._incoming.put(msg)
+        
+class FakeTransport:
+    def __init__(self):
+        self.in_q: asyncio.Queue = asyncio.Queue()
+        
+    async def recv(self):
+        return await self.in_q
+    
+    async def send(self, msg_):
+        return
+    
+    def connect(self):...
+    def start(self):...
+    def stop(self):...
