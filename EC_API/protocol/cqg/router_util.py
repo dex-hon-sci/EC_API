@@ -40,8 +40,7 @@ def extract_router_keys(
             continue
     return res
 
-##########
-# Streaming classifiers (examples)
+# --- Bool checks ----
 def is_realtime_tick(msg: ServerMsg) -> bool:
     return server_msg_type(msg) in {"real_time_market_data"}
 
@@ -53,3 +52,10 @@ def is_trade_history(msg: ServerMsg) -> bool:
 
 def is_symbol_resolution(msg: ServerMsg) -> bool:
     return server_msg_type(msg) in {"InformationReport:symbol_resolution_report"}
+
+# --- id extractor ---
+def realtime_tick_contract_id(msg: ServerMsg) -> int:
+    return msg.real_time_market_data[0].contract_id
+
+def order_statuses_order_id(msg: ServerMsg) -> str:
+    return msg.order_statuses[0].order_id

@@ -14,11 +14,9 @@ from EC_API.exceptions import (
     MaxSymbolsExceededError, MaxSubscribersExceededError
     )
 
-#logger = logging.getLogger(__name__)
 
 # (msg_family, msg_type, id_field_name, id)
 RouterKey = tuple[str, str, str, int | str]
-
 
 class MessageRouter:
     def __init__(self):
@@ -68,7 +66,7 @@ class StreamRouter:
         drop_policy: str = "drop_oldest"
         ):
         # we assume one Stream Router per vendor
-        self._subs: dict[int, list[asyncio.Queue]] = {}
+        self._subs: dict[int|str, list[asyncio.Queue]] = {}
         self._max_queue_size = max_queue_size
         self._max_subs_size = max_sub_size
         self._max_num_sym = max_num_sym
@@ -77,7 +75,7 @@ class StreamRouter:
 
     def subscribe(
         self,
-        contract_id: int
+        sub_id: int | str
         ) -> asyncio.Queue[Any] | None:
         # Add a new Queue to the list in case there is a new subscriber who
         # calls subscribe
@@ -88,53 +86,53 @@ class StreamRouter:
             #    )
             #return 
             
-        if self._subs.get(contract_id):
-            if len(self._subs[contract_id]) >= self._max_subs_size:
+        if self._subs.get(sub_id):
+            if len(self._subs[sub_id]) >= self._max_subs_size:
                 #logger.error(
                 #    f"[Stream Router] Maximum subscribers has reached for this contract: {contract_id}."
                 #    )
-                raise MaxSubscribersExceededError(f"Maximum subscribers has reached for this contract: {contract_id}.")
+                raise MaxSubscribersExceededError(f"Maximum subscribers has reached for this contract: {sub_id}.")
 
         q = asyncio.Queue(
             maxsize=self._max_queue_size) if self._max_queue_size else asyncio.Queue()
 
-        self._subs.setdefault(contract_id, []).append(q)
+        self._subs.setdefault(sub_id, []).append(q)
         return q
 
 
     def unsubscribe(
         self,
-        contract_id: int,
+        sub_id: int|str,
         q: asyncio.Queue
         ) -> None:
 
-        lst = self._subs.get(contract_id, [])
+        lst = self._subs.get(sub_id, [])
         if not lst:
             #logger.error(
             #    "[Stream Router] Retrival of {contract_id} failed. Contract ID: {contract_id} is not ini the router.",
             #    extra = {"contract_id": contract_id}
             #    )
-            raise UnknownSubscriptionError(f"Retrival of {contract_id} failed. Contract ID: {contract_id} is not ini the router.")
+            raise UnknownSubscriptionError(f"Retrival of {sub_id} failed. Contract ID: {sub_id} is not ini the router.")
             
         if q not in lst:
             #logger.error(f"[Stream Router] Unsubscribe failed. Input queue is not in the list of contract id:{contract_id}",
             #             extra = {"contract_id": contract_id})
-            raise SubscriptionQueueMismatchError(f"Unsubscribe failed. Input queue is not in the list of contract id:{contract_id}.") 
+            raise SubscriptionQueueMismatchError(f"Unsubscribe failed. Input queue is not in the list of contract id:{sub_id}.") 
 
         lst.remove(q)
 
-        if not lst and contract_id in self._subs:
+        if not lst and sub_id in self._subs:
             # Maybe do some backup for unconsumed data first here
             # Only delete when the streaming is completely done
-            del self._subs[contract_id]
+            del self._subs[sub_id]
 
     async def publish(
             self,
-            contract_id: int, 
+            sub_id: int | str, 
             item: Any,
             cool_time = 0.1
         ) -> None:
-        queues = self._subs.get(contract_id)
+        queues = self._subs.get(sub_id)
         if not queues:
             return
         
