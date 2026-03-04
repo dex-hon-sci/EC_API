@@ -8,6 +8,7 @@ Created on Fri Feb 20 17:56:37 2026
 import asyncio
 import pytest
 from EC_API.transport.routers import MessageRouter
+from EC_API.exceptions import DuplicateRouterKeyError
 
 @pytest.mark.asyncio
 async def test_key_register_valid() -> None:
@@ -26,6 +27,15 @@ async def test_key_register_valid() -> None:
     assert MR._pending[key1].done() == False
     assert MR._pending[key2].done() == False
     
+@pytest.mark.asyncio
+async def test_register_key_duplicate_router_key_invalid() -> None:
+    key1 = ("msg_family_1", "msg_type_A", "request_id", 12)
+
+    MR = MessageRouter()
+    fut1 = MR.register_key(key1)
+    with pytest.raises(DuplicateRouterKeyError) as e:
+        fut1_2 = MR.register_key(key1)
+
 @pytest.mark.asyncio
 async def test_on_message_valid() -> None:
     key1 = ("msg_family_1", "msg_type_A", "request_id", 12)
@@ -70,9 +80,8 @@ async def test_fail_all_valid() -> None:
 
     assert MR._pending == {}
 
-####
 @pytest.mark.asyncio
-async def test_fail_all_does_not_override_completed_futures():
+async def test_fail_all_does_not_override_completed_futures() -> None:
     mr = MessageRouter()
 
     key = ("family", "typeA", "request_id", 1)
@@ -91,7 +100,7 @@ async def test_fail_all_does_not_override_completed_futures():
     assert fut.result() == "OK"
     
 @pytest.mark.asyncio
-async def test_fail_all_ignores_cancelled_futures():
+async def test_fail_all_ignores_cancelled_futures() -> None:
     mr = MessageRouter()
 
     key = ("family", "typeA", "request_id", 1)
