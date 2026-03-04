@@ -48,6 +48,12 @@ def test_unsubscribe_invalid_q() -> None:
     assert len(SR._subs[1]) == 2
     assert len(SR._subs[2]) == 1
     
+def test_unsubscribe_removes_empty_contract_entry():
+    SR = StreamRouter()
+    q = SR.subscribe(1)
+    SR.unsubscribe(1,q)
+    assert 1 not in SR._subs
+    
 @pytest.mark.asyncio
 async def test_publish_valid() -> None:
     SR = StreamRouter()
@@ -80,17 +86,21 @@ async def test_publish_valid() -> None:
 
 @pytest.mark.asyncio
 async def test_drop_drop_if_full_drop_oldest_valid() -> None:
-    SR = StreamRouter(max_queue_size=5)
-     
+    SR = StreamRouter(max_queue_size=5, drop_if_full=True, drop_policy="drop_oldest")
     q1 = SR.subscribe(1)
+    
     content = [(1,1), (1,2), (1,3), (1,4), (1,5), (1,6), (1,7)]
 
     for c in content:
-        await SR.publish(c[0], c,cool_time=0)
+        await SR.publish(1, c,cool_time=0)
     
     assert SR._subs[1][0].qsize() == 5
-    
-    i = 2
-    for ele in SR._subs[1][0]._queue:
-        assert ele == content[i]
-        i+=1
+    out = [q1.get_nowait() for _ in range(q1.qsize())]
+    assert out == content[-5:]
+
+@pytest.mark.asyncio
+async def test_publish_no_subscribers_noop():
+    SR = StreamRouter()
+    before = dict(SR._subs)    
+    await SR.publish(999, ("x",), cool_time=0)  # should not raise
+    assert SR._subs == before
