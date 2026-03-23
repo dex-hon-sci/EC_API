@@ -6,6 +6,8 @@ Created on Thu Oct 16 15:46:18 2025
 @author: dexter
 """
 from pathlib import Path
+import aiosqlite
+import sqlite3 as sqlite
 
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession

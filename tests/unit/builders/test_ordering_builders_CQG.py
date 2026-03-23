@@ -16,7 +16,7 @@ from EC_API.ordering.cqg.builders import (
     build_modify_order_request_msg,
     build_cancel_order_request_msg,
     build_activate_order_request_msg,
-    build_goflat_request_msg,
+    build_goflat_order_request_msg,
     )
 
 ACCOUNT_ID = 000000
@@ -170,7 +170,7 @@ def test_build_liquidateall_order_request_msg_valid() -> None:
 def test_build_goflat_order_request_msg_valid() -> None:
     goflat_datetime = datetime.now(timezone.utc)
 
-    msg = build_goflat_request_msg(
+    msg = build_goflat_order_request_msg(
         ACCOUNT_ID, REQUEST_ID,
         when_utc_timestamp = goflat_datetime,
         execution_source_code = "Goflat_unit_test", 

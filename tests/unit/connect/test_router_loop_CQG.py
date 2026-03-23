@@ -25,5 +25,20 @@ async def test_router_loop_mix_msg_stream():
     fake = FakeTransport()
     conn._transport = fake
     
-    q_md = conn._market_data_stream_router.subscribe(101)
+    # Simulate endpoints usage of stream+message routers
+    q_contract_id0 = conn._market_data_stream_router.subscribe(0)
+    q_contract_id1 = conn._market_data_stream_router.subscribe(1)
+    q_contract_id2 = conn._market_data_stream_router.subscribe(2)
     q_ex = conn._exec_stream_router.subscribe("order_1")
+    
+    conn.start()
+    
+    # Msg builders---
+    
+    # -- Router Loop tests---
+    task = asyncio.create_task(conn._router_loop())
+
+    #await fake.in_q.put(msg_md1)
+    #await fake.in_q.put(msg_rpc)
+    #await fake.in_q.put(msg_exec)
+    #await fake.in_q.put(msg_md2)

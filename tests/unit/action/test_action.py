@@ -13,14 +13,14 @@ Created on Mon Sep 22 18:38:26 2025
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 import pytest
-import pytest_asyncio
+#import pytest_asyncio
 import asyncio
 from sqlalchemy import select, delete
 from EC_API.monitor.tick import TimeTickBuffer
 from EC_API.monitor.data_feed import DataFeed
 from EC_API.op_strategy.action import ActionContext
 from EC_API.ordering.enums import RequestType, OrderType, Side
-from tests.example_actiontree import tree as ACTION_TREE
+from tests.unit.action.example_actiontree import tree as ACTION_TREE
 from tests.example_db import (
     init_db, engine, Base, TEST_ASYNC_SESSION, TestStorage
     )
@@ -61,8 +61,8 @@ async def actionflow_validation(prices: list[float]) -> None:
         DF.tick_buffer.add_tick(price, volume, timestamp)
         print("+++++ current tickbuf [", DF.tick_buffer.ohlc()['Close'], "]")
         print("++++ current ctx df [", ctx.feeds["Asset_A"].tick_buffer.ohlc()['Close'],"]")
-        print('+++++'+ACTION_TREE.cur.label+'+++++:',ACTION_TREE.cur.status)
-        print("Payload:", ACTION_TREE.cur.payloads[0].request_id)
+        print('+++++'+ACTION_TREE.head_cur+'+++++:',ACTION_TREE.head_cur)
+        #print("Payload:", ACTION_TREE.head_cur.payloads[0].request_id)
         await ACTION_TREE.step(ctx)
         
     # Select * in DB and check if the Payloads matches
@@ -80,17 +80,17 @@ price_a, price_b1, price_b2, price_c2, price_d2, price_e3 = 105, 100, 50, 60, 40
 # Route 1
 TP1test_prices = [101,40,70,20]
 TP1test_answer_ids = (100, 103)
-TP1test_answer_sides = (Side.SIDE_SELL, Side.SIDE_BUY)
-TP1test_answer_rq_types = (OrderType.ORDER_TYPE_LMT, OrderType.ORDER_TYPE_LMT)
+TP1test_answer_sides = (Side.SELL, Side.BUY)
+TP1test_answer_rq_types = (OrderType.LMT, OrderType.LMT)
 TP1test_answer_qtys =  (2, 2)
 TP1test_answer_LMT_price =  (price_a1, price_c)
 
 # Route 2
 TP2test_prices = [102, 80, 58, 55, 57, 40, 38]
 TP2test_answer_ids = (100, 102, 104)
-TP2test_answer_sides = (Side.SIDE_SELL, Side.SIDE_SELL, Side.SIDE_BUY)
-TP2test_answer_rq_types = (OrderType.ORDER_TYPE_LMT, OrderType.ORDER_TYPE_LMT,
-                           OrderType.ORDER_TYPE_LMT)
+TP2test_answer_sides = (Side.SELL, Side.SELL, Side.BUY)
+TP2test_answer_rq_types = (OrderType.LMT, OrderType.LMT,
+                           OrderType.LMT)
 TP2test_answer_qtys =  (2, 2, 2)
 TP2test_answer_LMT_price =  (price_a1, price_a2, price_d)
 

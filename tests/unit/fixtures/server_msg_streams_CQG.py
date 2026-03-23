@@ -195,6 +195,7 @@ def dummy_mixed_full_stream(seed: int = 500) -> list[ServerMsg]:
                    continue
                bucket.append(source.popleft())
         return bucket
+    
     session_stream = dummy_session_stream()
     order_update_stream = dummy_order_update_stream()
     info_stream = dummy_info_stream()

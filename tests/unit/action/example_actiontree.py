@@ -65,15 +65,15 @@ TE_PL_A = Payload(
     order_info = {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_SELL,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.SELL,
         "qty_significant": 2,
         "qty_exponent": 0, 
         "is_manual": False,
         "scaled_limit_price": price_a1,
         "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
+        "exec_instructions": ExecInstruction.AON
         },
     check_method = checks,
     asset_safty_range = ASSETS_SAFETY_RANGE
@@ -110,9 +110,9 @@ TP_PL1_A = Payload(
     order_info = {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231316",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "scaled_limit_price": price_b1,
         },
@@ -131,9 +131,9 @@ TP_PL2_A = Payload(
     order_info = {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231316",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_BUY,
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
         "qty_significant": 2,
         "scaled_limit_price": price_b2,
         },
@@ -234,7 +234,7 @@ overtime_node = ActionNode("OvertimeExit",
                            scan_db_tables = SCAN_DB_TABLES)
 
 # Define Action Tree
-tree = ActionTree(TE_node, overtime_cond, overtime_node)
+tree = ActionTree("", TE_node, overtime_cond, overtime_node)
 
 print('===Import ActionTree Done====')
 # Define OpSignal

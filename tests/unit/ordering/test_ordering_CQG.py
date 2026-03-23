@@ -23,7 +23,7 @@ from EC_API.ordering.enums import (
     Side,
     RequestType
     )
-from tests.ordering_cases import (
+from tests.unit.ordering.ordering_cases import (
     NewOrderCases, 
     ModifyOrderCases, 
     CancelOrderCases,
