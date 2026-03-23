@@ -24,7 +24,7 @@ from EC_API.ordering.cqg.enums import (
     )
 from EC_API.ordering.base import LiveOrder
 from EC_API.transport.cqg.base import TransportCQG
-from EC_API.transport.router import MessageRouter
+from EC_API.transport.routers import MessageRouter
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg,
     build_new_order_request_msg, 

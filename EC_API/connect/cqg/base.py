@@ -14,10 +14,12 @@ from EC_API.transport.base import Transport
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.protocol.cqg.router_util import (
-        extract_router_key, 
+        extract_router_keys, 
         is_realtime_tick, 
         is_order_update_stream, 
-        is_trade_history
+        is_trade_history,
+        realtime_tick_contract_id, 
+        order_statuses_order_id
     )
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
@@ -61,14 +63,12 @@ class ConnectCQG(Connect):
         self._transport = TransportCQG(client=self._client)
         
         self._msg_router = MessageRouter()
-        self.market_data_stream_router = StreamRouter()
-        self.exec_stream_router = StreamRouter()
+        self._market_data_stream_router = StreamRouter()
+        self._exec_stream_router = StreamRouter()
         
         # queues for containing different server messages
-        #self._mkt_data_queue: asyncio.Queue = asyncio.Queue() # for realtime datta
-        #self._exec_queue = asyncio.Queue()  
-        #self._trade_exec_queue: asyncio.Queue = asyncio.Queue() # for order satatuses, position
         self._misc_queue: asyncio.Queue = asyncio.Queue() # For information report?
+        self._stop_evt = asyncio.Event()
         
         if immediate_connect:
             self._transport.connect()
@@ -128,32 +128,33 @@ class ConnectCQG(Connect):
     async def _router_loop(self) -> None:
         while not self._stop_evt.is_set():
             msg: ServerMsg = await self._transport.recv()
+            # Cheapest check first, 
+            # 1) streaming dispatch
+            if is_realtime_tick(msg):
+                contract_id = realtime_tick_contract_id(msg)
+                await self._market_data_stream_router.publish(contract_id, msg)
+                continue
 
-            # May wany to use registry pattern to handle this
-            key = extract_router_key(msg)
+            # 2) order update dispatch <--need to handle this better
+            if is_order_update_stream(msg):
+                order_id = order_statuses_order_id(msg)
+                await self._exec_stream_router.publish(order_id, msg)
+                continue
+
+            key = extract_router_keys(msg)
             if key is not None:        
                 key_type, msg_type, msg_id_type, msg_id = key
-                # Cheapest check first, 
-                # 1) streaming dispatch
-                if is_realtime_tick(msg):
-                    await self.market_data_stream.publish(msg_id, msg)
-                    continue
-                
-                # 2) order update dispatch <--need to handle this better
-                if is_order_update_stream(msg):
-                    await self.exec_stream.publish(msg_id, msg)
-                    continue
-                
-                # 1) RPC routing (futures), 
+    
+                # 3) RPC routing (futures), 
                 if key_type in {"rpc_reqid", "session", "sub", "info"}:
                     self._msg_router.on_message(key, msg)
              
-            #if is_trade_history(msg):
-            #    await self.exec_q.put(msg)
-            #    continue
-            
-            #await self.misc_q.put(msg) # No misc, because it will blow up
     # -----------------------
+        #if is_trade_history(msg):
+        #    await self.exec_q.put(msg)
+        #    continue
+        
+        #await self.misc_q.put(msg) # No misc, because it will blow up
 
     # ---- CQG messages methods ----
     async def logon(

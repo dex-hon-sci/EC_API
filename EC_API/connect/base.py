@@ -9,7 +9,7 @@ Created on Wed Jul 30 10:23:04 2025
 import asyncio
 from typing import Protocol
 from EC_API.transport.base import Transport
-from EC_API.transport.router import MessageRouter
+from EC_API.transport.routers import MessageRouter
 from EC_API.connect.enums import ConnectionState
 
 class Connect(Protocol):

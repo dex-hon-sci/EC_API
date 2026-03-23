@@ -186,14 +186,21 @@ def build_modify_order_request_msg(
     order_requests.modify_order.cl_order_id = cl_order_id
     order_requests.modify_order.when_utc_timestamp = when_utc_timestamp
     
+    
     if kwargs['qty'] is not None:
         if kwargs['qty'] == 0:
-            return 0.0, 0
+            order_requests.modify_order.qty.significand = 0
+            order_requests.modify_order.qty.exponent = 0
+
         
         significand, exponent = to_significand_sint64_exponent_sint32(kwargs['qty'])
         order_requests.modify_order.qty.significand = int(significand)
         order_requests.modify_order.qty.exponent = int(exponent)
         kwargs.pop('qty')
+        
+    if kwargs['duration'] is not None:
+        order_requests.modify_order.duration = _Duration_MAP_INT2CQG[kwargs['duration']]
+        kwargs.pop('duration')
 
     apply_optional_fields(order_requests.modify_order,
                           values=kwargs, 
@@ -280,7 +287,7 @@ def build_activate_order_request_msg(
 
     return client_msg
 
-def build_goflat_order_request_msg(    
+def build_goflat_order_request_msg(
     account_id: int,
     request_id: int,
     when_utc_timestamp: datetime,

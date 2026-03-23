@@ -33,7 +33,7 @@ def walk_fields(
         msg: Message, 
         selector: Callable[[Any, Any], Iterable[KeyHit]],
         max_depth: int = 1,
-    ) -> list[KeyHit]:
+    ) -> list[Any]:
     
     outs: list[KeyHit] = []
 

@@ -11,9 +11,6 @@ from typing import Any, Callable, Mapping, Union, Tuple
 _MISSING = object()
 
 def _isnot_null(target_dict: dict[str, Any], key: Any) -> None:
-    #print("Check isnot null")
-    #for key in list(reference_dict.keys()):
-    #    print(key, target_dict.get(key))
     if target_dict.get(key) is None:
         raise KeyError(f"Essential parameter(s): {key} is missing.")
             
@@ -76,5 +73,5 @@ def apply_optional_fields(
         # Transform is for normalization ONLY (e.g. datetime -> epoch_ms)
         if transform is not None:
             v = transform(v)
-        print(proto_attr, accepted)
+        #print(proto_attr, accepted, v, type(v))
         setattr(target, proto_attr, v)

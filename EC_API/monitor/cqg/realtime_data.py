@@ -15,8 +15,8 @@ from EC_API.monitor.tick import TickBuffer
 from EC_API.monitor.tick_stats import TickBufferStat
 from EC_API.monitor.data_feed import DataFeed
 
-from EC_API.transport.cqg.base import CQGTransport
-from EC_API.transport.router import MessageRouter
+from EC_API.transport.cqg.base import TransportCQG
+from EC_API.transport.routers import MessageRouter
 from EC_API.monitor.cqg.builders import(
     build_realtime_data_request_msg,
     build_reset_tracker_request_msg
@@ -26,11 +26,35 @@ from EC_API.monitor.cqg.builders import(
 class MonitorDataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._loop = asyncio.get_running_loop()
-        self._transport = CQGTransport()
+        self._transport = TransportCQG()
         self._router = MessageRouter()
 
 
 class MonitorRealTimeDataCQG(Monitor):
+    
+    def __init__(self, conn: ConnectCQG):
+        self._transport = TransportCQG()
+
+        
+    def subscribe(self,contract_id: int, level, request_id: int):
+        ...
+        
+    async def stream(self, contract_id: int):
+        # check if they are in the stream router
+        
+        # stream
+        q = self._conn._market_data_stream_router.subscribe(contract_id)
+        
+        try:
+            while True:
+                md = await q.get()
+                for data in md:
+                    yield data
+        finally:
+            self._conn._market_data_stream_router.unsubscribe(contract_id)
+            
+
+class MonitorRealTimeDataCQG2(Monitor):
     def __init__(self, connection: ConnectCQG):
         self._conn = connection
         self._transport = self._conn._transport
