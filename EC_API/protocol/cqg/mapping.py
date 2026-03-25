@@ -6,32 +6,251 @@ Created on Mon Aug  4 13:07:01 2025
 @author: dexter
 """
 
-from EC_API.msg_validation.cqg.connect_enums import (
-    LOGON_RESULT_STATUS_ENUMS_BOOL,
-    LOGGEDOFF_REASON_ENUMS_BOOL,
-    RESTORE_STATUS_ENUMS_BOOL,
-    )
-from EC_API.msg_validation.cqg.trade_enums import (
-    TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL,
-    NEWORDER_ORDERSTATUS_ENUMS_BOOL,
-    MODIFYORDER_ORDERSTATUS_ENUMS_BOOL,
-    CANCELORDER_ORDERSTATUS_ENUMS_BOOL,
-    ACTIVEATORDER_ORDERSTATUS_ENUMS_BOOL,
-    GOFLAT_ORDERSTATUS_ENUMS_BOOL,
-    ORDER_REJECT_CODE_ENUMS_BOOL
-    )
-from EC_API.msg_validation.cqg.historical_enums import (
-    TIMESALES_REPORT_RESULT_ENUMS_BOOL,
-    VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL
-    )
-from EC_API.msg_validation.cqg.meta_enums import (
-    INFORMATION_REPORT_STATUS_ENUMS_BOOL
-    )
-from EC_API.msg_validation.cqg.market_data_enums import (
-    MARKETDATA_SUB_STATUS_ENUMS_BOOL
-    )
+# =============================================================================
+# from EC_API.msg_validation.cqg.connect_enums import (
+#     LOGON_RESULT_STATUS_ENUMS_BOOL,
+#     LOGGEDOFF_REASON_ENUMS_BOOL,
+#     RESTORE_STATUS_ENUMS_BOOL,
+#     )
+# from EC_API.msg_validation.cqg.trade_enums import (
+#     TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL,
+#     NEWORDER_ORDERSTATUS_ENUMS_BOOL,
+#     MODIFYORDER_ORDERSTATUS_ENUMS_BOOL,
+#     CANCELORDER_ORDERSTATUS_ENUMS_BOOL,
+#     ACTIVEATORDER_ORDERSTATUS_ENUMS_BOOL,
+#     GOFLAT_ORDERSTATUS_ENUMS_BOOL,
+#     ORDER_REJECT_CODE_ENUMS_BOOL
+#     )
+# from EC_API.msg_validation.cqg.historical_enums import (
+#     TIMESALES_REPORT_RESULT_ENUMS_BOOL,
+#     VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL
+#     )
+# from EC_API.msg_validation.cqg.meta_enums import (
+#     INFORMATION_REPORT_STATUS_ENUMS_BOOL
+#     )
+# from EC_API.msg_validation.cqg.market_data_enums import (
+#     MARKETDATA_SUB_STATUS_ENUMS_BOOL
+#     )
+# =============================================================================
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 
+
+from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LOR
+from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff
+from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as Restore
+
+LOGON_RESULT_STATUS_ENUMS_BOOL = {
+    "Accept": [LOR.ResultCode.RESULT_CODE_SUCCESS] ,
+    "Reject": [LOR.ResultCode.RESULT_CODE_FAILURE,
+              LOR.ResultCode.RESULT_CODE_NO_ONETIME_PASSWORD,
+              LOR.ResultCode.RESULT_CODE_PASSWORD_EXPIRED,
+              LOR.ResultCode.RESULT_CODE_CONCURRENT_SESSION,
+              LOR.ResultCode.RESULT_CODE_REDIRECTED,
+              LOR.ResultCode.RESULT_CODE_ROUTINE_ERROR,
+              LOR.ResultCode.RESULT_CODE_ACCESS_TOKEN_EXPIRED
+              ]
+    }
+
+LOGGEDOFF_REASON_ENUMS_BOOL = {
+    "Accept": [LOff.LogoffReason.LOGOFF_REASON_BY_REQUEST,
+               LOff.LogoffReason.LOGOFF_REASON_REDIRECTED,
+               LOff.LogoffReason.LOGOFF_REASON_FORCED,
+               LOff.LogoffReason.LOGOFF_REASON_REASSIGNED
+               ],
+    "Reject": []
+    }
+
+RESTORE_STATUS_ENUMS_BOOL = {
+    "Accept": [Restore.ResultCode.RESULT_CODE_SUCCESS],
+    "Reject": [Restore.ResultCode.RESULT_CODE_FAILURE,
+               Restore.ResultCode.RESULT_CODE_UNKNOWN_SESSION,
+               Restore.ResultCode.RESULT_CODE_ACCESS_DENIED,
+               Restore.ResultCode.RESULT_CODE_INVALID_PARAMS]
+    }
+
+
+from EC_API.ext.WebAPI.historical_2_pb2 import TimeAndSalesReport as TSR
+from EC_API.ext.WebAPI.historical_2_pb2 import BarReportStatusCode as BRS
+from EC_API.ext.WebAPI.historical_2_pb2 import VolumeProfileReport as VPR
+
+
+TIMESALES_REPORT_RESULT_ENUMS_BOOL = {
+    "Accept": [TSR.ResultCode.RESULT_CODE_SUCCESS,
+              TSR.ResultCode.RESULT_CODE_DROPPED], 
+    "Reject": [TSR.ResultCode.RESULT_CODE_DISCONNECTED,
+              TSR.ResultCode.RESULT_CODE_FAILURE,
+              TSR.ResultCode.RESULT_CODE_ACCESS_DENIED,
+              TSR.ResultCode.RESULT_CODE_NOT_FOUND,
+              TSR.ResultCode.RESULT_CODE_OUTSIDE_ALLOWED_RANGE,
+              TSR.ResultCode.RESULT_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+              TSR.ResultCode.RESULT_CODE_REQUEST_RATE_LIMIT_VIOLATION,
+              TSR.ResultCode.RESULT_CODE_NOT_SUPPORTED,
+              TSR.ResultCode.RESULT_CODE_INVALID_PARAMS,
+              ]
+    }
+
+BAR_REPORT_STATUS_ENUMS_BOOL = {
+    "Accept": [BRS.BAR_REPORT_STATUS_CODE_SUCCESS,
+               BRS.BAR_REPORT_STATUS_CODE_SUBSCRIBED,
+               BRS.BAR_REPORT_STATUS_CODE_DROPPED,
+               BRS.BAR_REPORT_STATUS_CODE_UPDATE],
+    "Reject": [BRS.BAR_REPORT_STATUS_CODE_DISCONNECTED,
+               BRS.BAR_REPORT_STATUS_CODE_INVALIDATED,
+               BRS.BAR_REPORT_STATUS_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_FAILURE,
+               BRS.BAR_REPORT_STATUS_CODE_ACCESS_DENIED,
+               BRS.BAR_REPORT_STATUS_CODE_NOT_FOUND,
+               BRS.BAR_REPORT_STATUS_CODE_OUTSIDE_ALLOWED_RANGE,
+               BRS.BAR_REPORT_STATUS_CODE_INVALID_PARAMS,
+               BRS.BAR_REPORT_STATUS_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_SUBSCRIPTION_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_REQUEST_RATE_LIMIT_VIOLATION,
+               BRS.BAR_REPORT_STATUS_CODE_NOT_SUPPORTED,
+               BRS.BAR_REPORT_STATUS_CODE_UPDATE_INTERVAL_OUTSIDE_ALLOWED_RANGE
+               ]
+    }
+
+VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL = {
+    "Accept": [VPR.ResultCode.RESULT_CODE_SUCCESS,
+               VPR.ResultCode.RESULT_CODE_DROPPED,
+               ],
+    "Reject": [VPR.ResultCode.RESULT_CODE_DISCONNECTED,
+               VPR.ResultCode.RESULT_CODE_FAILURE,
+               VPR.ResultCode.RESULT_CODE_ACCESS_DENIED,
+               VPR.ResultCode.RESULT_CODE_NOT_FOUND,
+               VPR.ResultCode.RESULT_CODE_OUTSIDE_ALLOWED_RANGE,
+               VPR.ResultCode.RESULT_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+               VPR.ResultCode.RESULT_CODE_NOT_SUPPORTED,
+               VPR.ResultCode.RESULT_CODE_INVALID_PARAMS
+               ]
+    }
+
+from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscriptionStatus as MDSS
+
+MARKETDATA_SUB_STATUS_ENUMS_BOOL = {
+    "Accept": [MDSS.StatusCode.STATUS_CODE_SUCCESS,
+               ],
+    "Reject": [MDSS.StatusCode.STATUS_CODE_DISCONNECTED,
+               MDSS.StatusCode.STATUS_CODE_FAILURE,
+               MDSS.StatusCode.STATUS_CODE_INVALID_PARAMS,
+               MDSS.StatusCode.STATUS_CODE_ACCESS_DENIED,
+               MDSS.StatusCode.STATUS_CODE_DELETED,
+               MDSS.StatusCode.STATUS_CODE_SUBSCRIPTION_LIMIT_VIOLATION,
+               MDSS.StatusCode.STATUS_CODE_CONTRIBUTOR_REQUIRED,
+               MDSS.StatusCode.STATUS_CODE_SUBSCRIPTION_RATE_LIMIT_VIOLATION,
+               MDSS.StatusCode.STATUS_CODE_NOT_SUPPORTED,
+               ]
+    }
+
+from EC_API.ext.WebAPI.webapi_2_pb2 import InformationReport as IR
+
+INFORMATION_REPORT_STATUS_ENUMS_BOOL = {
+    "Accept": [IR.StatusCode.STATUS_CODE_SUCCESS,
+               IR.StatusCode.STATUS_CODE_SUBSCRIBED,
+               IR.StatusCode.STATUS_CODE_DROPPED,
+               IR.StatusCode.STATUS_CODE_UPDATE
+               ],
+    "Reject": [IR.StatusCode.STATUS_CODE_DISCONNECTED,
+               IR.StatusCode.STATUS_CODE_FAILURE,
+               IR.StatusCode.STATUS_CODE_INVALID_PARAMS,
+               IR.StatusCode.STATUS_CODE_NOT_FOUND,
+               IR.StatusCode.STATUS_CODE_REQUEST_RATE_LIMIT_VIOLATION,
+               IR.StatusCode.STATUS_CODE_ACTIVE_REQUESTS_LIMIT_VIOLATION,
+               IR.StatusCode.STATUS_CODE_TOO_LARGE_RESPONSE
+               ],
+    "Transit": []
+    }
+
+from EC_API.ext.common.shared_1_pb2 import OrderStatus as OS
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus as TSS
+from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus as GFS
+
+TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL = {
+    "Accept": [TSS.StatusCode.STATUS_CODE_SUCCESS],
+    "Reject": [TSS.StatusCode.STATUS_CODE_DISCONNECTED,
+               TSS.StatusCode.STATUS_CODE_FAILURE,
+               TSS.StatusCode.STATUS_CODE_SUBSCRIPTION_LIMIT_VIOLATION,
+               TSS.StatusCode.STATUS_CODE_INVALID_PUBLICATION_ID,
+               TSS.StatusCode.STATUS_CODE_SUBSCRIBED_ACCOUNTS_LIMIT_VIOLATION
+               ],
+    }
+
+NEWORDER_ORDERSTATUS_ENUMS_BOOL = {
+    "Accept": [OS.Status.WORKING, 
+               OS.Status.FILLED,
+               OS.Status.SUSPENDED],
+    "Reject": [OS.Status.REJECTED,
+               OS.Status.DISCONNECTED,
+               OS.Status.EXPIRED],
+    "Transit": [OS.Status.IN_TRANSIT,]
+    }
+
+MODIFYORDER_ORDERSTATUS_ENUMS_BOOL = {
+    "Accept": [OS.Status.WORKING,
+               OS.Status.IN_MODIFY,
+               OS.Status.FILLED],
+    "Reject": [OS.Status.REJECTED,
+               OS.Status.DISCONNECTED,
+               OS.Status.EXPIRED],
+    "Transit": [OS.Status.IN_TRANSIT,]
+    }
+
+CANCELORDER_ORDERSTATUS_ENUMS_BOOL = {
+    "Accept": [OS.Status.WORKING,
+               OS.Status.IN_CANCEL,
+               OS.Status.CANCELLED,
+               OS.Status.FILLED],
+    "Reject": [OS.Status.REJECTED,
+               OS.Status.DISCONNECTED,
+               OS.Status.EXPIRED],
+    "Transit": [OS.Status.IN_TRANSIT,]
+    }
+
+
+ACTIVEATORDER_ORDERSTATUS_ENUMS_BOOL = {
+    "Accept": [OS.Status.WORKING,
+               OS.Status.ACTIVEAT,
+               OS.Status.FILLED],
+    "Reject": [OS.Status.REJECTED,
+               OS.Status.APPROVE_REJECTED,
+               OS.Status.EXPIRED,
+               OS.Status.DISCONNECTED], 
+    "Transit": [OS.Status.IN_TRANSIT,]
+    }
+
+GOFLAT_ORDERSTATUS_ENUMS_BOOL = {
+    "Accept": [GFS.StatusCode.STATUS_CODE_COMPLETED],
+    "Reject": [GFS.StatusCode.STATUS_CODE_TIMED_OUT,
+               GFS.StatusCode.STATUS_CODE_FAILED]
+    }
+
+ORDER_REJECT_CODE_ENUMS_BOOL = {
+    "Accept": [i for i in range(1001, 1257)] + [99]
+    }
+# Refer back to https://help.cqg.com/apihelp/#!Documents/rejectcodesfixconnectorderrouting.htm
+
+TRANSACTION_STATUS_ENUMS_BOOL = {}
+
+# =============================================================================
+# # Define Order statuses
+# IN_TRANSIT = OrderStatus.Status.IN_TRANSIT  # Original order is sent to execution system.
+# REJECTED = OrderStatus.Status.REJECTED # Order is rejected.
+# WORKING = OrderStatus.Status.WORKING # Order is acknowledged by execution system and perhaps partially filled.
+# EXPIRED = OrderStatus.Status.EXPIRED # Order is expired.
+# IN_CANCEL = OrderStatus.Status.IN_CANCEL #Cancel request is sent to execution system.
+# IN_MODIFY = OrderStatus.Status.IN_MODIFY # Modify request is sent to execution system.
+# CANCELLED = OrderStatus.Status.CANCELLED # Order is canceled.
+# FILLED = OrderStatus.Status.FILLED # Order is completely filled by execution system.
+# SUSPENDED = OrderStatus.Status.SUSPENDED # Order is waiting submission to execution system.
+# DISCONNECTED = OrderStatus.Status.DISCONNECTED # Order may be canceled because a disconnect occurred.
+# ACTIVEAT = OrderStatus.Status.ACTIVEAT # Order will be placed at a specified time (waiting execution system to start accepting orders).
+# APPROVE_REQUIRED = OrderStatus.Status.APPROVE_REQUIRED # Cross order is sent to exchange and waiting for approval from exchange and/or counter-parties.
+# APPROVED_BY_EXCHANGE = OrderStatus.Status.APPROVED_BY_EXCHANGE
+# APPROVE_REJECTED = OrderStatus.Status.APPROVE_REJECTED
+# MATCHED = OrderStatus.Status.MATCHED
+# PARTIALLY_MATCHED = OrderStatus.Status.PARTIALLY_MATCHED
+# TRADE_BROKEN = OrderStatus.Status.TRADE_BROKEN
+# =============================================================================
 
 SERVER_MSG_FAMILY = {
     # (1) connection/session

@@ -25,13 +25,17 @@ extractors: dict[str, Extractor_func] = {}
 #     return res
 # 
 # =============================================================================
-@dataclass(frozen=True)
-class KeyHit:
-    name: str
-    value: Any | None
-    is_repeated: bool
-    is_message: bool
-    
+# =============================================================================
+# @dataclass(frozen=True)
+# class KeyHit:
+#     name: str
+#     value: Any | None
+#     is_repeated: bool
+#     is_message: bool
+#     
+# =============================================================================
+KeyHit = tuple[str, int, bool, bool]
+
 def register_extractor(msg_name: str):
     # decorator for registering extractors functions
     def decorator(func: Callable[..., None]):
@@ -99,23 +103,23 @@ def extract_info_keys(
     
     def selector(fd, val) -> Iterable[KeyHit]:
         if fd.message_type is not None and (fd.name in TARGET or fd.name == "information_reports"):
-            yield KeyHit(fd.name, None, fd.is_repeated, True)
+            yield (fd.name, None, fd.is_repeated, True)
         
         else:
             if fd.name == 'id' and not fd.is_repeated:             
-                yield KeyHit(fd.name, val, fd.is_repeated, False)
+                yield (fd.name, val, fd.is_repeated, False)
 
     outs = walk_fields(msg, selector, max_depth=1)
     
     report_type, request_id = None, None  
     sub_report_type = ""
     for hit in outs:
-        if report_type is None and hit.name == "information_reports":
-            report_type = hit.name
-        if sub_report_type == "" and hit.name in TARGET:
-            sub_report_type = ":"+hit.name
-        if request_id is None and hit.name == 'id':
-            request_id = hit.value
+        if report_type is None and hit[0] == "information_reports":
+            report_type = hit[0]
+        if sub_report_type == "" and hit[0] in TARGET:
+            sub_report_type = ":"+hit[0]
+        if request_id is None and hit[0] == 'id':
+            request_id = hit[1]
 
     if report_type is None or request_id is None:
         return []
@@ -141,19 +145,19 @@ def extract_rpc_reqid_router_keys(
     
     def selector(fd, val) -> Iterable[KeyHit]:
         if fd.message_type is not None and fd.name in TARGET:
-            yield KeyHit(fd.name, None, fd.is_repeated, True)
+            yield (fd.name, None, fd.is_repeated, True)
         else:
             if fd.name == 'request_id' and not fd.is_repeated:        
-                yield KeyHit(fd.name, val, fd.is_repeated, False)
+                yield (fd.name, val, fd.is_repeated, False)
     
     outs = walk_fields(msg, selector, max_depth=2)
     
     report_type, request_id = None, None  
     for hit in outs:
-        if report_type is None and hit.name in TARGET:
-            report_type = hit.name
-        if request_id is None and hit.name == 'request_id':
-            request_id = hit.value
+        if report_type is None and hit[0] in TARGET:
+            report_type = hit[0]
+        if request_id is None and hit[0] == 'request_id':
+            request_id = hit[1]
 
     if report_type is None or request_id is None:
         return []
@@ -173,21 +177,21 @@ def extract_sub_router_keys(
     
     def selector(fd, val)-> Iterable[KeyHit]:
         if fd.message_type is not None and fd.name in TARGET:
-            yield KeyHit(fd.name, None, fd.is_repeated, True)
+            yield (fd.name, None, fd.is_repeated, True)
         
         else:
             if fd.name in {'id', 'subscription_id'} and not fd.is_repeated:             
-                yield KeyHit(fd.name, val, fd.is_repeated, False)
+                yield (fd.name, val, fd.is_repeated, False)
 
     outs = walk_fields(msg, selector, max_depth=2)
     report_type, request_id_name, request_id_val = None, None, None
     
     for hit in outs:
-        if report_type is None and hit.name in TARGET:
-            report_type = hit.name
-        if request_id_name is None and hit.name in {'id', 'subscription_id'}:
-            request_id_name = hit.name 
-            request_id_val = hit.value
+        if report_type is None and hit[0] in TARGET:
+            report_type = hit[0]
+        if request_id_name is None and hit[0] in {'id', 'subscription_id'}:
+            request_id_name = hit[0] 
+            request_id_val = hit[1]
 
     if report_type is None or request_id_name is None:
         return []
@@ -211,27 +215,27 @@ def extract_substream_router_keys(
     
     def selector(fd, val)-> Iterable[KeyHit]:
         if fd.message_type is not None and fd.name in TARGET:
-            yield KeyHit(fd.name, None, fd.is_repeated, True)
+            yield (fd.name, None, fd.is_repeated, True)
         elif fd.name in {'order_id', 'contract_id'} and not fd.is_repeated:
-            yield KeyHit(fd.name, val, fd.is_repeated, False)
+            yield (fd.name, val, fd.is_repeated, False)
 
     outs = walk_fields(msg, selector, max_depth=6)
 
     keys = []
     report_type, request_id_name, request_id_val = None, None, None
     for hit in outs:
-        if report_type is None and hit.name in TARGET:
-            report_type = hit.name
+        if report_type is None and hit[0] in TARGET:
+            report_type = hit[0]
             
             # Handle account_summary no-id behaviour
-            if  hit.name == "account_summary_statuses":
+            if  hit[0] == "account_summary_statuses":
                 keys.append(('substream', report_type, 'single', 0))
             continue
         
         expected_id = IDs.get(report_type)
-        if request_id_name is None and expected_id is not None and hit.name == expected_id:
-            request_id_name = hit.name
-            request_id_val = hit.value
+        if request_id_name is None and expected_id is not None and hit[0] == expected_id:
+            request_id_name = hit[0]
+            request_id_val = hit[1]
         
         if report_type and request_id_name and request_id_val is not None:
             keys.append(('substream', report_type, request_id_name, request_id_val))
@@ -249,21 +253,21 @@ def extract_market_data_router_keys(
         }
     def selector(fd, val)-> Iterable[KeyHit]:
         if fd.message_type is not None and fd.name in TARGET:
-            yield KeyHit(fd.name, None, fd.is_repeated, True)
+            yield (fd.name, None, fd.is_repeated, True)
         elif fd.name in {'contract_id'} and not fd.is_repeated:
-            yield KeyHit(fd.name, val, fd.is_repeated, False)
+            yield (fd.name, val, fd.is_repeated, False)
     
     outs = walk_fields(msg, selector, max_depth=6)
     
     keys = []
     report_type, request_id_name, request_id_val = None, None, None
     for hit in outs:
-        if report_type is None and hit.name in TARGET:
-            report_type = hit.name
+        if report_type is None and hit[0] in TARGET:
+            report_type = hit[0]
 
-        if request_id_name is None and hit.name == "contract_id":
-            request_id_name = hit.name
-            request_id_val = hit.value
+        if request_id_name is None and hit[0] == "contract_id":
+            request_id_name = hit[0]
+            request_id_val = hit[1]
         
         if report_type and request_id_name and request_id_val is not None:
             keys.append(('md', report_type, request_id_name, request_id_val))
@@ -272,5 +276,8 @@ def extract_market_data_router_keys(
 
 
 def extract_market_data_contract_id(       
-        msg: ServerMsg):
-    return 
+        msg: ServerMsg,
+        msg_type: str                      
+        )-> int:
+    # fast extraction. Use only when we know there is real
+    return msg.real_time_market_data[0].contract_id

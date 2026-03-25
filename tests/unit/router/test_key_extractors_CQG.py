@@ -5,7 +5,7 @@ Created on Fri Feb 13 21:26:23 2026
 
 @author: dexter
 """
-
+from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.key_extractors import extractors
 from EC_API.protocol.cqg.router_util import server_msg_type, extract_router_keys
 from tests.unit.fixtures.server_msg_builders_CQG import *
@@ -30,31 +30,31 @@ def test_complete_registry() -> None:
     
 # Test extraction for sessions
 def test_extract_key_logon_result() -> None:
-    msg = build_logon_result_server_msg()
+    msg = build_logon_result_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('session', 'logon_result', 'single', 0)
     
 def test_extract_key_restore_or_join_session_result() -> None:
-    msg = build_restore_or_join_session_result_server_msg()
+    msg = build_restore_or_join_session_result_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('session', 'restore_or_join_session_result', 'single', 0)
 
 def test_extract_key_concurrent_connection_join_results() -> None:
-    msg = build_concurrent_connection_join_results_server_msg()
+    msg = build_concurrent_connection_join_results_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('session', 'concurrent_connection_join_results', 'single', 0)
 
 def test_extract_key_logged_off() -> None:
-    msg = build_logged_off_server_msg()
+    msg = build_logged_off_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('session', 'logged_off', 'single', 0)
 
 def test_extract_key_pong() -> None:
-    msg = build_pong_server_msg()
+    msg = build_pong_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('session', 'pong', 'single', 0)
@@ -62,125 +62,126 @@ def test_extract_key_pong() -> None:
 # ----
 # Test extraction for information reports
 def test_extract_key_info_symbol_resolution_report() -> None:
-    msg = build_symbol_resolution_report_server_msg()
+    msg = build_symbol_resolution_report_server_msg(ServerMsg())
+    print('sym res', msg)
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:symbol_resolution_report', 'id', 1)
 
 def test_extract_key_info_session_information_report() -> None:
-    msg = build_session_info_report_server_msg()
+    msg = build_session_info_report_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:session_information_report', 'id', 1)
 
 def test_extract_key_info_historical_orders_report() -> None:
-    msg = build_historical_orders_report_server_msg()
+    msg = build_historical_orders_report_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:historical_orders_report', 'id', 1)
 
 def test_extract_key_info_option_maturity_list_report() -> None:
-    msg = build_option_maturity_list_report_server_msg()
+    msg = build_option_maturity_list_report_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     print(router_keys)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:option_maturity_list_report', 'id', 1)
 
 def test_extract_key_info_instrument_group_report() -> None:
-    msg = build_instrument_group_report_server_msg()
+    msg = build_instrument_group_report_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:instrument_group_report', 'id', 1)
 
 def test_extract_key_info_at_the_money_strike_report() -> None:
-    msg = build_at_the_money_strike_report_server_msg()
+    msg = build_at_the_money_strike_report_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:at_the_money_strike_report', 'id', 1)
 # ----
 # Test extraction for order updates
 def test_extract_key_order_request_rejects() -> None:
-    msg = build_order_request_rejects_server_msg()
+    msg = build_order_request_rejects_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'order_request_rejects', 'request_id', 1)
     
 def test_extract_key_order_request_acks() -> None:
-    msg = build_order_request_acks_server_msg()
+    msg = build_order_request_acks_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'order_request_acks', 'request_id', 1)
     
 def test_extract_key_trade_subscription_statuses() -> None:
-    msg = build_trade_subscription_statuses_server_msg()
+    msg = build_trade_subscription_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('sub', 'trade_subscription_statuses', 'id', 1)
  
 
 def test_extract_key_trade_snapshot_completions() -> None:
-    msg = build_trade_snapshot_completetions_server_msg()
+    msg = build_trade_snapshot_completetions_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('sub', 'trade_snapshot_completions', 'subscription_id', 1)
 
 def test_extract_key_order_statuses() -> None:
-    msg = build_order_statuses_server_msg()
+    msg = build_order_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     
 
 def test_extract_key_position_statuses() -> None:
-    msg = build_position_statuses_server_msg()
+    msg = build_position_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
 
 def test_extract_key_account_summary_statuses() -> None:
-    msg = build_account_summary_statuses_server_msg()
+    msg = build_account_summary_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
 
     assert len(router_keys) == 1
 
 def test_extract_key_go_flat_statuses() -> None:
-    msg = build_go_flat_statuses_server_msg()
+    msg = build_go_flat_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'go_flat_statuses', 'request_id', 1)
 
 def test_extract_key_market_data_subscription_statuses() -> None:
-    msg = build_market_data_subscription_statuses_server_msg()
+    msg = build_market_data_subscription_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('md', 'market_data_subscription_statuses', 'contract_id', 1)
 
 def test_extract_key_real_time_market_data() -> None:
-    msg = build_real_time_market_data_server_msg()
+    msg = build_real_time_market_data_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('md', 'real_time_market_data', 'contract_id', 1)
 
 # ---- time and sales, historical data
 def test_extract_key_time_and_sales_reports() -> None:
-    msg = build_time_and_sales_reports_server_msg()
+    msg = build_time_and_sales_reports_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'time_and_sales_reports', 'request_id', 1)
 
 def test_extract_key_time_bar_reports() -> None:
-    msg = build_time_bar_reports_server_msg()
+    msg = build_time_bar_reports_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'time_bar_reports', 'request_id', 1)
 
 def test_extract_key_volume_profile_reports() -> None:
-    msg = build_volume_profile_reports_server_msg()
+    msg = build_volume_profile_reports_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
 
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'volume_profile_reports', 'request_id', 1)
 
 def test_extract_key_non_timed_bar_reports() -> None:
-    msg = build_non_timed_bar_reports_server_msg()
+    msg = build_non_timed_bar_reports_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'non_timed_bar_reports', 'request_id', 1)

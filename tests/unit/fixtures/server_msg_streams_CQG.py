@@ -38,9 +38,9 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
 
 
 def dummy_session_stream(pong_number: int = 1000) -> list[ServerMsg]:
-    logon_msg = build_logon_result_server_msg()
-    restore_msg = build_restore_or_join_session_result_server_msg()
-    logoff_msg = build_logged_off_server_msg()
+    logon_msg = build_logon_result_server_msg(ServerMsg())
+    restore_msg = build_restore_or_join_session_result_server_msg(ServerMsg())
+    logoff_msg = build_logged_off_server_msg(ServerMsg())
     
     return [logon_msg] + [build_pong_server_msg() for _ in range(pong_number)] + [restore_msg, logoff_msg]
     
@@ -51,7 +51,7 @@ def dummy_realtime_data_stream(
     ) -> list[ServerMsg]:
     rng = random.Random(seed)
     msgs = [
-        build_real_time_market_data_server_msg(contract_id=rng.randrange(0, 100))
+        build_real_time_market_data_server_msg(ServerMsg(), contract_id=rng.randrange(0, 100))
         for _ in range(total_msg_number)
     ]
     return msgs
@@ -84,6 +84,7 @@ def dummy_order_update_stream(
         statuses.extend(
             [
                 build_order_statuses_server_msg(
+                ServerMsg(),
                 res = val[i],
                 contract_id = key,
                 sub_id = key,
@@ -97,12 +98,12 @@ def dummy_order_update_stream(
 
 
 def dummy_rpc_stream() -> list[ServerMsg]:
-    order_request_rejects_msg = build_order_request_rejects_server_msg()
-    order_request_acks_msg = build_order_request_acks_server_msg()
-    account_summary_statuses_msg = build_account_summary_statuses_server_msg()
-    go_flat_statuses_msg = build_go_flat_statuses_server_msg()
+    order_request_rejects_msg = build_order_request_rejects_server_msg(ServerMsg())
+    order_request_acks_msg = build_order_request_acks_server_msg(ServerMsg())
+    account_summary_statuses_msg = build_account_summary_statuses_server_msg(ServerMsg())
+    go_flat_statuses_msg = build_go_flat_statuses_server_msg(ServerMsg())
     
-    trade_subscription_statuses_msg = build_trade_subscription_statuses_server_msg()
+    trade_subscription_statuses_msg = build_trade_subscription_statuses_server_msg(ServerMsg())
 
     
     return [trade_subscription_statuses_msg, order_request_rejects_msg,
@@ -139,36 +140,43 @@ def dummy_info_stream(
         option_id, option_name, instrument_id, instrument_name in inputs:
  
         info.append(build_symbol_resolution_report_server_msg(
+            ServerMsg(),
             res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
             report_id = next(report_id),
             cotract_id = contract_id,
-            contract_symbol = contract_name))
+            contract_symbol = contract_name
+            ))
         info.append(build_session_info_report_server_msg(
-           res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
-           report_id = next(report_id),
-           ))
+            ServerMsg(),
+            res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+            report_id = next(report_id),
+            ))
         info.append(build_historical_orders_report_server_msg(
-           res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
-           report_id = next(report_id),
-           order_id = order_id,
-           chain_order_id = chain_order_id
-           ))
+            ServerMsg(),
+            res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+            report_id = next(report_id),
+            order_id = order_id,
+            chain_order_id = chain_order_id
+            ))
         info.append(build_option_maturity_list_report_server_msg(
-           res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
-           report_id = next(report_id),
-           option_id = option_id,
-           option_name = option_name
-           ))
+            ServerMsg(),
+            res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+            report_id = next(report_id),
+            option_id = option_id,
+            option_name = option_name
+            ))
         info.append(build_instrument_group_report_server_msg(
-           res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
-           report_id = next(report_id),
-           instrument_id = instrument_id,
-           instrument_name = instrument_name
-           ))
+            ServerMsg(),
+            res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+            report_id = next(report_id),
+            instrument_id = instrument_id,
+            instrument_name = instrument_name
+            ))
         info.append(build_at_the_money_strike_report_server_msg(
-           res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
-           report_id = next(report_id),
-           ))
+            ServerMsg(),
+            res = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
+            report_id = next(report_id),
+            ))
              
     return info
 

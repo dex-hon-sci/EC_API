@@ -31,9 +31,9 @@ from EC_API.ext.WebAPI.historical_2_pb2 import VolumeProfileReport as VolPrfRep
 # (4) pong (v)
 ###LgRes.ResultCode.RESULT_CODE_SUCCESS
 def build_logon_result_server_msg(
+        server_msg: ServerMsg,
         res_code: LgRes.ResultCode = LgRes.ResultCode.RESULT_CODE_SUCCESS
     ) -> ServerMsg:
-    server_msg = ServerMsg()
 
     logon_result = server_msg.logon_result
     
@@ -45,9 +45,9 @@ def build_logon_result_server_msg(
     return server_msg
     
 def build_restore_or_join_session_result_server_msg(
+        server_msg: ServerMsg,
         res_code: RstJoinSessRes.ResultCode = RstJoinSessRes.ResultCode.RESULT_CODE_SUCCESS
     ) -> ServerMsg:
-    server_msg = ServerMsg()
 
     restore_or_join_session_result = server_msg.restore_or_join_session_result
     
@@ -57,27 +57,27 @@ def build_restore_or_join_session_result_server_msg(
     return server_msg
 
 def build_concurrent_connection_join_results_server_msg(
+        server_msg: ServerMsg,
         res: bool = True
     ) -> ServerMsg:  
-    server_msg = ServerMsg()
 
     concurrent_connection_join_results = server_msg.concurrent_connection_join_results.add()
     concurrent_connection_join_results.is_same_app_type = res
     return server_msg
 
 def build_logged_off_server_msg(
+        server_msg: ServerMsg,
         res: LgOff.LogoffReason = LgOff.LogoffReason.LOGOFF_REASON_BY_REQUEST
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     logged_off = server_msg.logged_off
     logged_off.logoff_reason = res
     return server_msg
 
 def build_pong_server_msg(
+        server_msg: ServerMsg,
         ping_time: int = int(datetime.now().timestamp()),
         delay: int = 5
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     pong = server_msg.pong
     pong.ping_utc_time= ping_time
     pong.pong_utc_time = ping_time + delay
@@ -98,12 +98,12 @@ def build_pong_server_msg(
 # account_risk_parameters_report
 # order_status_report
 def build_symbol_resolution_report_server_msg(
+        server_msg: ServerMsg,
         res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
         report_id: int = 1,
         cotract_id: int = 3,
         contract_symbol: str = "CLE",
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     
     information_report = server_msg.information_reports.add()
     information_report.id = report_id
@@ -129,10 +129,10 @@ def build_symbol_resolution_report_server_msg(
     return server_msg
 
 def build_session_info_report_server_msg(
+        server_msg: ServerMsg,
         res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
         report_id: int = 1,
     ) -> ServerMsg:
-    server_msg = ServerMsg()
 
     information_report = server_msg.information_reports.add()
     information_report.id = report_id
@@ -147,13 +147,13 @@ def build_session_info_report_server_msg(
     return server_msg
     
 def build_historical_orders_report_server_msg(
+        server_msg: ServerMsg,
         res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
         report_id: int = 1,
         order_id: str = "1",
         chain_order_id: str = "A"
     ) -> ServerMsg:
     TS = datetime.now(timezone.utc)
-    server_msg = ServerMsg()
     
     information_report = server_msg.information_reports.add()
     information_report.id = report_id
@@ -168,12 +168,12 @@ def build_historical_orders_report_server_msg(
     return server_msg
 
 def build_option_maturity_list_report_server_msg(
+        server_msg: ServerMsg,
         res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
         report_id: int = 1,
         option_id: str = "id_1",
         option_name: str ="CLXXXX"
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     
     information_report = server_msg.information_reports.add()
     information_report.id = report_id
@@ -187,13 +187,12 @@ def build_option_maturity_list_report_server_msg(
     return server_msg
 
 def build_instrument_group_report_server_msg(
+        server_msg: ServerMsg,
         res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
         report_id: int = 1,
         instrument_id: str = "id_1",
         instrument_name: str = "Instrument_1"
-    ) -> ServerMsg: 
-    server_msg = ServerMsg()
-    
+    ) -> ServerMsg:     
     information_report = server_msg.information_reports.add()
     information_report.id = report_id
     information_report.status_code = res
@@ -205,10 +204,10 @@ def build_instrument_group_report_server_msg(
     return server_msg
 
 def build_at_the_money_strike_report_server_msg(
+        server_msg: ServerMsg,
         res: InfoRp.StatusCode = InfoRp.StatusCode.STATUS_CODE_SUCCESS,
         report_id: int = 1,
     ) -> ServerMsg: 
-    server_msg = ServerMsg()
     information_report = server_msg.information_reports.add()
     information_report.id = report_id
     information_report.status_code = res
@@ -227,10 +226,9 @@ def build_at_the_money_strike_report_server_msg(
 # (7) account_summary_statuses (v)
 # (8) go_flat_statuses (v)
 def build_order_request_rejects_server_msg(
+        server_msg: ServerMsg,
         request_id: int = 1
-    ) -> ServerMsg:
-    server_msg = ServerMsg()
-    
+    ) -> ServerMsg:    
     order_request_rejects = server_msg.order_request_rejects.add()
     order_request_rejects.request_id = request_id
     order_request_rejects.reject_code = 1001
@@ -238,9 +236,9 @@ def build_order_request_rejects_server_msg(
     return server_msg
 
 def build_order_request_acks_server_msg(
+        server_msg: ServerMsg,
         request_id: int = 1
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     
     order_request_acks = server_msg.order_request_acks.add()
     order_request_acks.request_id = request_id
@@ -248,10 +246,10 @@ def build_order_request_acks_server_msg(
     return server_msg
 
 def build_trade_subscription_statuses_server_msg(
+        server_msg: ServerMsg,
         res: TrdSubStatus.StatusCode = TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS,
         sub_id: int = 1
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     trade_subscription_statuses = server_msg.trade_subscription_statuses.add()
     trade_subscription_statuses.id = sub_id
     
@@ -259,9 +257,9 @@ def build_trade_subscription_statuses_server_msg(
     return server_msg
 
 def build_trade_snapshot_completetions_server_msg(
+        server_msg: ServerMsg,
         sub_id: int = 1
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     trade_snapshot_completions = server_msg.trade_snapshot_completions.add()
     
     trade_snapshot_completions.subscription_id = sub_id
@@ -274,13 +272,13 @@ def build_trade_snapshot_completetions_server_msg(
     return server_msg
 
 def build_order_statuses_server_msg(
+        server_msg: ServerMsg,
         res: OrderStatus.Status = OrderStatus.Status.IN_TRANSIT,
         contract_id: int = 0,
         sub_id: int = 1,
         order_id: str = "order_id_1",
         chain_order_id: str = "chain_order_id_1"
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     
     order_statuses = server_msg.order_statuses.add()
     
@@ -336,10 +334,10 @@ def build_order_statuses_server_msg(
 
 
 def build_position_statuses_server_msg(
+        server_msg: ServerMsg,
         subscription_ids: list[int] = [0,1,2],
         contract_id: int = 0
     ) -> ServerMsg:    
-    server_msg = ServerMsg()
     
     position_statuses = server_msg.position_statuses.add()
     for num in subscription_ids:
@@ -375,8 +373,9 @@ def build_position_statuses_server_msg(
     return server_msg
 
 
-def build_account_summary_statuses_server_msg() -> ServerMsg:
-    server_msg = ServerMsg()
+def build_account_summary_statuses_server_msg(
+        server_msg: ServerMsg,        
+        ) -> ServerMsg:
     account_summary_statuses = server_msg.account_summary_statuses.add()
     account_summary_statuses.subscription_ids.append(1)
     account_summary_statuses.subscription_ids.append(2)
@@ -390,9 +389,9 @@ def build_account_summary_statuses_server_msg() -> ServerMsg:
 
 
 def build_go_flat_statuses_server_msg(
+        server_msg: ServerMsg,
         res: GFltStatus.StatusCode = GFltStatus.StatusCode.STATUS_CODE_COMPLETED
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     
     go_flat_statuses = server_msg.go_flat_statuses.add()
     go_flat_statuses.request_id = 1 
@@ -404,9 +403,9 @@ def build_go_flat_statuses_server_msg(
 # (1) market_data_subscription_statuses (v)
 # (2) real_time_market_data (v)
 def build_market_data_subscription_statuses_server_msg(
+        server_msg: ServerMsg,
         res: MktDSubStatus.StatusCode = MktDSubStatus.StatusCode.STATUS_CODE_SUCCESS
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     market_data_subscription_statuses = server_msg.market_data_subscription_statuses.add()
     market_data_subscription_statuses.contract_id = 1
     market_data_subscription_statuses.status_code = res
@@ -417,9 +416,9 @@ def build_market_data_subscription_statuses_server_msg(
 
 
 def build_real_time_market_data_server_msg(
+        server_msg: ServerMsg,
         contract_id: int = 1
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     real_time_market_data = server_msg.real_time_market_data.add()
     
     real_time_market_data.contract_id = contract_id
@@ -471,9 +470,9 @@ def build_real_time_market_data_server_msg(
 # (3) volume_profile_reports (v)
 # (4) non_timed_bar_reports (v)
 def build_time_and_sales_reports_server_msg(
+        server_msg: ServerMsg,
         res: TSrRep.ResultCode = TSrRep.ResultCode.RESULT_CODE_SUCCESS
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     time_and_sales_reports = server_msg.time_and_sales_reports.add()
     
     time_and_sales_reports.request_id = 1
@@ -491,9 +490,9 @@ def build_time_and_sales_reports_server_msg(
     return server_msg
 
 def build_time_bar_reports_server_msg(
+        server_msg: ServerMsg,
         res: BarRpStatusCode = BarRpStatusCode.BAR_REPORT_STATUS_CODE_SUCCESS
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     time_bar_reports = server_msg.time_bar_reports.add()
     
     time_bar_reports.request_id = 1
@@ -510,9 +509,9 @@ def build_time_bar_reports_server_msg(
     return server_msg
 
 def build_volume_profile_reports_server_msg(
+        server_msg: ServerMsg,
         res: VolPrfRep.ResultCode = VolPrfRep.ResultCode.RESULT_CODE_SUCCESS
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     volume_profile_reports = server_msg.volume_profile_reports.add()
     
     volume_profile_reports.request_id = 1
@@ -529,9 +528,9 @@ def build_volume_profile_reports_server_msg(
     return server_msg
 
 def build_non_timed_bar_reports_server_msg(
+        server_msg: ServerMsg,
         res: BarRpStatusCode = BarRpStatusCode.BAR_REPORT_STATUS_CODE_SUCCESS
     ) -> ServerMsg:
-    server_msg = ServerMsg()
     non_timed_bar_reports = server_msg.non_timed_bar_reports.add()
     
     non_timed_bar_reports.request_id = 1
@@ -544,35 +543,35 @@ def build_all_server_msgs() -> dict[str, ServerMsg]:
     # A simple function that build all available server msgs. 
     # If you need specific input parameters for these message, please
     # construct them one by one.
-    logon_result_server_msg = build_logon_result_server_msg()
-    restore_or_join_session_result_server_msg = build_restore_or_join_session_result_server_msg()
-    concurrent_connection_join_results_server_msg = build_concurrent_connection_join_results_server_msg()
-    logged_off_server_msg = build_logged_off_server_msg()
-    pong_server_msg = build_pong_server_msg()
+    logon_result_server_msg = build_logon_result_server_msg(ServerMsg())
+    restore_or_join_session_result_server_msg = build_restore_or_join_session_result_server_msg(ServerMsg())
+    concurrent_connection_join_results_server_msg = build_concurrent_connection_join_results_server_msg(ServerMsg())
+    logged_off_server_msg = build_logged_off_server_msg(ServerMsg())
+    pong_server_msg = build_pong_server_msg(ServerMsg())
 
-    symbol_resolution_report_server_msg = build_symbol_resolution_report_server_msg()
-    session_info_report_server_msg = build_session_info_report_server_msg()
-    historical_orders_report_server_msg = build_historical_orders_report_server_msg()
-    option_maturity_list_report_server_msg = build_option_maturity_list_report_server_msg()
-    instrument_group_report_server_msg = build_instrument_group_report_server_msg()
-    at_the_money_strike_report_server_msg = build_at_the_money_strike_report_server_msg()
+    symbol_resolution_report_server_msg = build_symbol_resolution_report_server_msg(ServerMsg())
+    session_info_report_server_msg = build_session_info_report_server_msg(ServerMsg())
+    historical_orders_report_server_msg = build_historical_orders_report_server_msg(ServerMsg())
+    option_maturity_list_report_server_msg = build_option_maturity_list_report_server_msg(ServerMsg())
+    instrument_group_report_server_msg = build_instrument_group_report_server_msg(ServerMsg())
+    at_the_money_strike_report_server_msg = build_at_the_money_strike_report_server_msg(ServerMsg())
 
-    order_request_rejects_server_msg = build_order_request_rejects_server_msg()
-    order_request_acks_server_msg = build_order_request_acks_server_msg()
-    trade_subscription_statuses_server_msg = build_trade_subscription_statuses_server_msg()
-    trade_snapshot_completetions_server_msg = build_trade_snapshot_completetions_server_msg()
-    order_statuses_server_msg = build_order_statuses_server_msg()
-    position_statuses_server_msg = build_position_statuses_server_msg()
-    account_summary_statuses_server_msg = build_account_summary_statuses_server_msg()
-    go_flat_statuses_server_msg = build_go_flat_statuses_server_msg()
+    order_request_rejects_server_msg = build_order_request_rejects_server_msg(ServerMsg())
+    order_request_acks_server_msg = build_order_request_acks_server_msg(ServerMsg())
+    trade_subscription_statuses_server_msg = build_trade_subscription_statuses_server_msg(ServerMsg())
+    trade_snapshot_completetions_server_msg = build_trade_snapshot_completetions_server_msg(ServerMsg())
+    order_statuses_server_msg = build_order_statuses_server_msg(ServerMsg())
+    position_statuses_server_msg = build_position_statuses_server_msg(ServerMsg())
+    account_summary_statuses_server_msg = build_account_summary_statuses_server_msg(ServerMsg())
+    go_flat_statuses_server_msg = build_go_flat_statuses_server_msg(ServerMsg())
 
-    market_data_subscription_statuses_server_msg = build_market_data_subscription_statuses_server_msg()
-    real_time_market_data_server_msg = build_real_time_market_data_server_msg()
+    market_data_subscription_statuses_server_msg = build_market_data_subscription_statuses_server_msg(ServerMsg())
+    real_time_market_data_server_msg = build_real_time_market_data_server_msg(ServerMsg())
 
-    time_and_sales_reports_server_msg = build_time_and_sales_reports_server_msg()
-    time_bar_reports_server_msg = build_time_bar_reports_server_msg()
-    volume_profile_reports_server_msg = build_volume_profile_reports_server_msg()
-    non_timed_bar_reports_server_msg = build_non_timed_bar_reports_server_msg()
+    time_and_sales_reports_server_msg = build_time_and_sales_reports_server_msg(ServerMsg())
+    time_bar_reports_server_msg = build_time_bar_reports_server_msg(ServerMsg())
+    volume_profile_reports_server_msg = build_volume_profile_reports_server_msg(ServerMsg())
+    non_timed_bar_reports_server_msg = build_non_timed_bar_reports_server_msg(ServerMsg())
 
     return {
         # (1) connection/session
