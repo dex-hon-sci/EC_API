@@ -13,8 +13,18 @@ from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
 
 RouterKey = tuple[str, str, str, int|str] # (msg_family, msg_type, id_field_name, id)
 type Extractor_func = Callable[ServerMsg]
-_extractors: dict[str, Extractor_func] = {}
-
+extractors: dict[str, Extractor_func] = {}
+# =============================================================================
+# 
+# def extract_any(msg:ServerMsg):
+#     res = []
+#     TARGET = {}
+#     def selector(fd, val) -> Iterable[keyHit]:
+#         if fd.message_type is not None and and fd.name in TARGET:
+#             yield KeyHit(fd.name, val, True, False)
+#     return res
+# 
+# =============================================================================
 @dataclass(frozen=True)
 class KeyHit:
     name: str
@@ -25,7 +35,7 @@ class KeyHit:
 def register_extractor(msg_name: str):
     # decorator for registering extractors functions
     def decorator(func: Callable[..., None]):
-        _extractors[msg_name] = func
+        extractors[msg_name] = func
         return func
     return decorator
 
@@ -59,6 +69,8 @@ def walk_fields(
                     
     walk(msg, 0)
     return outs
+
+
 
 @register_extractor('session')
 def extract_session_router_keys(
@@ -257,3 +269,8 @@ def extract_market_data_router_keys(
             keys.append(('md', report_type, request_id_name, request_id_val))
             request_id_name, request_id_val = None, None
     return keys
+
+
+def extract_market_data_contract_id(       
+        msg: ServerMsg):
+    return 

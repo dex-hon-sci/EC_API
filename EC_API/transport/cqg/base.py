@@ -100,7 +100,7 @@ class TransportCQG:
         try:
             self._client.disconnect()
         except Exception:
-            pass
+            pass # <--- fix this later
         
         if self._send_thread:
             self._send_thread.join(timeout=1.0)

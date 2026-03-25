@@ -18,10 +18,11 @@ from EC_API.monitor.data_feed import DataFeed
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter
 from EC_API.monitor.cqg.builders import(
+    
     build_realtime_data_request_msg,
     build_reset_tracker_request_msg
     )
-
+from EC_API.connect.cqg.builders import (build_resolve_symbol_msg)
 
 class MonitorDataCQG(Monitor):
     def __init__(self, connection: ConnectCQG):
@@ -33,15 +34,42 @@ class MonitorDataCQG(Monitor):
 class MonitorRealTimeDataCQG(Monitor):
     
     def __init__(self, conn: ConnectCQG):
-        self._transport = TransportCQG()
+        self._conn = conn
+        self._transport = conn._transport()
+        
+        self.syms_to_contract_ids = dict()
+        self.timeout = 1
+        
+    async def resolve_symbol(self, symbol: str, request_id: int) -> None:
+        # symbol Resolution
+        msg = build_resolve_symbol_msg(symbol, request_id, subscribe=True)
+        fut = self._conn._msg_router.register_key(("rpc", "", "request_id", request_id))
+        await self._transport.send(msg)
+        server_msg = await asyncio.wait_for(fut, timeout=1)
+        return 
+        
+    async def _subscribe_mkt_data(
+        self, contract_id: int, request_id: int, level
+        ) -> None:
 
-        
-    def subscribe(self,contract_id: int, level, request_id: int):
-        ...
-        
-    async def stream(self, contract_id: int):
+        msg = build_realtime_data_request_msg(contract_id, request_id, level)
+        fut = self._conn._msg_router.register_key(("", request_id))
+        await self._transport.send(msg)
+        server_msg = await asyncio.wait_for(fut, timeout=1)
+        return 
+    
+    async def _unsubscribe_mkt_data(
+        self, contract_id: int, request_id: int
+        ) -> None:
+        msg = build_reset_tracker_request_msg(contract_id, request_id)
+        fut = self._conn._msg_router.register_key(("", request_id))
+        await self._transport.send(msg)
+        server_msg = await asyncio.wait_for(fut, timeout=1)
+        return 
+    
+    async def stream(self, contract_id: int, level):
         # check if they are in the stream router
-        
+        self._subscribe_mkt_data()
         # stream
         q = self._conn._market_data_stream_router.subscribe(contract_id)
         
@@ -49,8 +77,9 @@ class MonitorRealTimeDataCQG(Monitor):
             while True:
                 md = await q.get()
                 for data in md:
-                    yield data
+                    yield data # do parsing here
         finally:
+            await self._unsubscribe_mkt_data()
             self._conn._market_data_stream_router.unsubscribe(contract_id)
             
 

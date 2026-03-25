@@ -8,14 +8,21 @@ Created on Thu Mar 19 01:06:27 2026
 from typing import Any, Iterable
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.key_extractors import walk_fields
-# contract_id, OHLC, volume_significand, volume_exponent, volume_significand
-MarketValueType = tuple[str, int, int, int, int, int] 
+from EC_API.monitor.enums import MktDataSubLevel
+from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
+
+# contract_id, O, H, L, C, volume_significand, volume_exponent, volume_significand, correct_price_scale
+MarketValueType = tuple[int, int, int, int, int, int, int]
+
+# contract_id, quote_utc_time, type, scaled_price, scaled_source_price
+QuotesValueE=Type = tuple[int, int, Any, int, int]
 
 def parse_real_time_market_data2(server_msg: ServerMsg)-> list[dict[str,Any]]:
     # Need to walk through the message
     res = []
     if server_msg.real_time_market_data:
         real_time_market_data = server_msg.real_time_market_data
+        price_scale = real_time_market_data.price_scale
         for data in real_time_market_data:
             if real_time_market_data:
                 for ele in data.market_values:
@@ -28,20 +35,30 @@ def parse_real_time_market_data2(server_msg: ServerMsg)-> list[dict[str,Any]]:
                         total_vol_significand = 0
                     else: 
                         total_vol_significand = ele.total_volume.significand
+                        
                     res.append(
                         (ele.scaled_open_price, ele.scaled_high_price, 
                          ele.scaled_low_price, ele.scaled_close_price,
                          total_vol_exponent, 
-                         total_vol_significand
+                         total_vol_significand, price_scale
                          )
                         )
     return res
 
 
-def parse_real_time_market_data(server_msg: ServerMsg) -> list[MarketValueType]:
+def parse_real_time_market_data(
+        server_msg: ServerMsg, 
+        level: MktDataSubLevel | MktDataSubLevelCQG
+        ) -> list[MarketValueType]:
+    
     TARGET = {
-        "market_values",
-        "quote"
+        MktDataSubLevel.LEVEL_TRADES: "quotes",
+        MktDataSubLevel.LEVEL_TRADES_BBA: "",
+        MktDataSubLevel.LEVEL_TRADES_BBA_VOLUMES: "market_values",
+        MktDataSubLevel.LEVEL_TRADES_BBA_DOM: "",
+        MktDataSubLevelCQG.LEVEL_SETTLEMENTS: "market_values",
+        MktDataSubLevelCQG.LEVEL_TRADES_BBA_DETAILED_DOM: "",
+        MktDataSubLevelCQG.LEVEL_END_OF_DAY: ""
         }
     
     def selector(fd, val) -> Iterable[Any]:

@@ -59,9 +59,9 @@ class MessageRouter:
 class StreamRouter:
     def __init__(
         self,
-        max_queue_size: int = 1_000,
-        max_sub_size: int = 5,
-        max_num_sym: int = 50,
+        max_queue_size: int = 1_000, # max amount of data points
+        max_sub_size: int = 5, # max number of subs per symbol
+        max_num_sym: int = 50, # max number of symbols
         drop_if_full: bool = True,
         drop_policy: str = "drop_oldest"
         ):
@@ -98,7 +98,6 @@ class StreamRouter:
 
         self._subs.setdefault(sub_id, []).append(q)
         return q
-
 
     def unsubscribe(
         self,

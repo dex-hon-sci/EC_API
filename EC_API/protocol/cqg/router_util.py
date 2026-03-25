@@ -10,7 +10,7 @@ import logging
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR, SERVER_MSG_FAMILY
 from EC_API.protocol.cqg.key_extractors import (
-    _extractors, RouterKey
+    extractors, RouterKey
 )
 logger = logging.getLogger(__name__)
 
@@ -29,29 +29,33 @@ def extract_router_keys(
             logger.info(f"{msg_type} not found in the avaliable message types.")
             continue
         
-        extractor = _extractors.get(family)
+        extractor = extractors.get(family)
         if extractor is None:
             logger.info(f"Corresponding extractor for {msg_type} not found.")
             continue
         try:
             res.extend(extractor(server_msg, msg_type))
-        except:
+        except Exception:
             logger.info(f"Extractor failed (family={family}, mt={msg_type})")
             continue
     return res
 
 # --- Bool checks ----
 def is_realtime_tick(msg: ServerMsg) -> bool:
-    return server_msg_type(msg) in {"real_time_market_data"}
+    for fd_name in server_msg_type(msg):
+        return True if fd_name in {"real_time_market_data"} else False
 
 def is_order_update_stream(msg: ServerMsg) -> bool:
-    return server_msg_type(msg) in {"order_statuses"}
+    for fd_name in server_msg_type(msg):
+        return True if fd_name in {"order_statuses"} else False
 
 def is_trade_history(msg: ServerMsg) -> bool:
-    return server_msg_type(msg) in {"InformationReport:historical_orders_report"}
+    for fd_name in server_msg_type(msg):
+        return True if fd_name in {"InformationReport:historical_orders_report"} else False
 
 def is_symbol_resolution(msg: ServerMsg) -> bool:
-    return server_msg_type(msg) in {"InformationReport:symbol_resolution_report"}
+    for fd_name in server_msg_type(msg):
+        return True if fd_name in {"InformationReport:symbol_resolution_report"} else False
 
 # --- id extractor ---
 def realtime_tick_contract_id(msg: ServerMsg) -> int:
