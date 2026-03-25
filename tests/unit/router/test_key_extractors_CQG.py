@@ -6,7 +6,7 @@ Created on Fri Feb 13 21:26:23 2026
 @author: dexter
 """
 
-from EC_API.protocol.cqg.key_extractors import _extractors
+from EC_API.protocol.cqg.key_extractors import extractors
 from EC_API.protocol.cqg.router_util import server_msg_type, extract_router_keys
 from tests.unit.fixtures.server_msg_builders_CQG import *
 
@@ -23,7 +23,7 @@ def test_complete_registry() -> None:
        'sub', 'substream', 'rpc_reqid'
        ]
    
-    keys = list(_extractors.keys())
+    keys = list(extractors.keys())
     for key in keys:
         assert key in required_extractor_families
     assert len(required_extractor_families) == len(keys)

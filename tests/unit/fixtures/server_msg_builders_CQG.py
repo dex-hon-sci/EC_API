@@ -430,7 +430,7 @@ def build_real_time_market_data_server_msg(
     quotes.type = Quote.Type.TYPE_TRADE
     quotes.scaled_price = 19201
     quotes.scaled_source_price = 10029
-    #quotes.volume = 200
+    quotes.volume.exponent = 2
     quotes.indicators.append(Quote.Indicator.INDICATOR_OPEN)
     quotes.sales_condition = Quote.SalesCondition.SALES_CONDITION_HIT
     
@@ -449,7 +449,7 @@ def build_real_time_market_data_server_msg(
     quotes1.type = Quote.Type.TYPE_TRADE
     quotes1.scaled_price = 1400
     quotes1.scaled_source_price = 129
-    #quotes1.volume = 200
+    quotes1.volume.exponent = 1
     quotes1.indicators.append(Quote.Indicator.INDICATOR_OPEN)
     quotes1.sales_condition = Quote.SalesCondition.SALES_CONDITION_HIT
     

@@ -49,7 +49,7 @@ class FakeTransport:
         self.in_q: asyncio.Queue = asyncio.Queue()
         
     async def recv(self):
-        return await self.in_q
+        return await self.in_q.get()
     
     async def send(self, msg_):
         return
