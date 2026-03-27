@@ -205,4 +205,3 @@ def test_splitter_valid() -> None:
     assert server_msg_type(res[0]) == ['market_data_subscription_statuses']    
     assert server_msg_type(res[1]) == ['real_time_market_data']
     
-    assert 

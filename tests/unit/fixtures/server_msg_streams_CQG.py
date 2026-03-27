@@ -42,16 +42,17 @@ def dummy_session_stream(pong_number: int = 1000) -> list[ServerMsg]:
     restore_msg = build_restore_or_join_session_result_server_msg(ServerMsg())
     logoff_msg = build_logged_off_server_msg(ServerMsg())
     
-    return [logon_msg] + [build_pong_server_msg() for _ in range(pong_number)] + [restore_msg, logoff_msg]
+    return [logon_msg] + [build_pong_server_msg(ServerMsg()) for _ in range(pong_number)] + [restore_msg, logoff_msg]
     
     
 def dummy_realtime_data_stream(
         total_msg_number: int = 10_000, 
+        total_sym_subbed: int = 100,
         seed: int = 500
     ) -> list[ServerMsg]:
     rng = random.Random(seed)
     msgs = [
-        build_real_time_market_data_server_msg(ServerMsg(), contract_id=rng.randrange(0, 100))
+        build_real_time_market_data_server_msg(ServerMsg(), contract_id=rng.randrange(0, total_sym_subbed))
         for _ in range(total_msg_number)
     ]
     return msgs
