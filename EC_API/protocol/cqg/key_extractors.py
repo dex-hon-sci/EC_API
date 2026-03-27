@@ -264,11 +264,3 @@ def extract_market_data_router_keys(
             keys.append(('md', report_type, request_id_name, request_id_val))
             request_id_name, request_id_val = None, None
     return keys
-
-
-def extract_market_data_contract_id(       
-        msg: ServerMsg,
-        msg_type: str                      
-        )-> int:
-    # fast extraction. Use only when we know there is real
-    return msg.real_time_market_data[0].contract_id

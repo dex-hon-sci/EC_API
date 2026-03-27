@@ -129,7 +129,7 @@ class StreamRouter:
             self,
             sub_id: int | str, 
             item: Any,
-            cool_time = 0.1
+            cool_time = 0.001
         ) -> None:
         queues = self._subs.get(sub_id)
         if not queues:
@@ -154,5 +154,5 @@ class StreamRouter:
                         continue
                     else:
                         continue
-            await asyncio.sleep(cool_time)
+            #await asyncio.sleep(cool_time)
                     

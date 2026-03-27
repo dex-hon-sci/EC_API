@@ -20,7 +20,8 @@ from EC_API.protocol.cqg.router_util import (
         is_order_update_stream, 
         is_trade_history,
         realtime_tick_contract_id, 
-        order_statuses_order_id
+        order_statuses_order_id,
+        split_server_msg
     )
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
@@ -100,12 +101,11 @@ class ConnectCQG(Connect):
         return self._transport
     # ------------------------
     
-    # -----------------------
-    #async def connect(self) -> None:
-    #    self._transport.connect()
+    async def connect(self) -> None:
+       self._transport.connect()
     
-    #def disconnect(self)->None:
-    #    self._client.disconnect()
+    def disconnect(self)->None:
+       self._client.disconnect()
     # -----------------------
     
     # ---- Live cycle --------
@@ -129,34 +129,37 @@ class ConnectCQG(Connect):
         while not self._stop_evt.is_set():
             msg: ServerMsg = await self._transport.recv()
             
-            # 0) check split, then SLIT!!
-            if len(server_msg_type(msg))>1:
-                pass
-            #print(is_realtime_tick(msg))
-            #print('msg', msg)
-            
-            # Cheapest check first, 
-            # 1) streaming dispatch
-            if is_realtime_tick(msg):
-                contract_id = realtime_tick_contract_id(msg)
-                await self._mkt_data_stream_router.publish(contract_id, msg)
-                continue
+            # 0) check if it is a composite message then SLIT!!
+            top_unique_fields = server_msg_type(msg)
+            if len(top_unique_fields)>1:
+                msgs = split_server_msg(msg, top_unique_fields)
+            else:
+                msgs = [msg]
 
-            # 2) order update dispatch <--need to handle this better
-            if is_order_update_stream(msg):
-                order_id = order_statuses_order_id(msg)
-                await self._exec_stream_router.publish(order_id, msg)
-                continue
-
-            keys = extract_router_keys(msg)
-            #print('keys', keys)
-            for key in keys:
-                if key is not None:        
-                    key_type, msg_type, msg_id_type, msg_id = key
-                    # 3) RPC routing (futures), 
-                    if key_type in {"rpc_reqid", "session", "sub", "info"}:
-                        self._msg_router.on_message(key, msg)
-                        #await self._misc_queue.put(msg)
+            for msg in msgs:
+                # Cheapest check first, 
+                # 1) streaming dispatch
+                if is_realtime_tick(msg):
+                    contract_id = realtime_tick_contract_id(msg)
+                    await self._mkt_data_stream_router.publish(contract_id, msg)
+                    continue
+    
+                # 2) order update dispatch <--need to handle this better
+                if is_order_update_stream(msg):
+                    order_id = order_statuses_order_id(msg)
+                    await self._exec_stream_router.publish(order_id, msg)
+                    continue
+    
+                keys = extract_router_keys(msg)
+                if len(keys) >1:
+                    print("multiple keys:", keys)
+                for key in keys:
+                    if key is not None:        
+                        key_type, msg_type, msg_id_type, msg_id = key
+                        # 3) RPC routing (futures), 
+                        if key_type in {"rpc_reqid", "session", "sub", "info"}:
+                            self._msg_router.on_message(key, msg)
+                            #await self._misc_queue.put(msg)
              
     # ---- CQG messages methods ----
     async def logon(
@@ -219,6 +222,10 @@ class ConnectCQG(Connect):
 
     async def ping(self):
         ping_msg = build_ping_msg(self.msg_id)
+        msg_key = ("pong")
+
+        fut = self._msg_router.register_key(msg_key)
+
         ## Routing and transport
         return ping_msg
     
