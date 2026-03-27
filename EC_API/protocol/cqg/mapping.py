@@ -6,34 +6,7 @@ Created on Mon Aug  4 13:07:01 2025
 @author: dexter
 """
 
-# =============================================================================
-# from EC_API.msg_validation.cqg.connect_enums import (
-#     LOGON_RESULT_STATUS_ENUMS_BOOL,
-#     LOGGEDOFF_REASON_ENUMS_BOOL,
-#     RESTORE_STATUS_ENUMS_BOOL,
-#     )
-# from EC_API.msg_validation.cqg.trade_enums import (
-#     TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL,
-#     NEWORDER_ORDERSTATUS_ENUMS_BOOL,
-#     MODIFYORDER_ORDERSTATUS_ENUMS_BOOL,
-#     CANCELORDER_ORDERSTATUS_ENUMS_BOOL,
-#     ACTIVEATORDER_ORDERSTATUS_ENUMS_BOOL,
-#     GOFLAT_ORDERSTATUS_ENUMS_BOOL,
-#     ORDER_REJECT_CODE_ENUMS_BOOL
-#     )
-# from EC_API.msg_validation.cqg.historical_enums import (
-#     TIMESALES_REPORT_RESULT_ENUMS_BOOL,
-#     VOLUMEPROFILE_REPORT_RESULT_ENUMS_BOOL
-#     )
-# from EC_API.msg_validation.cqg.meta_enums import (
-#     INFORMATION_REPORT_STATUS_ENUMS_BOOL
-#     )
-# from EC_API.msg_validation.cqg.market_data_enums import (
-#     MARKETDATA_SUB_STATUS_ENUMS_BOOL
-#     )
-# =============================================================================
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-
 
 from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LOR
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff

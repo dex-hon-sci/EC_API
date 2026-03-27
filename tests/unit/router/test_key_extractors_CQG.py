@@ -7,7 +7,9 @@ Created on Fri Feb 13 21:26:23 2026
 """
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.key_extractors import extractors
-from EC_API.protocol.cqg.router_util import server_msg_type, extract_router_keys
+from EC_API.protocol.cqg.router_util import (
+    server_msg_type, extract_router_keys, split_server_msg
+    )
 from tests.unit.fixtures.server_msg_builders_CQG import *
 
 def test_sever_msg_type() -> None:
@@ -186,3 +188,21 @@ def test_extract_key_non_timed_bar_reports() -> None:
     assert len(router_keys) == 1
     assert router_keys[0] == ('rpc_reqid', 'non_timed_bar_reports', 'request_id', 1)
 
+
+# ---- Test composite messages and splitter
+def test_splitter_valid() -> None:
+    server_msg = ServerMsg()
+    
+    mkt_msg = build_market_data_subscription_statuses_server_msg(server_msg)
+    mkt_msg = build_real_time_market_data_server_msg(mkt_msg)
+
+    res = split_server_msg(mkt_msg, ['market_data_subscription_statuses', 
+                                     'real_time_market_data'])
+    
+    assert len(res) == 2
+    assert res[0].market_data_subscription_statuses is not None    
+    assert res[1].real_time_market_data is not None
+    assert server_msg_type(res[0]) == ['market_data_subscription_statuses']    
+    assert server_msg_type(res[1]) == ['real_time_market_data']
+    
+    assert 

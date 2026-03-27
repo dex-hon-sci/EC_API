@@ -25,15 +25,6 @@ extractors: dict[str, Extractor_func] = {}
 #     return res
 # 
 # =============================================================================
-# =============================================================================
-# @dataclass(frozen=True)
-# class KeyHit:
-#     name: str
-#     value: Any | None
-#     is_repeated: bool
-#     is_message: bool
-#     
-# =============================================================================
 KeyHit = tuple[str, int, bool, bool]
 
 def register_extractor(msg_name: str):

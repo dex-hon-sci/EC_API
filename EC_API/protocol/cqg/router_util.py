@@ -7,6 +7,11 @@ Created on Mon Jan 12 06:21:10 2026
 """
 import logging
 #from google.protobuf.descriptor import Descriptor, FieldDescriptor
+from google.protobuf.internal.containers import (
+    RepeatedScalarFieldContainer, 
+    RepeatedCompositeFieldContainer
+)
+
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR, SERVER_MSG_FAMILY
 from EC_API.protocol.cqg.key_extractors import (
@@ -40,6 +45,19 @@ def extract_router_keys(
             continue
     return res
 
+def split_server_msg(msg: ServerMsg, targets: list[str]):
+    res = []
+    for target in targets:
+        server_msg = ServerMsg()
+        field_desc = msg.DESCRIPTOR.fields_by_name.get(target)
+        if field_desc.label == field_desc.LABEL_REPEATED:# repeated field
+            getattr(server_msg, target).MergeFrom(getattr(msg, target))
+        else:# singular field
+            setattr(server_msg, target,  getattr(server_msg, target))
+        res.append(server_msg)
+
+    return res
+
 # --- Bool checks ----
 def is_realtime_tick(msg: ServerMsg) -> bool:
     for fd_name in server_msg_type(msg):
@@ -63,3 +81,4 @@ def realtime_tick_contract_id(msg: ServerMsg) -> int:
 
 def order_statuses_order_id(msg: ServerMsg) -> str:
     return msg.order_statuses[0].order_id
+
