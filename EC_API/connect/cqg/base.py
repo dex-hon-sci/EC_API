@@ -7,6 +7,8 @@ Created on Mon Aug 18 11:34:22 2025
 """
 import asyncio
 from typing import Optional
+import logging
+
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
 from EC_API.connect.enums import ConnectionState
@@ -29,6 +31,8 @@ from EC_API.connect.cqg.builders import (
     build_restore_msg
     )
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg # remove this once parser functions are done
+
+logger = logging.getLogger(__name__)
 
 def dispatcher(msg_types: list[str]):...
 
@@ -78,6 +82,7 @@ class ConnectCQG(Connect):
         # queues for containing different server messages
         self._misc_queue: asyncio.Queue = asyncio.Queue() # For information report?
         self._stop_evt = asyncio.Event()
+        self._timeout = 1
         
         if immediate_connect:
             self._transport.connect()
@@ -171,7 +176,7 @@ class ConnectCQG(Connect):
         drop_concurrent_session: bool = False,
         private_label: str = "WebApiTest",
         **kwargs
-        ) -> ServerMsg:
+        ) -> ServerMsg | None:
         
         
         client_msg = build_logon_msg(
@@ -183,27 +188,31 @@ class ConnectCQG(Connect):
             private_label = private_label,
             **kwargs
             )
+        if not client_msg:
+            return
         
-        msg_key = ("logon_result", self.msg_id)
+        msg_key = ('session', 'logon_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(client_msg)
-        return await asyncio.wait_for(fut, timeout=5.0)
+        return await asyncio.wait_for(fut, timeout = self._timeout)
         #status = cqg_session.parse_logon_status(reply)
         
-    async def logoff(self) -> ServerMsg:
+    async def logoff(self) -> ServerMsg | None:
         # Logoff. Invoke this everytime when a connection is dropped
         client_msg = build_logoff_msg("logoff")
-        
-        msg_key = ("logoff_result", self.msg_id)
+        if not client_msg:
+            return
+
+        msg_key = ('session', 'logged_off', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(client_msg)
-        return await asyncio.wait_for(fut, timeout=5.0)
+        return await asyncio.wait_for(fut, timeout = self._timeout)
             
     async def restore_request(
             self, 
             session_token: str = None, 
             **kwargs
-        ) -> ServerMsg:
+        ) -> ServerMsg | None:
         # Restoring session after dropoff
         if session_token is None:
             session_token = self.session_token
@@ -214,22 +223,25 @@ class ConnectCQG(Connect):
             self.protocol_version_minor, 
             session_token,
             **kwargs)
+        if not restore_msg:
+            return
 
-        msg_key = ("logoff_result", self.msg_id)
+        msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
         return await asyncio.wait_for(fut, timeout=5.0)
 
-    async def ping(self):
+    async def ping(self) -> ServerMsg | None:
         ping_msg = build_ping_msg(self.msg_id)
-        msg_key = ("pong")
+        if not ping_msg:
+            return
+
+        msg_key =  ('session', 'pong', 'single', 0)
 
         fut = self._msg_router.register_key(msg_key)
-
-        ## Routing and transport
         return ping_msg
     
-    async def resolve_symbol(
+    async def resolve_symbol( # decrapated
         self, 
         symbol_name: str, 
         msg_id: int, 
@@ -239,10 +251,13 @@ class ConnectCQG(Connect):
         # after the server confirm that we login successfully, we can send information_request
         # contains the symbol_resolution_request, the real time data, historical data, 
         # tick data, and order activities are all depended on symbol_resolution_report
-        client_msg = build_resolve_symbol_msg(symbol_name, 
+        client_msg = build_resolve_symbol_msg(
+            symbol_name, 
                                               self.msg_id, 
                                               subscribe=subscribe, 
                                               **kwargs)
+        if not client_msg:
+            return 
         
 
         self._client.send_client_message(client_msg)

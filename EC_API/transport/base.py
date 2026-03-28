@@ -5,8 +5,10 @@ Created on Thu Nov 27 21:55:11 2025
 
 @author: dexter
 """
-
+import logging
 from typing import Protocol, Any
+
+logger = logging.getLogger(__name__)
 
 class Transport(Protocol):
     """

@@ -6,6 +6,7 @@ Created on Wed Nov 26 16:40:57 2025
 @author: dexter
 """
 import asyncio
+import logging
 from typing import Any  # Hashable, Optional
 #import logging
 from EC_API.exceptions import (
@@ -14,6 +15,7 @@ from EC_API.exceptions import (
     MaxSymbolsExceededError, MaxSubscribersExceededError
     )
 
+logger = logging.getLogger(__name__)
 
 # (msg_family, msg_type, id_field_name, id)
 RouterKey = tuple[str, str, str, int | str]
@@ -26,12 +28,10 @@ class MessageRouter:
         fut = asyncio.get_running_loop().create_future()
 
         if key in self._pending.keys():
-            raise DuplicateRouterKeyError(f"Router register key failed: key '{key}' already exist.")
-            #logger.error(
-            #    "[Message Router] Router register key failed: key '{key}' already exist.",
-            #    extra={"router_key": key}
-            #)
-        
+            msg = f"Router register key failed: key '{key}' already exist."
+            logger.error("[%s] %s", __class__.__name__, msg)
+            raise DuplicateRouterKeyError(msg)
+
         self._pending[key] = fut
 
         # clearup code in case of user cancel
@@ -80,18 +80,15 @@ class StreamRouter:
         # Add a new Queue to the list in case there is a new subscriber who
         # calls subscribe
         if len(self._subs) >= self._max_num_sym:
-            raise MaxSymbolsExceededError("Maximum number of contract subscribed exceeded.")
-            #logger.error(
-            #    "[Stream Router] Maximum number of contract subscribed exceeded."
-            #    )
-            #return 
+            msg = "Maximum number of contract subscribed exceeded."
+            logger.error("[%s] %s", __class__.__name__, msg)
+            raise MaxSymbolsExceededError(msg)
             
         if self._subs.get(sub_id):
             if len(self._subs[sub_id]) >= self._max_subs_size:
-                #logger.error(
-                #    f"[Stream Router] Maximum subscribers has reached for this contract: {contract_id}."
-                #    )
-                raise MaxSubscribersExceededError(f"Maximum subscribers has reached for this contract: {sub_id}.")
+                msg = f"Maximum subscribers has reached for this contract: {sub_id}."
+                logger.error("[%s] %s", __class__.__name__, msg)
+                raise MaxSubscribersExceededError(msg)
 
         q = asyncio.Queue(
             maxsize=self._max_queue_size) if self._max_queue_size else asyncio.Queue()
@@ -100,23 +97,21 @@ class StreamRouter:
         return q
 
     def unsubscribe(
-        self,
+        self, cls,
         sub_id: int|str,
         q: asyncio.Queue
         ) -> None:
 
         lst = self._subs.get(sub_id, [])
         if not lst:
-            #logger.error(
-            #    "[Stream Router] Retrival of {contract_id} failed. Contract ID: {contract_id} is not ini the router.",
-            #    extra = {"contract_id": contract_id}
-            #    )
-            raise UnknownSubscriptionError(f"Retrival of {sub_id} failed. Contract ID: {sub_id} is not ini the router.")
+            msg = f"Retrival of {sub_id} failed. Contract ID: {sub_id} is not in the router."
+            logger.error("[%s] %s", __class__.__name__, msg)
+            raise UnknownSubscriptionError(msg)
             
         if q not in lst:
-            #logger.error(f"[Stream Router] Unsubscribe failed. Input queue is not in the list of contract id:{contract_id}",
-            #             extra = {"contract_id": contract_id})
-            raise SubscriptionQueueMismatchError(f"Unsubscribe failed. Input queue is not in the list of contract id:{sub_id}.") 
+            msg = f"Unsubscribe failed. Input queue is not in the list of id:{sub_id}."
+            logger.error("[%s] %s", __class__.__name__, msg)
+            raise SubscriptionQueueMismatchError(msg)
 
         lst.remove(q)
 
@@ -137,7 +132,7 @@ class StreamRouter:
         
         for q in list(queues):
             if not self._drop_if_full:
-                await q.put(item)
+                await q.put_nowait(item)
                 continue
             
             try:
@@ -146,9 +141,11 @@ class StreamRouter:
                 if self._drop_if_full:
                     if self.drop_policy == "drop_oldest":
                         try:
-                            q._queue.popleft()
+                            q.get_nowait()
                             q.put_nowait(item)
                         except Exception:
+                            msg = ""
+                            logger.warning(msg)
                             continue
                     elif self.drop_policy == "drop_latest":
                         continue

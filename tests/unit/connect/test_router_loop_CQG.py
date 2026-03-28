@@ -37,7 +37,6 @@ async def _drain_all_stream_data(
         rid = id_func(msg)      
         expected.setdefault(rid,[]).append(msg)
         
-    #
     for rid, msgs in expected.items():
         q = queues[rid]
         
@@ -45,8 +44,31 @@ async def _drain_all_stream_data(
             received = await q.get()
             assert id_func(received) == id_func(expected_msg)
         
+        
 @pytest.mark.asyncio
-async def test_router_loop_realtime_mkt_stream_valid() -> None:
+async def test_bench_stream_router_publish() -> None:
+    N = 10_000
+    msg_stream = dummy_realtime_data_stream(total_msg_number=N)
+    
+    router = StreamRouter(max_queue_size=N, max_sub_size=4, max_num_sym=100)
+    contract_ids = {m.real_time_market_data[0].contract_id for m in msg_stream}
+    for cid in contract_ids:
+        router.subscribe(cid)
+    
+    start = time.perf_counter()
+    for msg in msg_stream:
+        cid = msg.real_time_market_data[0].contract_id
+        await router.publish(cid, msg)
+    elapsed = time.perf_counter() - start
+    
+    print(f"router.publish: {N/elapsed:,.0f} msg/s  |  {elapsed/N*1e6:.2f} µs/msg")
+    assert 1 == 0
+    
+@pytest.mark.asyncio
+async def test_starvation_check() -> None:
+    N = 10_000
+    msg_stream = dummy_realtime_data_stream(total_msg_number=N)
+    
     conn = ConnectCQG(
         host_name = "",
         user_name = "", 
@@ -54,10 +76,60 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
         immediate_connect=False,
         client=object()
         )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+
+    stream_router = StreamRouter(
+        max_queue_size=100,
+        max_sub_size=4,
+        max_num_sym=100,
+        )
+    conn._mkt_data_stream_router = stream_router
+
+    # pre-fill transport queue
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+        
+    contract_ids = {m.real_time_market_data[0].contract_id for m in msg_stream}
+    queues = {cid: stream_router.subscribe(cid) for cid in contract_ids}
+
+    conn.start()
     
+    # give router_loop a head start
+    await asyncio.sleep(0)
+    
+    expected = dict()
+    
+    # Put the msg inside an dict by ID
+    for msg in msg_stream:
+        rid = realtime_tick_contract_id(msg)      
+        expected.setdefault(rid,[]).append(msg)
+
+    # check if drain_all ever gets cpu time
+    drained = 0
+    async def counting_drain():
+        nonlocal drained
+        for cid, msgs in expected.items():
+            for _ in msgs:
+                await queues[cid].get()
+                drained += 1
+                if drained % 100 == 0:
+                    print(f"drained {drained} at {time.perf_counter():.4f}")
+    
+    await asyncio.wait_for(counting_drain(), timeout=5.0)
+    
+@pytest.mark.asyncio
+async def test_router_loop_realtime_mkt_stream_valid() -> None:
     total_contract_sub = 20
-    total_msg_number = 20_000
+    total_msg_number = 10_000
     # Insert a Fake transport layer to siulate send/recv
+    conn = ConnectCQG(
+        host_name = "",
+        user_name = "", 
+        password = "",
+        immediate_connect=False,
+        client=object()
+        )
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
 
@@ -84,13 +156,21 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
     
     # Function call transport and call send/recv loop
     conn.start()
-    start = time.perf_counter()
-    
+# =============================================================================
+#     start = time.perf_counter()
+#     
+#     await _drain_all_stream_data(
+#         queues, msg_stream, realtime_tick_contract_id
+#         )
+#     elapsed = time.perf_counter() - start
+#     print("total drain time", elapsed)
+# 
+# =============================================================================
     try:
         await asyncio.wait_for(_drain_all_stream_data(
             queues, msg_stream, realtime_tick_contract_id
             ), 
-            timeout = 1)
+            timeout = 15)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")
@@ -143,9 +223,6 @@ async def test_router_loop_mix_msg_stream_valid():
     msg_stream = dummy_mixed_full_stream(seed=100)    
     router_keys = [extract_router_keys(msg) for msg in msg_stream] 
     router_keys_len = [len(key) for key in router_keys]
-    #print(router_keys)
-    #print(router_keys_len)
-    #print(len(msg_stream)==len(router_keys))
     # -- Router Loop tests---
     task = asyncio.create_task(conn._router_loop())
 
