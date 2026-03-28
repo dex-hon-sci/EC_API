@@ -2,13 +2,22 @@
 class EC_APIError(Exception):
     """Base case for EC_API Error"""
 
-# ---
-class ConnectError(EC_APIError):...
-class DisconnectError(EC_APIError):...
 
-class AuthError(EC_APIError):...
+# --- Builders
+class MsgBuilderParaTypeError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
-# ----
+class MsgBuilderParaError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+# --- Parsers
+class MsgParserError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+# --- Routers
 class RoutingError(EC_APIError):...
 
 class DuplicateRouterKeyError(EC_APIError):
@@ -34,3 +43,10 @@ class MaxSymbolsExceededError(EC_APIError):
 class MaxSubscribersExceededError(EC_APIError):
     def __int__(self, message: str):
         super().__init__(message)
+
+# --- Connect
+class ConnectError(EC_APIError):...
+class DisconnectError(EC_APIError):...
+
+class AuthError(EC_APIError):...
+
