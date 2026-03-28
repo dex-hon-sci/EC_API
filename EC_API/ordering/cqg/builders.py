@@ -6,6 +6,7 @@ Created on Fri Nov 28 21:14:37 2025
 @author: dexter
 """
 from datetime import datetime, timezone
+import logging
 # EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.utility.base import to_significand_sint64_exponent_sint32
@@ -48,16 +49,24 @@ from EC_API.ordering.cqg.fields import (
     GOFLAT_ORDER_OPTIONAL_FIELDS
     )
 
+logger = logging.getLogger(__name__)
+
 # Make CANCELALL, LIQUIDATEALL, SUSPEND
 def build_trade_subscription_msg(
     trade_subscription_id: int, 
     subscribe: bool,
     sub_scope: SubScope | SubScopeCQG,
     skip_orders_snapshot: bool    
-    ) -> ClientMsg:
+    ) -> ClientMsg | None:
     
     params = locals().copy()
-    assert_input_types(params, TRADE_SUBSCRIPTION_REQUIRED_FIELD)
+    
+    try:
+        assert_input_types(params, TRADE_SUBSCRIPTION_REQUIRED_FIELD)
+    except (TypeError, ValueError, KeyError) as e:
+        msg = f"build_trade_subscription_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return 
 
     client_msg = ClientMsg()
     trade_sub_request = client_msg.trade_subscriptions.add()
@@ -87,7 +96,7 @@ def build_new_order_request_msg(
     duration: Duration | DurationCQG = Duration.DAY, 
     is_manual: bool = False,
     **kwargs
-    ) -> ClientMsg:
+    ) -> ClientMsg | None:
     
     defaults = {
     'exec_instructions': None,
@@ -107,13 +116,16 @@ def build_new_order_request_msg(
     params.pop('defaults')
     full = {**params, **kwargs}
     
-    validate_required_fields(params, NEW_ORDER_REQUIRED_FIELDS)
-    
-    assert_input_types(params, NEW_ORDER_REQUIRED_FIELDS, strict = True)
-    assert_input_types(kwargs, NEW_ORDER_OPTIONAL_FIELDS, strict = False)
+    try:
+        validate_required_fields(params, NEW_ORDER_REQUIRED_FIELDS)
+        assert_input_types(params, NEW_ORDER_REQUIRED_FIELDS, strict = True)
+        assert_input_types(kwargs, NEW_ORDER_OPTIONAL_FIELDS, strict = False)
+        validate_input_para(full)
+    except (TypeError, ValueError, KeyError) as e:
+        msg = f"build_new_order_request_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return
 
-    validate_input_para(full)
-    
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
     order_requests.request_id = request_id
@@ -150,7 +162,7 @@ def build_modify_order_request_msg(
     cl_order_id: str, 
     when_utc_timestamp: datetime = datetime.now(timezone.utc),
     **kwargs
-    ) -> ClientMsg:
+    ) -> ClientMsg | None:
 
     defaults = {
     'scaled_limit_price': None,
@@ -170,12 +182,16 @@ def build_modify_order_request_msg(
     params.pop('defaults')
     full = {**params, **kwargs}
 
-    validate_required_fields(params, MODIFY_ORDER_REQUIRED_FIELDS)
+    try:
+        validate_required_fields(params, MODIFY_ORDER_REQUIRED_FIELDS)
+        assert_input_types(params, MODIFY_ORDER_REQUIRED_FIELDS, strict = True)
+        assert_input_types(kwargs, MODIFY_ORDER_OPTIONAL_FIELDS, strict = False)
+        validate_input_para(full)
+    except (TypeError, ValueError, KeyError) as e:
+        msg = f"build_modify_order_request_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return
 
-    assert_input_types(params, MODIFY_ORDER_REQUIRED_FIELDS, strict = True)
-    assert_input_types(kwargs, MODIFY_ORDER_OPTIONAL_FIELDS, strict = False)
-
-    validate_input_para(full)
     
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -219,12 +235,17 @@ def build_cancel_order_request_msg(
     orig_cl_order_id: str, 
     cl_order_id: str,
     when_utc_timestamp: datetime = datetime.now(timezone.utc)
-    ) -> ClientMsg:
+    ) -> ClientMsg | None:
     
     params = locals().copy()
-    
-    validate_required_fields(params, CANCEL_ORDER_REQUIRED_FIELDS)
-    assert_input_types(params, CANCEL_ORDER_REQUIRED_FIELDS, strict = True)
+    try:
+        validate_required_fields(params, CANCEL_ORDER_REQUIRED_FIELDS)
+        assert_input_types(params, CANCEL_ORDER_REQUIRED_FIELDS, strict = True)
+    except (TypeError, ValueError, KeyError) as e:
+        msg = f"build_cancel_order_request_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return
+
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -242,7 +263,7 @@ def build_cancelall_order_request_msg(
     request_id: int,
     cl_order_id: str,
     **kwargs
-    )-> ClientMsg:
+    )-> ClientMsg | None:
     default_kwargs = {
         'when_utc_timestamp': datetime.now(timezone.utc),
         }
@@ -250,7 +271,7 @@ def build_cancelall_order_request_msg(
     params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
-    
+
     validate_required_fields(params, CANCELALL_ORDER_REQUIRED_FIELDS)
     
     # ... to be worked on
@@ -269,13 +290,16 @@ def build_activate_order_request_msg(
     orig_cl_order_id: str, 
     cl_order_id: str,
     when_utc_timestamp: datetime,
-    ) -> ClientMsg:
+    ) -> ClientMsg | None:
 
     params = locals().copy()
-    
-    validate_required_fields(params, ACTIVATE_ORDER_REQUIRED_FIELDS)
-    assert_input_types(params, ACTIVATE_ORDER_REQUIRED_FIELDS, strict = True)
-
+    try:
+        validate_required_fields(params, ACTIVATE_ORDER_REQUIRED_FIELDS)
+        assert_input_types(params, ACTIVATE_ORDER_REQUIRED_FIELDS, strict = True)
+    except (TypeError, ValueError, KeyError) as e:
+        msg = f"build_activate_order_request_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
     order_request.request_id = request_id
@@ -292,7 +316,7 @@ def build_goflat_order_request_msg(
     request_id: int,
     when_utc_timestamp: datetime,
     **kwargs
-    ) -> ClientMsg:    
+    ) -> ClientMsg | None:    
     
     defaults = {
     #'when_utc_timestamp': None,
@@ -305,12 +329,15 @@ def build_goflat_order_request_msg(
     params.pop('defaults')
     full = {**params, **kwargs}
 
-    validate_required_fields(params, GOFLAT_ORDER_REQUIRED_FIELDS)
-
-    assert_input_types(params, GOFLAT_ORDER_REQUIRED_FIELDS, strict = True)
-    assert_input_types(kwargs, GOFLAT_ORDER_OPTIONAL_FIELDS, strict = False)
-
-    validate_input_para(full)
+    try:
+        validate_required_fields(params, GOFLAT_ORDER_REQUIRED_FIELDS)
+        assert_input_types(params, GOFLAT_ORDER_REQUIRED_FIELDS, strict = True)
+        assert_input_types(kwargs, GOFLAT_ORDER_OPTIONAL_FIELDS, strict = False)
+        validate_input_para(full)
+    except (TypeError, ValueError, KeyError) as e:
+        msg = f"build_goflat_order_request_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return 
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()

@@ -5,7 +5,11 @@ Created on Fri Nov 28 17:54:16 2025
 
 @author: dexter
 """
+import logging
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
+from EC_API.exceptions import (
+    MsgBuilderParaTypeError
+    )
 from EC_API.protocol.cqg.builder_util import (
     apply_optional_fields, 
     assert_input_types
@@ -17,6 +21,8 @@ from EC_API.connect.cqg.fields import (
     PING_REQUEST_REQUIRED_FIELDS,
     RESOLVE_SYM_REQUEST_REQUIRED_FIELDS
     )
+
+logger = logging.getLogger(__name__)
 
 def build_logon_msg(
     user_name: str,
@@ -33,8 +39,13 @@ def build_logon_msg(
     kwargs = dict({}, **kwargs)    
     params = locals().copy()
     params.pop('kwargs')
-    
-    assert_input_types(params, LOGON_REQUEST_REQUIRED_FIELDS)
+    try:
+        assert_input_types(params, LOGON_REQUEST_REQUIRED_FIELDS)
+    except (KeyError, TypeError, ValueError) as e:
+        msg = f"build_logon_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return None
+
     #assert_input_types(kwargs, LOGON_OPTIONAL_FIELDS)
     
     # create a client_msg based on the protocol.
@@ -57,8 +68,13 @@ def build_logon_msg(
 
 def build_logoff_msg(txt_msg: str="logoff") -> ClientMsg:
     params = locals().copy()    
-    assert_input_types(params, LOGOFF_REQUEST_REQUIRED_FIELDS)
-
+    try:
+        assert_input_types(params, LOGOFF_REQUEST_REQUIRED_FIELDS)
+    except (TypeError, KeyError, ValueError) as e:
+        msg = f"build_logoff_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return 
+    
     # Logoff. Invoke this everytime when a connection is dropped
     client_msg = ClientMsg()
     logoff = client_msg.logoff
@@ -74,8 +90,13 @@ def build_restore_msg(
     ) -> ClientMsg:
     params = locals().copy()
     params.pop('kwargs')
-    
-    assert_input_types(params, RESTORE_REQUEST_REQUIRED_FIELDS)
+    try:
+        assert_input_types(params, RESTORE_REQUEST_REQUIRED_FIELDS)
+    except (TypeError, KeyError, ValueError) as e:
+        msg = f"build_restore_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return 
+
 
     # Restore request taken from class attributes
     restore_msg = ClientMsg()
@@ -88,7 +109,12 @@ def build_restore_msg(
 
 def build_ping_msg(ping_utc_time: int) -> ClientMsg:
     params = locals().copy()
-    assert_input_types(params, PING_REQUEST_REQUIRED_FIELDS)
+    try:
+        assert_input_types(params, PING_REQUEST_REQUIRED_FIELDS)
+    except (TypeError, KeyError, ValueError) as e:
+        msg = f"build_ping_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        return 
 
     client_msg = ClientMsg()
     pr = client_msg.ping
@@ -98,7 +124,7 @@ def build_ping_msg(ping_utc_time: int) -> ClientMsg:
 def build_pong_msg(
     ping_utc_time: int, 
     pong_utc_time: int
-    ) -> ClientMsg:
+    ) -> ClientMsg | None:
 
     client_msg = ClientMsg()
     pr = client_msg.pong
@@ -111,11 +137,13 @@ def build_resolve_symbol_msg(
     request_id: int, 
     subscribe: bool | None = None, 
     **kwargs
-    ) -> ClientMsg:
+    ) -> ClientMsg | None:
     params = locals().copy()
     params.pop('kwargs')
-
-    assert_input_types(params, RESOLVE_SYM_REQUEST_REQUIRED_FIELDS)
+    try:
+        assert_input_types(params, RESOLVE_SYM_REQUEST_REQUIRED_FIELDS)
+    except (TypeError, KeyError, ValueError) as e:
+        return
 
     client_msg = ClientMsg()
     information_request = client_msg.information_requests.add()
