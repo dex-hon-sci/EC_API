@@ -82,7 +82,7 @@ class ConnectCQG(Connect):
         # queues for containing different server messages
         self._misc_queue: asyncio.Queue = asyncio.Queue() # For information report?
         self._stop_evt = asyncio.Event()
-        self._timeout = 1
+        self._timeout = 1 # make make this a ping based decision
         
         if immediate_connect:
             self._transport.connect()
@@ -118,7 +118,6 @@ class ConnectCQG(Connect):
         self._transport.connect()
         self._transport.start()
         self._router_task = asyncio.create_task(self._router_loop())
-        print("stopevt is set", self._stop_evt.is_set())
 
     async def stop(self) -> None:
         self._stop_evt.set()
@@ -134,27 +133,30 @@ class ConnectCQG(Connect):
         while not self._stop_evt.is_set():
             msg: ServerMsg = await self._transport.recv()
             
-            # 0) check if it is a composite message then SLIT!!
+            if not msg:
+                continue
+            
+            # 0) check if it is a composite message
             top_unique_fields = server_msg_type(msg)
-            if len(top_unique_fields)>1:
+            if len(top_unique_fields)>1: # SLIT!!
                 msgs = split_server_msg(msg, top_unique_fields)
             else:
                 msgs = [msg]
 
-            for msg in msgs:
+            for msg, top_unique_field in zip(msgs, top_unique_fields):
                 # Cheapest check first, 
                 # 1) streaming dispatch
-                if is_realtime_tick(msg):
+                if is_realtime_tick(top_unique_field):
                     contract_id = realtime_tick_contract_id(msg)
                     await self._mkt_data_stream_router.publish(contract_id, msg)
                     continue
     
                 # 2) order update dispatch <--need to handle this better
-                if is_order_update_stream(msg):
+                if is_order_update_stream(top_unique_field):
                     order_id = order_statuses_order_id(msg)
                     await self._exec_stream_router.publish(order_id, msg)
-                    continue
-    
+                    
+                # 3) Expensive RPC type key matching
                 keys = extract_router_keys(msg)
                 if len(keys) >1:
                     print("multiple keys:", keys)
@@ -229,7 +231,7 @@ class ConnectCQG(Connect):
         msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
-        return await asyncio.wait_for(fut, timeout=5.0)
+        return await asyncio.wait_for(fut, timeout=self._timeout)
 
     async def ping(self) -> ServerMsg | None:
         ping_msg = build_ping_msg(self.msg_id)
@@ -239,7 +241,8 @@ class ConnectCQG(Connect):
         msg_key =  ('session', 'pong', 'single', 0)
 
         fut = self._msg_router.register_key(msg_key)
-        return ping_msg
+        await self._transport.send(ping_msg)
+        return await asyncio.wait_for(fut, timeout=self._timeout)
     
     async def resolve_symbol( # decrapated
         self, 
