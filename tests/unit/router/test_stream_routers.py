@@ -9,33 +9,41 @@ import asyncio
 import pytest
 from EC_API.transport.routers import StreamRouter
 from EC_API.exceptions import (
+    MaxSymbolsExceededError,
+    MaxSubscribersExceededError,
     SubscriptionQueueMismatchError,
-    UnknownSubscriptionError
+    UnknownSubscriptionError,
+    InvalidDroppingPolicy
 )
 
 def test_subscribe_valid() -> None:
     SR = StreamRouter()
-    SR.subscribe(1)
-    SR.subscribe(1)
-    SR.subscribe(1)
+    q1 = SR.subscribe(1)
+    q2 = SR.subscribe(1)
+    q3 = SR.subscribe(1)
     assert len(SR._subs) == 1
     assert len(SR._subs[1]) == 3
     
-    for i in range(3):
-        assert isinstance(SR._subs[1][i], asyncio.Queue)
-        
-def test_unsubscribe_valid() -> None: 
+    for q in [q1, q2, q3]:
+        assert isinstance(q, asyncio.Queue)
+    assert q1 is not q2
+    assert q2 is not q3
+    
+@pytest.mark.asyncio
+async def test_unsubscribe_valid() -> None: 
     SR = StreamRouter()
     q1_1 = SR.subscribe(1)
     q1_2 = SR.subscribe(1)
     q2 = SR.subscribe(2)
-    
     SR.unsubscribe(1, q1_1)
-    assert len(SR._subs) == 2
-    assert len(SR._subs[1]) == 1
-    assert len(SR._subs[2]) == 1
-    assert isinstance(SR._subs[1][0], asyncio.Queue)
-    assert isinstance(SR._subs[2][0], asyncio.Queue)
+
+    await SR.publish(1,'msg')
+    await SR.publish(2,'msg')
+
+    #assert len(SR._subs) == 2
+    assert q1_1.qsize() == 0
+    assert q1_2.qsize() == 1
+    assert q2.qsize() == 1
 
 def test_unsubscribe_invalid_q() -> None:
     SR = StreamRouter()
@@ -69,9 +77,9 @@ async def test_publish_valid() -> None:
     assert isinstance(SR._subs[1][0], asyncio.Queue)
     assert isinstance(SR._subs[1][1], asyncio.Queue)
     assert isinstance(SR._subs[2][0], asyncio.Queue)
-    assert SR._subs[1][0].qsize() == 8
-    assert SR._subs[1][1].qsize() == 8
-    assert SR._subs[2][0].qsize() == 4
+    assert q1_1.qsize() == 8
+    assert q1_2.qsize() == 8
+    assert q2.qsize() == 4
     
     expected_1 = [c for c in content if c[0] == 1]
     expected_2 = [c for c in content if c[0] == 2]
@@ -94,13 +102,45 @@ async def test_drop_drop_if_full_drop_oldest_valid() -> None:
     for c in content:
         await SR.publish(1, c,cool_time=0)
     
-    assert SR._subs[1][0].qsize() == 5
+    assert q1.qsize() == 5
     out = [q1.get_nowait() for _ in range(q1.qsize())]
     assert out == content[-5:]
+    assert content[0] not in out
+    assert content[1] not in out
 
 @pytest.mark.asyncio
-async def test_publish_no_subscribers_noop():
+async def test_publish_no_subscribers_noop() -> None:
     SR = StreamRouter()
     before = dict(SR._subs)    
-    await SR.publish(999, ("x",), cool_time=0)  # should not raise
+    await SR.publish(999, ("x",))  # should not raise
     assert SR._subs == before
+    
+@pytest.mark.asyncio   
+async def test_max_sym_exceeded_error() -> None:
+    SR = StreamRouter(max_num_sym=2)
+    SR.subscribe(1),
+    SR.subscribe(2)
+    with pytest.raises(MaxSymbolsExceededError):
+        SR.subscribe(3)
+
+@pytest.mark.asyncio
+async def test_max_subscribers_exceeded_error() -> None:
+    SR = StreamRouter(max_sub_size=2)
+    SR.subscribe(1)
+    SR.subscribe(1)
+    with pytest.raises(MaxSubscribersExceededError):
+        SR.subscribe(1)
+
+@pytest.mark.asyncio
+async def test_unknown_sub_error() -> None:
+    SR = StreamRouter()
+    SR.subscribe(1)
+    with pytest.raises(UnknownSubscriptionError):
+        SR.unsubscribe(2, [])
+
+@pytest.mark.asyncio
+async def test_sub_q_mismatch_error() -> None:
+    SR = StreamRouter()
+    SR.subscribe(1)
+    with pytest.raises(SubscriptionQueueMismatchError):
+        SR.unsubscribe(1, [])

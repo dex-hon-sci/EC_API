@@ -12,7 +12,8 @@ from typing import Any  # Hashable, Optional
 from EC_API.exceptions import (
     DuplicateRouterKeyError,
     UnknownSubscriptionError, SubscriptionQueueMismatchError,
-    MaxSymbolsExceededError, MaxSubscribersExceededError
+    MaxSymbolsExceededError, MaxSubscribersExceededError,
+    InvalidDroppingPolicy
     )
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,11 @@ class StreamRouter:
         self._max_subs_size = max_sub_size
         self._max_num_sym = max_num_sym
         self._drop_if_full = drop_if_full
+        
+        if drop_policy not in {"drop_oldest", "drop_latest"}:
+            raise InvalidDroppingPolicy("Invalid dropping policy. It must be either:'drp_oldest' or 'drop_latest'.")
         self.drop_policy = drop_policy
+        
 
     def subscribe(
         self,
@@ -97,7 +102,7 @@ class StreamRouter:
         return q
 
     def unsubscribe(
-        self, cls,
+        self,
         sub_id: int|str,
         q: asyncio.Queue
         ) -> None:
@@ -115,7 +120,7 @@ class StreamRouter:
 
         lst.remove(q)
 
-        if not lst and sub_id in self._subs:
+        if not lst and sub_id in self._subs: # delete subbed symbol when it is empty
             # Maybe do some backup for unconsumed data first here
             # Only delete when the streaming is completely done
             del self._subs[sub_id]
@@ -144,12 +149,15 @@ class StreamRouter:
                             q.get_nowait()
                             q.put_nowait(item)
                         except Exception:
-                            msg = ""
+                            msg = f"[{__class__.__name__}] Publish unsuccessful at queue full: {item}."
                             logger.warning(msg)
                             continue
                     elif self.drop_policy == "drop_latest":
-                        continue
-                    else:
-                        continue
-            #await asyncio.sleep(cool_time)
-                    
+                        try:
+                            q._queue.pop()
+                            q._queue.append(item)
+                        except Exception:
+                            msg =  f"[{__class__.__name__}] Publish unsuccessful at queue full: {item}."
+                            logger.warning(msg)
+                            continue
+

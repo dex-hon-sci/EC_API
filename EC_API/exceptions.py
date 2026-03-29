@@ -43,7 +43,11 @@ class MaxSymbolsExceededError(EC_APIError):
 class MaxSubscribersExceededError(EC_APIError):
     def __int__(self, message: str):
         super().__init__(message)
-
+        
+class InvalidDroppingPolicy(EC_APIError):
+    def __int__(self, message: str):
+        super().__init__(message)
+    
 # --- Connect
 class ConnectError(EC_APIError):...
 class DisconnectError(EC_APIError):...
