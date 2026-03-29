@@ -131,20 +131,20 @@ def test_extract_key_order_statuses() -> None:
     msg = build_order_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
-    assert router_keys[0] == ('substream',)
+    assert router_keys[0] == ('substream','order_statuses','chain_order_id','chain_order_id_1')
 
 def test_extract_key_position_statuses() -> None:
     msg = build_position_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
-    assert router_keys[0] == ('substream',)
+    assert router_keys[0] == ('substream','position_statuses','contract_id',0)
     
 def test_extract_key_account_summary_statuses() -> None:
     msg = build_account_summary_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
-
+    print(router_keys)
     assert len(router_keys) == 1
-    assert router_keys[0] == ('substream',)
+    assert router_keys[0] == ('substream','account_summary_statuses','single', 0)
     
 def test_extract_key_go_flat_statuses() -> None:
     msg = build_go_flat_statuses_server_msg(ServerMsg())
