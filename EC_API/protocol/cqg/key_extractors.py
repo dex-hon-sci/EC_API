@@ -60,12 +60,9 @@ def walk_fields(
                     for elem in val:
                         walk(elem, depth + 1)
                 else:# singular field
-                    walk(val, depth + 1)
-                    
+                    walk(val, depth + 1)                
     walk(msg, 0)
     return outs
-
-
 
 @register_extractor('session')
 def extract_session_router_keys(
@@ -200,14 +197,15 @@ def extract_substream_router_keys(
         "account_summary_statuses"
         }
     IDs = {
-        'order_statuses': 'order_id',
-        'position_statuses': 'contract_id'
+        'order_statuses': 'chain_order_id',
+        'position_statuses': 'contract_id',
+        'account_summary_statuses': 'account_id'
         }
     
     def selector(fd, val)-> Iterable[KeyHit]:
         if fd.message_type is not None and fd.name in TARGET:
             yield (fd.name, None, fd.is_repeated, True)
-        elif fd.name in {'order_id', 'contract_id'} and not fd.is_repeated:
+        elif fd.name in list(IDs.values()) and not fd.is_repeated:
             yield (fd.name, val, fd.is_repeated, False)
 
     outs = walk_fields(msg, selector, max_depth=6)

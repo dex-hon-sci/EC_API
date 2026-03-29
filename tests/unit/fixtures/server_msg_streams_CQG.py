@@ -58,44 +58,56 @@ def dummy_realtime_data_stream(
     return msgs
 
 def dummy_order_update_stream(
-        extension: Optional[dict[int, list[OrderStatus.Status]]] = None
+        extension: Optional[dict[int, list[OrderStatus.Status]]] = None,
+        seed: int = 100
     ) -> list[ServerMsg]:
+    from collections import deque
     
     inputs = {
-        0: [OrderStatus.Status.IN_TRANSIT, 
+        0: deque([OrderStatus.Status.IN_TRANSIT, 
             OrderStatus.Status.WORKING,
             OrderStatus.Status.WORKING,
             OrderStatus.Status.WORKING,
-            OrderStatus.Status.FILLED],
-         1: [OrderStatus.Status.IN_TRANSIT,
+            OrderStatus.Status.FILLED]),
+         1: deque([OrderStatus.Status.IN_TRANSIT,
              OrderStatus.Status.IN_TRANSIT,
              OrderStatus.Status.IN_MODIFY,
              OrderStatus.Status.FILLED
-             ],
-         2: [OrderStatus.Status.IN_TRANSIT,
+             ]),
+         2: deque([OrderStatus.Status.IN_TRANSIT,
              OrderStatus.Status.IN_CANCEL,
              OrderStatus.Status.IN_CANCEL,
              OrderStatus.Status.DISCONNECTED
-             ]
+             ])
          }
     if extension:
         inputs = {**inputs, **extension}
-    statuses = []
-    for key, val in inputs.items():  
-        statuses.extend(
-            [
-                build_order_statuses_server_msg(
-                ServerMsg(),
-                res = val[i],
-                contract_id = key,
-                sub_id = key,
-                order_id= f"order_id_{key}",
-                chain_order_id = f"chain_order_id_{key}"
-                ) for i in range(len(val))
-                ]
-            )
-            
-    return statuses
+
+    rng = random.Random(seed)
+        
+    def mixer(inputs: list[ServerMsg]) -> list[ServerMsg]:    
+        sources = [key for key, _ in inputs.items()]
+        bucket = []
+        while sources:
+               key = rng.choice(sources)  
+               if len(inputs[key])>0:
+                   val = inputs[key].popleft()
+                   bucket.extend([
+                       build_order_statuses_server_msg(
+                       ServerMsg(),
+                       res = val,
+                       contract_id = key,
+                       sub_id = key,
+                       order_id= f"order_id_{key}",
+                       chain_order_id = f"chain_order_id_{key}")
+                       ]
+                       )
+               else:
+                   sources.remove(key)
+                    
+        return bucket
+    res = mixer(inputs)    
+    return res
 
 
 def dummy_rpc_stream() -> list[ServerMsg]:

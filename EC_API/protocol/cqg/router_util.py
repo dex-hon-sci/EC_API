@@ -77,5 +77,5 @@ def realtime_tick_contract_id(msg: ServerMsg) -> int:
     return msg.real_time_market_data[0].contract_id
 
 def order_statuses_order_id(msg: ServerMsg) -> str:
-    return msg.order_statuses[0].order_id
+    return msg.order_statuses[0].chain_order_id
 
