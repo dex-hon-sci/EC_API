@@ -58,21 +58,19 @@ def split_server_msg(msg: ServerMsg, targets: list[str]):
     return res
 
 # --- Bool checks ----
-def is_realtime_tick(msg: ServerMsg) -> bool:
-    for fd_name in server_msg_type(msg):
-        return True if fd_name in {"real_time_market_data"} else False
+def is_realtime_tick(field_name: str) -> bool: # msg: ServerMsg) -> bool:
+    #for fd_name in server_msg_type(msg):
+    #return True if fd_name in {"real_time_market_data"} else False
+    return True if field_name in {"real_time_market_data"} else False
 
-def is_order_update_stream(msg: ServerMsg) -> bool:
-    for fd_name in server_msg_type(msg):
-        return True if fd_name in {"order_statuses"} else False
+def is_order_update_stream(field_name: str) -> bool:
+    return True if field_name in {"order_statuses"} else False
 
-def is_trade_history(msg: ServerMsg) -> bool:
-    for fd_name in server_msg_type(msg):
-        return True if fd_name in {"InformationReport:historical_orders_report"} else False
+def is_trade_history(field_name: str) -> bool:
+    return True if field_name in {"InformationReport:historical_orders_report"} else False
 
-def is_symbol_resolution(msg: ServerMsg) -> bool:
-    for fd_name in server_msg_type(msg):
-        return True if fd_name in {"InformationReport:symbol_resolution_report"} else False
+def is_symbol_resolution(field_name: str) -> bool:
+    return True if field_name in {"InformationReport:symbol_resolution_report"} else False
 
 # --- id extractor ---
 def realtime_tick_contract_id(msg: ServerMsg) -> int:
