@@ -37,7 +37,11 @@ from EC_API.connect.cqg.parsers import (
     parse_pong,
     parse_symbol_resolution_report
     )
-from EC_API.connect.cqg.enum_mapping import CONN_MSG_RESULTCODE_CQG2INT
+from EC_API.connect.cqg.enum_mapping import (
+    CONN_LOGON_RESCODE_CQG2INT,
+    CONN_RESTORE_RESCODE_CQG2INT, 
+    CONN_LOGOFF_RESCODE_CQG2INT
+    )
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg # remove this once parser functions are done
 
 logger = logging.getLogger(__name__)
@@ -213,7 +217,7 @@ class ConnectCQG(Connect):
         int_msg = parse_logon_result(server_msg) # internal message
         if not int_msg:
             return 
-        self.state = CONN_MSG_RESULTCODE_CQG2INT[int_msg['result_code']]
+        self.state = CONN_LOGON_RESCODE_CQG2INT[int_msg['result_code']]
         return int_msg
     
     async def logoff(self) -> dict[str, Any] | None:
@@ -230,9 +234,9 @@ class ConnectCQG(Connect):
         if not int_msg:
             return 
 
-        self.state = CONN_MSG_RESULTCODE_CQG2INT[int_msg['logoff_reason']]
+        self.state = CONN_LOGOFF_RESCODE_CQG2INT[int_msg['logoff_reason']]
         return int_msg
-            
+
     async def restore_request(
             self, 
             session_token: str = None, 
@@ -259,7 +263,7 @@ class ConnectCQG(Connect):
         if not int_msg:
             return 
 
-        self.state =  CONN_MSG_RESULTCODE_CQG2INT[int_msg['result_code']]
+        self.state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
         return int_msg
 
     async def ping(self) -> PongType | None:
