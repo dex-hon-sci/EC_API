@@ -6,7 +6,7 @@ Created on Mon Aug 18 11:34:22 2025
 @author: dexter
 """
 import asyncio
-from typing import Optional
+from typing import Optional, Any
 import logging
 
 from EC_API.ext.WebAPI import webapi_client
@@ -30,11 +30,22 @@ from EC_API.connect.cqg.builders import (
     build_ping_msg, build_resolve_symbol_msg,
     build_restore_msg
     )
+from EC_API.connect.cqg.parsers import (
+    parse_logon_result,
+    parse_restore_or_join_session_result,
+    parse_logged_off,
+    parse_pong,
+    parse_symbol_resolution_report
+    )
+from EC_API.connect.cqg.enum_mapping import CONN_MSG_RESULTCODE_CQG2INT
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg # remove this once parser functions are done
 
 logger = logging.getLogger(__name__)
 
 def dispatcher(msg_types: list[str]):...
+
+
+PongType = tuple[str, int, int]
 
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
@@ -58,21 +69,26 @@ class ConnectCQG(Connect):
         self.client_app_id: str = None
         self.protocol_version_major: int = None
         self.protocol_version_minor: int = None
+        
+        # Event Loop
+        self._task: Optional[asyncio.Task] = None
+        self._stop_evt = asyncio.Event()
 
         # State Control
         self.state: ConnectionState = ConnectionState.UNKNOWN
-        self._task: Optional[asyncio.Task] = None
-        
+        self._timeout = 1 # make make this a ping based decision
+
         # Generic Message parameter
         self._rid = 10 # starting request ID
         
         # Define client
         self._client = webapi_client.WebApiClient() if client is None else client
         self._loop = asyncio.get_running_loop()
-        self._transport = TransportCQG(self._host_name,
-                                       loop = self._loop, 
-                                       client=self._client
-                                       )
+        self._transport = TransportCQG(
+            self._host_name,
+            loop = self._loop, 
+            client=self._client
+            )
         
         # Routers. Use queues inside for message storage
         self._msg_router = MessageRouter()
@@ -81,8 +97,6 @@ class ConnectCQG(Connect):
         
         # queues for containing different server messages
         self._misc_queue: asyncio.Queue = asyncio.Queue() # For information report?
-        self._stop_evt = asyncio.Event()
-        self._timeout = 1 # make make this a ping based decision
         
         if immediate_connect:
             self._transport.connect()
@@ -178,8 +192,7 @@ class ConnectCQG(Connect):
         drop_concurrent_session: bool = False,
         private_label: str = "WebApiTest",
         **kwargs
-        ) -> ServerMsg | None:
-        
+        ) -> dict[str, Any] | None:
         
         client_msg = build_logon_msg(
             self._user_name, self._password,
@@ -196,10 +209,14 @@ class ConnectCQG(Connect):
         msg_key = ('session', 'logon_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(client_msg)
-        return await asyncio.wait_for(fut, timeout = self._timeout)
-        #status = cqg_session.parse_logon_status(reply)
-        
-    async def logoff(self) -> ServerMsg | None:
+        server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
+        int_msg = parse_logon_result(server_msg) # internal message
+        if not int_msg:
+            return 
+        self.state = CONN_MSG_RESULTCODE_CQG2INT[int_msg['result_code']]
+        return int_msg
+    
+    async def logoff(self) -> dict[str, Any] | None:
         # Logoff. Invoke this everytime when a connection is dropped
         client_msg = build_logoff_msg("logoff")
         if not client_msg:
@@ -208,13 +225,19 @@ class ConnectCQG(Connect):
         msg_key = ('session', 'logged_off', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(client_msg)
-        return await asyncio.wait_for(fut, timeout = self._timeout)
+        server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
+        int_msg = parse_logged_off(server_msg)
+        if not int_msg:
+            return 
+
+        self.state = CONN_MSG_RESULTCODE_CQG2INT[int_msg['logoff_reason']]
+        return int_msg
             
     async def restore_request(
             self, 
             session_token: str = None, 
             **kwargs
-        ) -> ServerMsg | None:
+        ) -> dict[str, Any] | None:
         # Restoring session after dropoff
         if session_token is None:
             session_token = self.session_token
@@ -231,43 +254,35 @@ class ConnectCQG(Connect):
         msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
-        return await asyncio.wait_for(fut, timeout=self._timeout)
+        server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+        int_msg = parse_logged_off(server_msg)
+        if not int_msg:
+            return 
 
-    async def ping(self) -> ServerMsg | None:
+        self.state =  CONN_MSG_RESULTCODE_CQG2INT[int_msg['result_code']]
+        return int_msg
+
+    async def ping(self) -> PongType | None:
         ping_msg = build_ping_msg(self.msg_id)
         if not ping_msg:
             return
 
         msg_key =  ('session', 'pong', 'single', 0)
-
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(ping_msg)
-        return await asyncio.wait_for(fut, timeout=self._timeout)
+        server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+        return parse_logged_off(server_msg)
     
-    async def resolve_symbol( # decrapated
-        self, 
-        symbol_name: str, 
-        msg_id: int, 
-        subscribe: bool = None, 
-        **kwargs
-        )-> ServerMsg: #decrepated/unused
-        # after the server confirm that we login successfully, we can send information_request
-        # contains the symbol_resolution_request, the real time data, historical data, 
-        # tick data, and order activities are all depended on symbol_resolution_report
-        client_msg = build_resolve_symbol_msg(
-            symbol_name, 
-                                              self.msg_id, 
-                                              subscribe=subscribe, 
-                                              **kwargs)
-        if not client_msg:
-            return 
+    async def resolve_symbol(
+        self, symbol: str, request_id: int
+        ) -> dict[str, str] | None:
         
+        # symbol Resolution
+        msg = build_resolve_symbol_msg(symbol, request_id, subscribe=True)
+        msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", request_id)
+        fut = self._conn._msg_router.register_key(msg_key)
+        await self._transport.send(msg)
+        server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+        return 
+    
 
-        self._client.send_client_message(client_msg)
-        while True:
-            server_msg = self._client.receive_server_message()
-            print("server_msg", server_msg)
-            if len(server_msg.information_reports)>0:
-                return server_msg.information_reports[0].symbol_resolution_report.contract_metadata
-            asyncio.sleep(0.1)
-            

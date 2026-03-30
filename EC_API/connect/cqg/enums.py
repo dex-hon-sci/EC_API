@@ -11,6 +11,7 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LOR
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff
 from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as Restore
 
+
 LOGON_RESULT_STATUS_ENUMS_BOOL = {
     "Accept": [LOR.ResultCode.RESULT_CODE_SUCCESS] ,
     "Reject": [LOR.ResultCode.RESULT_CODE_FAILURE,

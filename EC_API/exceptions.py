@@ -1,7 +1,5 @@
-
 class EC_APIError(Exception):
     """Base case for EC_API Error"""
-
 
 # --- Builders
 class MsgBuilderParaTypeError(EC_APIError):
@@ -48,9 +46,19 @@ class InvalidDroppingPolicy(EC_APIError):
     def __int__(self, message: str):
         super().__init__(message)
     
+# -----------
+# --- Common
 # --- Connect
 class ConnectError(EC_APIError):...
 class DisconnectError(EC_APIError):...
 
 class AuthError(EC_APIError):...
 
+
+# --- Monitor
+
+# --- Ordering
+
+# --- Payload
+
+# --- OpStrategy
