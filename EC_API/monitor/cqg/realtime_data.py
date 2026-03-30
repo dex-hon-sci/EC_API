@@ -25,11 +25,22 @@ from EC_API.monitor.cqg.builders import(
 from EC_API.connect.cqg.builders import (build_resolve_symbol_msg)
 
 class MonitorDataCQG(Monitor):
-    def __init__(self, connection: ConnectCQG):
-        self._loop = asyncio.get_running_loop()
-        self._transport = TransportCQG()
-        self._router = MessageRouter()
+    def __init__(self, conn: ConnectCQG):
+        
+        self._conn = conn
+        self._transport = conn._transport()
 
+        self._loop = asyncio.get_running_loop()
+        #self._transport = TransportCQG()
+        self.timeout = 1
+
+    async def resolve_symbol():...
+    
+    async def subscribe_mkt_data():...
+    
+    async def unsubscribe_mkt_data():...
+    
+    async def stream():...
 
 class MonitorRealTimeDataCQG(Monitor):
     
@@ -39,6 +50,8 @@ class MonitorRealTimeDataCQG(Monitor):
         
         self.syms_to_contract_ids = dict()
         self.timeout = 1
+        
+        self.sub_mgr = None
         
     async def resolve_symbol(self, symbol: str, request_id: int) -> None:
         # symbol Resolution

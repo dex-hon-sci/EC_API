@@ -279,7 +279,7 @@ class ConnectCQG(Connect):
     
     async def resolve_symbol(
         self, symbol: str, request_id: int
-        ) -> dict[str, str] | None:
+        ) -> list[dict[str, str]] | None:
         
         # symbol Resolution
         msg = build_resolve_symbol_msg(symbol, request_id, subscribe=True)
@@ -287,6 +287,11 @@ class ConnectCQG(Connect):
         fut = self._conn._msg_router.register_key(msg_key)
         await self._transport.send(msg)
         server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+        
+        # walk through the second layer of the message, Find all info report,
+        
+        # parse a list of info
+        
         return 
     
 

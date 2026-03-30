@@ -14,17 +14,7 @@ from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
 RouterKey = tuple[str, str, str, int|str] # (msg_family, msg_type, id_field_name, id)
 type Extractor_func = Callable[ServerMsg]
 extractors: dict[str, Extractor_func] = {}
-# =============================================================================
-# 
-# def extract_any(msg:ServerMsg):
-#     res = []
-#     TARGET = {}
-#     def selector(fd, val) -> Iterable[keyHit]:
-#         if fd.message_type is not None and and fd.name in TARGET:
-#             yield KeyHit(fd.name, val, True, False)
-#     return res
-# 
-# =============================================================================
+
 KeyHit = tuple[str, int, bool, bool]
 
 def register_extractor(msg_name: str):

@@ -31,6 +31,7 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_account_summary_statuses_server_msg,
     build_go_flat_statuses_server_msg,
     build_trade_subscription_statuses_server_msg,
+    build_trade_snapshot_completetions_server_msg,
     
     build_real_time_market_data_server_msg,
     build_order_statuses_server_msg
@@ -192,6 +193,30 @@ def dummy_info_stream(
             ))
              
     return info
+        # res: TrdSubStatus.StatusCode = TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS,
+
+def dummy_composite_mkt_data_stream() -> list[ServerMsg]:
+    
+    def _composite_mkt_data_msg(
+            server_msg: ServerMsg,
+            sub_id: int,
+                                ) -> ServerMsg:        
+        server_msg = build_order_request_acks_server_msg()
+        server_msg = build_trade_subscription_statuses_server_msg(server_msg,sub_id)
+        server_msg = build_trade_snapshot_completetions_server_msg(server_msg)
+        server_msg = build_order_statuses_server_msg(server_msg)
+
+        return 
+    
+    res = []
+    return res
+
+def dummy_composite_order_statuses_stream() -> list[ServerMsg]:
+
+    def _composite_oder_statuses_msg(server_msg: ServerMsg): 
+        return
+    
+
 
 def dummy_mixed_full_stream(seed: int = 500) -> list[ServerMsg]:
     rng = random.Random(seed)
@@ -235,6 +260,8 @@ def dummy_mixed_full_stream(seed: int = 500) -> list[ServerMsg]:
     total_stream.append(session_stream[-1]) # logoff message
     
     return total_stream
+
+
 
 def stream_generator(stream: list[ServerMsg]):
     q = deque(stream)

@@ -20,7 +20,7 @@ from EC_API.ordering.cqg.enums import (
 
 # Vendor Enum -> Int Enum (Int Regular+Int vendor) -> Payload Enum
 # This mapping file translate between Vendor Enum <-> Int Enum
-_SubScope_MAP_INT2CQG = {
+SubScope_MAP_INT2CQG = {
     SubScope.ORDERS: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
     SubScope.POSITIONS: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
     SubScopeCQG.COLLATERAL: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL,
@@ -29,12 +29,12 @@ _SubScope_MAP_INT2CQG = {
     SubScopeCQG.EXCHANGE_BALANCES: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES    
     }
 
-_Side_MAP_INT2CQG = {
+Side_MAP_INT2CQG = {
     Side.BUY: CQG_Ord.Side.SIDE_BUY,
     Side.SELL: CQG_Ord.Side.SIDE_SELL
     }
 
-_OrderType_MAP_INT2CQG = {
+OrderType_MAP_INT2CQG = {
     OrderType.MKT: CQG_Ord.OrderType.ORDER_TYPE_MKT,
     OrderType.LMT: CQG_Ord.OrderType.ORDER_TYPE_LMT,
     OrderType.STP: CQG_Ord.OrderType.ORDER_TYPE_STP,
@@ -42,7 +42,7 @@ _OrderType_MAP_INT2CQG = {
     OrderTypeCQG.CROSS: CQG_Ord.OrderType.ORDER_TYPE_CROSS
     }
 
-_Duration_MAP_INT2CQG = {
+Duration_MAP_INT2CQG = {
     Duration.DAY: CQG_Ord.Duration.DURATION_DAY,
     Duration.GTC: CQG_Ord.Duration.DURATION_GTC,
     Duration.GTD: CQG_Ord.Duration.DURATION_GTD,
@@ -54,7 +54,7 @@ _Duration_MAP_INT2CQG = {
     DurationCQG.GFA: CQG_Ord.Duration.DURATION_GFA
     }
 
-_ExecInstruction_MAP_INT2CQG = {
+ExecInstruction_MAP_INT2CQG = {
     ExecInstruction.NONE: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_NONE,
     ExecInstruction.AON: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_AON,
     ExecInstruction.ICEBERG: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICEBERG,
@@ -70,7 +70,7 @@ _ExecInstruction_MAP_INT2CQG = {
     ExecInstructionCQG.ICO: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICO
     }
 
-_OrderStatus_MAP_INT2CQG = {
+OrderStatus_MAP_INT2CQG = {
     CQG_OrdStatus.Status.IN_TRANSIT: OrderStatus.PENDING,
     CQG_OrdStatus.Status.REJECTED: OrderStatus.REJECTED,
     CQG_OrdStatus.Status.WORKING: OrderStatus.OPEN,

@@ -19,6 +19,15 @@ from EC_API.protocol.cqg.router_util import (
     order_statuses_order_id
     )
 from tests.unit.fixtures.proxy_clients import FakeTransport
+from tests.unit.fixtures.server_msg_builders_CQG import (
+    build_pong_server_msg,
+    build_trade_subscription_statuses_server_msg,
+    build_trade_snapshot_completetions_server_msg,
+    build_order_statuses_server_msg,
+    build_market_data_subscription_statuses_server_msg,
+    build_real_time_market_data_server_msg
+
+    )
 from tests.unit.fixtures.server_msg_streams_CQG import (
     dummy_realtime_data_stream,
     dummy_order_update_stream,
@@ -233,10 +242,36 @@ async def test_router_loop_rpc_msg_routing_valid() -> None:
         client=object()
         )
     total_contract_sub = 20
+    
+    fake_transport = FakeTransport()    
+    conn._transport = fake_transport
+    
+    # put dummy messages in the fake transport client
 
 @pytest.mark.asyncio
-async def test_router_loop_composite_msg():...
-
+async def test_router_loop_composite_msg() -> None:
+    conn = ConnectCQG(
+        host_name = "",
+        user_name = "", 
+        password = "",
+        immediate_connect=False,
+        client=object()
+        )
+    total_contract_sub = 20
+    
+    fake_transport = FakeTransport()    
+    conn._transport = fake_transport
+    
+    # put dummy messages in the fake transport client
+    server_msg1 = ServerMsg()
+    server_msg1 = build_trade_subscription_statuses_server_msg(server_msg1)
+    server_msg1 = build_trade_snapshot_completetions_server_msg(server_msg1)
+    server_msg1 = build_order_statuses_server_msg(server_msg1)
+    
+    server_msg2 = ServerMsg()
+    server_msg2 = build_market_data_subscription_statuses_server_msg(server_msg2)
+    server_msg2 = build_real_time_market_data_server_msg(server_msg2)
+    
 @pytest.mark.asyncio
 async def test_router_loop_transport_dies():...
 

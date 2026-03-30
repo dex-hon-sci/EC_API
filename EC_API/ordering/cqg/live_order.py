@@ -64,6 +64,8 @@ class LiveOrderCQG(LiveOrder):
         #self.msg_id = msg_id
         self.trade_subscription_id = 0
         
+        self.sub_mgr = None
+        
         #self._per_order_queues = dict[]
         self._order_state: dict[str, dict] = {}          # order_id -> latest parsed state
         self._terminal_fut: dict[str, asyncio.Future] = {}  # order_id -> Future
@@ -109,8 +111,8 @@ class LiveOrderCQG(LiveOrder):
         fut = self._router.register(key)
         await self._transport.send(client_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
-        
-        #return parse_order_update(server_msg) # < -- this is the real output, build func later
+        # change all these, we are using substream setup from now on
+
         return server_msg
     
     async def _modify_order_request(
@@ -242,6 +244,10 @@ class LiveOrderCQG(LiveOrder):
 
     async def place_order():
         # a more comprehesive send that separate subscription and send
+        
+        # Check subscription Manager, if symbol is already in place,
+        # just send order.
+        # if not, subscribe
         return 
 
 
