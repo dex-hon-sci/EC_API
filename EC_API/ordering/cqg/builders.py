@@ -29,9 +29,9 @@ from EC_API.ordering.cqg.enums import (
     ExecInstructionCQG
     )
 from EC_API.ordering.cqg.enum_mapping import (
-    _SubScope_MAP_INT2CQG, _Side_MAP_INT2CQG, 
-    _OrderType_MAP_INT2CQG, _Duration_MAP_INT2CQG, 
-    _ExecInstruction_MAP_INT2CQG
+    SubScope_MAP_INT2CQG, Side_MAP_INT2CQG, 
+    OrderType_MAP_INT2CQG, Duration_MAP_INT2CQG, 
+    ExecInstruction_MAP_INT2CQG
     )
 from EC_API.ordering.cqg.fields import (
     TRADE_SUBSCRIPTION_REQUIRED_FIELD,
@@ -72,11 +72,11 @@ def build_trade_subscription_msg(
     trade_sub_request = client_msg.trade_subscriptions.add()
     trade_sub_request.id = trade_subscription_id
     trade_sub_request.subscribe = subscribe
-    trade_sub_request.subscription_scopes.append(_SubScope_MAP_INT2CQG[sub_scope])
+    trade_sub_request.subscription_scopes.append(SubScope_MAP_INT2CQG[sub_scope])
     trade_sub_request.skip_orders_snapshot = skip_orders_snapshot
     #trade_sub_request.last_order_update_utc_timestamp = last_order_update_utc_timestamp
     
-    if sub_scope == _SubScope_MAP_INT2CQG.get(sub_scope): # SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+    if sub_scope == SubScope_MAP_INT2CQG.get(sub_scope): # SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
         account_summary_parameters = trade_sub_request.account_summary_parameters
         # 8 means purchasing_power, 15 means current_balance, 16 means profit_loss
         account_summary_parameters.requested_fields.extend([
@@ -132,9 +132,9 @@ def build_new_order_request_msg(
     order_requests.new_order.order.account_id = account_id
     order_requests.new_order.order.contract_id = contract_id
     order_requests.new_order.order.cl_order_id = cl_order_id
-    order_requests.new_order.order.order_type = _OrderType_MAP_INT2CQG[order_type]
-    order_requests.new_order.order.duration = _Duration_MAP_INT2CQG[duration]
-    order_requests.new_order.order.side = _Side_MAP_INT2CQG[side]
+    order_requests.new_order.order.order_type = OrderType_MAP_INT2CQG[order_type]
+    order_requests.new_order.order.duration = Duration_MAP_INT2CQG[duration]
+    order_requests.new_order.order.side = Side_MAP_INT2CQG[side]
     order_requests.new_order.order.is_manual = is_manual
     
     order_requests.new_order.order.qty.significand = qty_significant
@@ -142,7 +142,7 @@ def build_new_order_request_msg(
 
     if kwargs['exec_instructions'] is not None:
         order_requests.new_order.order.exec_instructions.append(
-            _ExecInstruction_MAP_INT2CQG[kwargs['exec_instructions']]
+            ExecInstruction_MAP_INT2CQG[kwargs['exec_instructions']]
             )
         kwargs.pop('exec_instructions')
     if kwargs['suspend'] is not None:
@@ -188,10 +188,9 @@ def build_modify_order_request_msg(
         assert_input_types(kwargs, MODIFY_ORDER_OPTIONAL_FIELDS, strict = False)
         validate_input_para(full)
     except (TypeError, ValueError, KeyError) as e:
-        msg = f"build_modify_order_request_msg invalid parameters: {str(e)}"
+        msg = f"build_modify_order_request_msg invalid parameters: {str(e)}."
         logger.error(msg)
         return
-
     
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -201,7 +200,6 @@ def build_modify_order_request_msg(
     order_requests.modify_order.orig_cl_order_id = orig_cl_order_id
     order_requests.modify_order.cl_order_id = cl_order_id
     order_requests.modify_order.when_utc_timestamp = when_utc_timestamp
-    
     
     if kwargs['qty'] is not None:
         if kwargs['qty'] == 0:
@@ -215,7 +213,7 @@ def build_modify_order_request_msg(
         kwargs.pop('qty')
         
     if kwargs['duration'] is not None:
-        order_requests.modify_order.duration = _Duration_MAP_INT2CQG[kwargs['duration']]
+        order_requests.modify_order.duration = Duration_MAP_INT2CQG[kwargs['duration']]
         kwargs.pop('duration')
 
     apply_optional_fields(order_requests.modify_order,
