@@ -8,6 +8,7 @@ Created on Mon Aug 18 11:34:22 2025
 import asyncio
 from typing import Optional, Any
 import logging
+from datetime import datetime, timezone
 
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
@@ -267,15 +268,16 @@ class ConnectCQG(Connect):
         return int_msg
 
     async def ping(self) -> PongType | None:
-        ping_msg = build_ping_msg(self.msg_id)
+        token = str(self.rid())
+        ping_msg = build_ping_msg(token, ping_utc_time=datetime.now(tz=timezone.utc))
         if not ping_msg:
             return
 
-        msg_key =  ('session', 'pong', 'single', 0)
+        msg_key =  ('session', 'pong', 'token', token)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(ping_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
-        return parse_logged_off(server_msg)
+        return parse_pong(server_msg)
     
     async def resolve_symbol(
         self, symbol: str, request_id: int

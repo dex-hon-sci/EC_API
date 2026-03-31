@@ -107,29 +107,22 @@ def build_restore_msg(
     restore_request.session_token = session_token
     return restore_msg
 
-def build_ping_msg(ping_utc_time: int) -> ClientMsg:
+def build_ping_msg(
+        token: str, 
+        ping_utc_time: int
+    ) -> ClientMsg | None:
     params = locals().copy()
     try:
         assert_input_types(params, PING_REQUEST_REQUIRED_FIELDS)
     except (TypeError, KeyError, ValueError) as e:
-        msg = f"build_ping_msg invalid parameters: {str(e)}"
+        msg = f"build_ping_msg invalid parameters: {str(e)}."
         logger.error(msg)
         return 
 
     client_msg = ClientMsg()
     pr = client_msg.ping
+    pr.token = token
     pr.ping_utc_time = ping_utc_time
-    return client_msg
-
-def build_pong_msg(
-    ping_utc_time: int, 
-    pong_utc_time: int
-    ) -> ClientMsg | None:
-
-    client_msg = ClientMsg()
-    pr = client_msg.pong
-    pr.ping_utc_time = ping_utc_time
-    pr.pong_utc_time = pong_utc_time
     return client_msg
 
 def build_resolve_symbol_msg(                       
@@ -143,6 +136,8 @@ def build_resolve_symbol_msg(
     try:
         assert_input_types(params, RESOLVE_SYM_REQUEST_REQUIRED_FIELDS)
     except (TypeError, KeyError, ValueError) as e:
+        msg = f"..."
+        logger.error(msg)
         return
 
     client_msg = ClientMsg()

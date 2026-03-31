@@ -35,6 +35,7 @@ RESTORE_REQUEST_REQUIRED_FIELDS = {
     }
 
 PING_REQUEST_REQUIRED_FIELDS = {
+    'token': ('token', str, str),
     'ping_utc_time': ('ping_utc_time', int, int)
     }
 
