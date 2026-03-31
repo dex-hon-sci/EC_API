@@ -75,11 +75,13 @@ def build_logged_off_server_msg(
 
 def build_pong_server_msg(
         server_msg: ServerMsg,
+        token: str,
         ping_time: int = int(datetime.now().timestamp()),
         delay: int = 5
     ) -> ServerMsg:
     pong = server_msg.pong
-    pong.ping_utc_time= ping_time
+    pong.token = token
+    pong.ping_utc_time = ping_time
     pong.pong_utc_time = ping_time + delay
     return server_msg
 
@@ -547,7 +549,7 @@ def build_all_server_msgs() -> dict[str, ServerMsg]:
     restore_or_join_session_result_server_msg = build_restore_or_join_session_result_server_msg(ServerMsg())
     concurrent_connection_join_results_server_msg = build_concurrent_connection_join_results_server_msg(ServerMsg())
     logged_off_server_msg = build_logged_off_server_msg(ServerMsg())
-    pong_server_msg = build_pong_server_msg(ServerMsg())
+    pong_server_msg = build_pong_server_msg(ServerMsg(), "0")
 
     symbol_resolution_report_server_msg = build_symbol_resolution_report_server_msg(ServerMsg())
     session_info_report_server_msg = build_session_info_report_server_msg(ServerMsg())

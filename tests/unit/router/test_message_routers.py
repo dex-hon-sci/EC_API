@@ -19,13 +19,13 @@ async def test_key_register_valid() -> None:
     fut1 = MR.register_key(key1)
     fut2 = MR.register_key(key2)
     
-    assert len(MR._pending) == 2
-    assert list(MR._pending.keys())[0] == key1
-    assert list(MR._pending.keys())[1] == key2
+    assert MR.pending_count == 2
+    assert list(MR.pending.keys())[0] == key1
+    assert list(MR.pending.keys())[1] == key2
     assert isinstance(fut1, asyncio.Future)
     assert isinstance(fut2, asyncio.Future)    
-    assert MR._pending[key1].done() == False
-    assert MR._pending[key2].done() == False
+    assert MR.pending[key1].done() == False
+    assert MR.pending[key2].done() == False
     
 @pytest.mark.asyncio
 async def test_register_key_duplicate_router_key_invalid() -> None:
@@ -46,13 +46,13 @@ async def test_on_message_valid() -> None:
     fut2 = MR.register_key(key2)
 
     MR.on_message(key1, {"Message_1": "Content_1"})
-    assert len(MR._pending) == 1
+    assert MR.pending_count == 1
     assert fut1.done() is True
     res1 = await asyncio.wait_for(fut1, timeout=1.0)
     assert res1 ==  {"Message_1": "Content_1"}
     
     MR.on_message(key2, {"Message_2": "Content_2"})
-    assert MR._pending == {}
+    assert MR.pending_count == 0
     assert fut2.done() is True
     res2 = await asyncio.wait_for(fut2, timeout=1.0)
     assert res2 ==  {"Message_2": "Content_2"}       
@@ -78,7 +78,7 @@ async def test_fail_all_valid() -> None:
     with pytest.raises(RuntimeError, match="connection lost"):
         await fut2
 
-    assert MR._pending == {}
+    assert MR.pending_count == 0
 
 @pytest.mark.asyncio
 async def test_fail_all_does_not_override_completed_futures() -> None:

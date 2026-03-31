@@ -56,16 +56,15 @@ def test_extract_key_logged_off() -> None:
     assert router_keys[0] == ('session', 'logged_off', 'single', 0)
 
 def test_extract_key_pong() -> None:
-    msg = build_pong_server_msg(ServerMsg())
+    msg = build_pong_server_msg(ServerMsg(), "0")
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
-    assert router_keys[0] == ('session', 'pong', 'single', 0)
+    assert router_keys[0] == ('session', 'pong', 'token', '0')
 
 # ----
 # Test extraction for information reports
 def test_extract_key_info_symbol_resolution_report() -> None:
     msg = build_symbol_resolution_report_server_msg(ServerMsg())
-    print('sym res', msg)
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:symbol_resolution_report', 'id', 1)
@@ -198,8 +197,9 @@ def test_splitter_valid() -> None:
     mkt_msg = build_market_data_subscription_statuses_server_msg(server_msg)
     mkt_msg = build_real_time_market_data_server_msg(mkt_msg)
 
-    res = split_server_msg(mkt_msg, ['market_data_subscription_statuses', 
-                                     'real_time_market_data'])
+    res = split_server_msg(
+        mkt_msg, ['market_data_subscription_statuses', 
+                  'real_time_market_data'])
     
     assert len(res) == 2
     assert res[0].market_data_subscription_statuses is not None    

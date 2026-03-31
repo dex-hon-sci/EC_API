@@ -29,6 +29,9 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
 
     )
 from tests.unit.fixtures.server_msg_streams_CQG import (
+    dummy_rpc_stream,
+    dummy_session_stream,
+    dummy_info_stream,
     dummy_realtime_data_stream,
     dummy_order_update_stream,
     dummy_mixed_full_stream
@@ -185,8 +188,6 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
     
 @pytest.mark.asyncio
 async def test_router_loop_orderstatus_updates_stream_valid() -> None:
-    total_contract_sub = 20
-
     # Insert a Fake transport layer to siulate send/recv
     conn = ConnectCQG(
         host_name = "",
@@ -223,13 +224,66 @@ async def test_router_loop_orderstatus_updates_stream_valid() -> None:
     try:
         await asyncio.wait_for(_drain_all_stream_data(
             queues, msg_stream, order_statuses_order_id
-            )
-            , timeout=1)
+            ), timeout=1)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")
         pytest.fail("Asyncio Time out")
     
+    await conn.stop()
+    
+@pytest.mark.asyncio
+async def test_router_loop_session_msg_routing_valid():
+    # Insert a Fake transport layer to siulate send/recv
+    conn = ConnectCQG(
+        host_name = "",
+        user_name = "", 
+        password = "",
+        immediate_connect=False,
+        client=object()
+        )
+    fake_transport = FakeTransport()    
+    conn._transport = fake_transport
+    
+    # Put in the dummy messages
+    msg_stream = dummy_session_stream(pong_number = 10)
+    start = time.perf_counter()
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+    #await fake_transport.in_q.put(None)  # sentinel to signal end of stream
+    elapsed = time.perf_counter() - start
+    print(f"Feed time: {elapsed:4f}s")
+    
+    # Define MessageRouter, put it in the Connect object
+    msg_router = MessageRouter()
+    conn._msg_router = msg_router
+    
+    logon_key = ('session', 'logon_result', 'single', 0)
+    logoff_key = ('session', 'logged_off', 'single', 0)
+    restore_key = ('session', 'restore_or_join_session_result', 'single', 0)
+    
+    fut_logon = msg_router.register_key(logon_key)
+    fut_restore = msg_router.register_key(restore_key)
+    fut_logoff = msg_router.register_key(logoff_key)
+    
+    pong_futs, pong_keys = [], []
+    for i in range(10):
+        pong_key = ('session', 'pong', 'token', str(i))
+        pong_keys.append(pong_key)
+        pong_futs.append(msg_router.register_key(pong_key))
+        
+    
+    futs = [fut_logon] + pong_futs + [fut_restore, fut_logoff]
+    keys = [logon_key] + pong_keys + [restore_key, logoff_key]
+    
+    conn.start()
+    await asyncio.sleep(0.5)
+
+    for fut, msg, key in zip(futs, msg_stream, keys):
+        assert fut.done()
+        assert fut.result() == msg
+        assert key not in conn._msg_router.pending
+        
     await conn.stop()
     
 @pytest.mark.asyncio
@@ -241,15 +295,95 @@ async def test_router_loop_rpc_msg_routing_valid() -> None:
         immediate_connect=False,
         client=object()
         )
-    total_contract_sub = 20
     
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
     
-    # put dummy messages in the fake transport client
+    # Put in the dummy messages
+    msg_stream = dummy_rpc_stream()
+    start = time.perf_counter()
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+    #await fake_transport.in_q.put(None)  # sentinel to signal end of stream
+    elapsed = time.perf_counter() - start
+    print(f"Feed time: {elapsed:4f}s")
+    
+    # Define MessageRouter, put it in the Connect object
+    msg_router = MessageRouter()
+    conn._msg_router = msg_router
+    
+    order_reqest_reject_key = ('rpc_reqid', 'order_request_rejects', 'request_id', 1)
+    order_reqest_acks_key = ('rpc_reqid', 'order_request_acks', 'request_id', 1)
+    go_flat_status_key = ('rpc_reqid', 'go_flat_statuses', 'request_id', 1)
+    
+    #trade_sub_status_fut = msg_router.register_key(trade_sub_status_key)
+    order_reqest_reject_fut = msg_router.register_key(order_reqest_reject_key)
+    order_reqest_acks_fut = msg_router.register_key(order_reqest_acks_key)
+    #acc_summ_status_fut = msg_router.register_key(acc_summ_status_key)
+    go_flat_status_fut = msg_router.register_key(go_flat_status_key)
+
+    keys = [order_reqest_reject_key, 
+            order_reqest_acks_key, 
+            go_flat_status_key]
+    futs = [order_reqest_reject_fut, 
+            order_reqest_acks_fut, 
+            go_flat_status_fut]
+    
+    conn.start()
+    await asyncio.sleep(0.5)
+    
+    for fut, msg, key in zip(futs, msg_stream, keys):
+        assert fut.done()
+        assert fut.result() == msg
+        assert key not in conn._msg_router.pending
+        
+    await conn.stop()
+
+@pytest.mark.asyncio
+async def test_router_loop_info_msg_routing_valid():
+    conn = ConnectCQG(
+        host_name = "",
+        user_name = "", 
+        password = "",
+        immediate_connect=False,
+        client=object()
+        )
+    
+    fake_transport = FakeTransport()    
+    conn._transport = fake_transport
+    
+    # Put in the dummy messages
+    msg_stream = dummy_info_stream()
+
+    start = time.perf_counter()
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+    elapsed = time.perf_counter() - start
+    print(f"Feed time: {elapsed:4f}s")
+    
+    # Define MessageRouter, put it in the Connect object
+    msg_router = MessageRouter()
+    conn._msg_router = msg_router
+    
+    info_key_1 = (1, "CLE", "1", "A", "id_1", "CLEXXX", "id_1", "Instrument_1")
+    info_key_2 = (2, "HOE", "2", "B", "id_2", "HOEXXX", "id_2", "Instrument_2")
+    info_key_3 = (3, "RBE", "3", "C", "id_3", "RBEXXX", "id_3", "Instrument_3")
+    info_key_4 = (4, "QO", "4", "D", "id_4", "QOXXX", "id_4", "Instrument_4")
+    info_key_5 = (5, "QP", "5", "E", "id_5", "QPXXX", "id_5", "Instrument_5")
+    info_key_6 = (6, "VX", "6", "F", "id_6", "VXXXX", "id_6", "Instrument_6")
+    info_key_7 = (7, "AUX", "7", "G", "id_7", "AUXXXX", "id_7", "Instrument_7")
+    info_key_8 = (8, "AG", "8", "H", "id_8", "AGXXX", "id_8", "Instrument_8")
+    info_key_9 = (9, "VC", "9", "I", "id_9", "VCXXX", "id_9", "Instrument_9")
+    info_key_10 = (10, "EUR", "10", "J", "id_10", "EURXXX", "id_10", "Instrument_10")
+    info_key_11 = (11, "YU", "11", "K", "id_11", "YUXXX", "id_11", "Instrument_11")
+    info_key_12 = (12, "TAR", "12", "L", "id_12", "TARXXX", "id_12", "Instrument_12")
+    info_key_13 = (13, "PEQ", "13", "M", "id_13", "PEQXXX", "id_13", "Instrument_13")
+
+    ('info', 'information_reports:symbol_resolution_report', 'id', 1)
 
 @pytest.mark.asyncio
 async def test_router_loop_composite_msg() -> None:
+    # sub, 
     conn = ConnectCQG(
         host_name = "",
         user_name = "", 
@@ -262,16 +396,7 @@ async def test_router_loop_composite_msg() -> None:
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
     
-    # put dummy messages in the fake transport client
-    server_msg1 = ServerMsg()
-    server_msg1 = build_trade_subscription_statuses_server_msg(server_msg1)
-    server_msg1 = build_trade_snapshot_completetions_server_msg(server_msg1)
-    server_msg1 = build_order_statuses_server_msg(server_msg1)
-    
-    server_msg2 = ServerMsg()
-    server_msg2 = build_market_data_subscription_statuses_server_msg(server_msg2)
-    server_msg2 = build_real_time_market_data_server_msg(server_msg2)
-    
+
 @pytest.mark.asyncio
 async def test_router_loop_transport_dies():...
 

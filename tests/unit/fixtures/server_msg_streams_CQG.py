@@ -14,27 +14,29 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.common.shared_1_pb2 import OrderStatus, TransactionStatus
 from EC_API.ext.WebAPI.webapi_2_pb2 import InformationReport as InfoRp
 from tests.unit.fixtures.server_msg_builders_CQG import (
+    # sessions server msg builders
     build_logon_result_server_msg,
     build_pong_server_msg,
     build_restore_or_join_session_result_server_msg,
     build_logged_off_server_msg,
-    
+    # metadata server msg builders
     build_symbol_resolution_report_server_msg,
     build_session_info_report_server_msg,
     build_historical_orders_report_server_msg,
     build_option_maturity_list_report_server_msg,
     build_instrument_group_report_server_msg,
     build_at_the_money_strike_report_server_msg,
-    
+    # trade session server msg builders
+    build_trade_subscription_statuses_server_msg,
+    build_trade_snapshot_completetions_server_msg,
+    build_order_statuses_server_msg,
     build_order_request_rejects_server_msg,
     build_order_request_acks_server_msg,
     build_account_summary_statuses_server_msg,
     build_go_flat_statuses_server_msg,
-    build_trade_subscription_statuses_server_msg,
-    build_trade_snapshot_completetions_server_msg,
-    
+    # market data server msg builders
     build_real_time_market_data_server_msg,
-    build_order_statuses_server_msg
+    build_market_data_subscription_statuses_server_msg
 )
 
 
@@ -43,7 +45,7 @@ def dummy_session_stream(pong_number: int = 1000) -> list[ServerMsg]:
     restore_msg = build_restore_or_join_session_result_server_msg(ServerMsg())
     logoff_msg = build_logged_off_server_msg(ServerMsg())
     
-    return [logon_msg] + [build_pong_server_msg(ServerMsg()) for _ in range(pong_number)] + [restore_msg, logoff_msg]
+    return [logon_msg] + [build_pong_server_msg(ServerMsg(), str(i)) for i in range(pong_number)] + [restore_msg, logoff_msg]
     
     
 def dummy_realtime_data_stream(
@@ -114,14 +116,14 @@ def dummy_order_update_stream(
 def dummy_rpc_stream() -> list[ServerMsg]:
     order_request_rejects_msg = build_order_request_rejects_server_msg(ServerMsg())
     order_request_acks_msg = build_order_request_acks_server_msg(ServerMsg())
-    account_summary_statuses_msg = build_account_summary_statuses_server_msg(ServerMsg())
+    #account_summary_statuses_msg = build_account_summary_statuses_server_msg(ServerMsg())
     go_flat_statuses_msg = build_go_flat_statuses_server_msg(ServerMsg())
     
-    trade_subscription_statuses_msg = build_trade_subscription_statuses_server_msg(ServerMsg())
+    #trade_subscription_statuses_msg = build_trade_subscription_statuses_server_msg(ServerMsg())
 
     
-    return [trade_subscription_statuses_msg, order_request_rejects_msg,
-            order_request_acks_msg, account_summary_statuses_msg,
+    return [order_request_rejects_msg,
+            order_request_acks_msg,
             go_flat_statuses_msg
             ]
 
@@ -200,7 +202,7 @@ def dummy_composite_mkt_data_stream() -> list[ServerMsg]:
     def _composite_mkt_data_msg(
             server_msg: ServerMsg,
             sub_id: int,
-                                ) -> ServerMsg:        
+            ) -> ServerMsg:        
         server_msg = build_order_request_acks_server_msg()
         server_msg = build_trade_subscription_statuses_server_msg(server_msg,sub_id)
         server_msg = build_trade_snapshot_completetions_server_msg(server_msg)
@@ -214,6 +216,10 @@ def dummy_composite_mkt_data_stream() -> list[ServerMsg]:
 def dummy_composite_order_statuses_stream() -> list[ServerMsg]:
 
     def _composite_oder_statuses_msg(server_msg: ServerMsg): 
+        server_msg = ServerMsg()
+        server_msg = build_market_data_subscription_statuses_server_msg(server_msg)
+        server_msg = build_real_time_market_data_server_msg(server_msg)
+
         return
     
 

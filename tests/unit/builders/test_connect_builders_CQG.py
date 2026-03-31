@@ -65,9 +65,10 @@ def test_build_restore_msg_valid() -> None:
     assert restor_msg.session_token == "ABCDEFG"
 
 def test_build_ping_msg_valid() -> None:
-    msg = build_ping_msg(ping_utc_time=10)
+    msg = build_ping_msg('Hello', ping_utc_time=10)
     
     assert type(msg.ping) == Ping
+    assert msg.ping.token == 'Hello'
     assert msg.ping.ping_utc_time == 10
 
 def test_build_resolve_symbol_msg_valid() -> None:
