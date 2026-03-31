@@ -49,7 +49,8 @@ def split_server_msg(msg: ServerMsg, targets: list[str]):
     for target in targets:
         server_msg = ServerMsg()
         field_desc = msg.DESCRIPTOR.fields_by_name.get(target)
-        if field_desc.label == field_desc.LABEL_REPEATED:# repeated field
+        #if field_desc.label == field_desc.LABEL_REPEATED:# repeated field
+        if field_desc.is_repeated:
             getattr(server_msg, target).MergeFrom(getattr(msg, target))
         else:# singular field
             setattr(server_msg, target,  getattr(server_msg, target))

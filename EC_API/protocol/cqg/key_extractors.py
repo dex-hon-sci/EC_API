@@ -59,7 +59,14 @@ def extract_session_router_keys(
         msg: ServerMsg, 
         msg_type: str
     )->list[RouterKey]:
-    return [("session", msg_type, "single", 0)]
+    
+    if msg_type == 'pong':
+        rid = "token"
+        val = msg.pong.token
+    else:
+        rid = "single"
+        val = 0
+    return [("session", msg_type, rid, val)]
 
 
 @register_extractor('info')

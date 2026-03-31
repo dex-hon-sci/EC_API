@@ -8,7 +8,7 @@ Created on Wed Nov 26 16:40:57 2025
 import asyncio
 import logging
 from typing import Any  # Hashable, Optional
-#import logging
+from EC_API._typing import RouterKey
 from EC_API.exceptions import (
     DuplicateRouterKeyError,
     UnknownSubscriptionError, SubscriptionQueueMismatchError,
@@ -18,32 +18,33 @@ from EC_API.exceptions import (
 
 logger = logging.getLogger(__name__)
 
-# (msg_family, msg_type, id_field_name, id)
-RouterKey = tuple[str, str, str, int | str]
-
 class MessageRouter:
     def __init__(self):
-        self._pending: dict[RouterKey, asyncio.Future] = {}
+        self.pending: dict[RouterKey, asyncio.Future] = {}
+        
+    @property
+    def pending_count(self) -> int:
+        return len(self.pending)
 
     def register_key(self, key: RouterKey) -> asyncio.Future:
         fut = asyncio.get_running_loop().create_future()
 
-        if key in self._pending.keys():
+        if key in self.pending.keys():
             msg = f"Router register key failed: key '{key}' already exist."
             logger.error("[%s] %s", __class__.__name__, msg)
             raise DuplicateRouterKeyError(msg)
 
-        self._pending[key] = fut
+        self.pending[key] = fut
 
         # clearup code in case of user cancel
         def _cleanup(_):
-            self._pending.pop(key, None)
+            self.pending.pop(key, None)
         
         fut.add_done_callback(_cleanup)
         return fut
 
     def on_message(self, key: RouterKey, msg: Any) -> bool:
-        fut = self._pending.pop(key, None)
+        fut = self.pending.pop(key, None)
         if fut is None:
             return False
         if not fut.done():
@@ -51,10 +52,10 @@ class MessageRouter:
         return True
 
     def fail_all(self, exc: BaseException) -> None:
-        for k, fut in list(self._pending.items()):
+        for k, fut in list(self.pending.items()):
             if not fut.done():
                 fut.set_exception(exc)
-        self._pending.clear()
+        self.pending.clear()
 
 
 class StreamRouter:
@@ -77,7 +78,17 @@ class StreamRouter:
             raise InvalidDroppingPolicy("Invalid dropping policy. It must be either:'drp_oldest' or 'drop_latest'.")
         self.drop_policy = drop_policy
         
-
+    @property
+    def sub_id_count(self) -> int:
+        return len(self._subs)
+    
+    def subscriber_count(self, sub_id: int | str) -> int:
+        if not self._subs.get(sub_id):
+            msg = f"Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
+            logger.error("[%s] %s", __class__.__name__, msg)
+            raise UnknownSubscriptionError(msg)
+        return len(self._subs[sub_id])
+    
     def subscribe(
         self,
         sub_id: int | str
@@ -109,7 +120,7 @@ class StreamRouter:
 
         lst = self._subs.get(sub_id, [])
         if not lst:
-            msg = f"Retrival of {sub_id} failed. Contract ID: {sub_id} is not in the router."
+            msg = f"Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
             logger.error("[%s] %s", __class__.__name__, msg)
             raise UnknownSubscriptionError(msg)
             

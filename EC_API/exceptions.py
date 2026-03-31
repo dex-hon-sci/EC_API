@@ -1,5 +1,8 @@
 class EC_APIError(Exception):
     """Base case for EC_API Error"""
+    
+# --- Transport
+
 
 # --- Builders
 class MsgBuilderParaTypeError(EC_APIError):
