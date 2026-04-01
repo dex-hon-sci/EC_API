@@ -25,7 +25,6 @@ def test_parser_real_data_stream_valid() -> None:
     assert len(res) == 2
     for ele in res:
         assert isinstance(ele,tuple)
-        assert 
     
     
     

@@ -40,7 +40,7 @@ metadata_parsers: dict[str, Parser_func] = {}
 LogonResultType = dict[str, Any]
 LogoffResultType = dict[str, Any]
 RestoreResultType = dict[str, Any]
-PongType = tuple[str, int, int]
+PongType = tuple[str, str, int, int] # ('pong', token, ping_time, pong_time)
 # --- Monitor
 # contract_id, O, H, L, C, volume_significand, volume_exponent, volume_significand, correct_price_scale
 MarketValueType = tuple[int, int, int, int, int, int, int]

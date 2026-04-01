@@ -36,11 +36,11 @@ def parse_logged_off(server_msg: ServerMsg | None) -> dict[str, Any]:
         "logoff_reason": server_msg.logged_off.logoff_reason,
         }
 
-def parse_pong(server_msg: ServerMsg | None) -> tuple[str, int, int]:
+def parse_pong(server_msg: ServerMsg | None) -> tuple[str, str, int, int]:
     if not server_msg:
         return 
-
-    return ("pong", server_msg.pong.ping_utc_time, server_msg.pong.pong_utc_time)
+    return ("pong", server_msg.pong.token, server_msg.pong.ping_utc_time, 
+            server_msg.pong.pong_utc_time)
 
 # Meta data parsers
 type Parser_func = Callable[ServerMsg]
