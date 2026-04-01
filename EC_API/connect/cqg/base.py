@@ -150,15 +150,18 @@ class ConnectCQG(Connect):
     async def _router_loop(self) -> None:
 
         while not self._stop_evt.is_set():
+            # Use Try
             msg: ServerMsg = await self._transport.recv()
             
-            if not msg:
+            if not msg or not isinstance(msg, ServerMsg):
                 continue
             
             # 0) check if it is a composite message
             top_unique_fields = server_msg_type(msg)
-            if len(top_unique_fields)>1: # SLIT!!
+            if len(top_unique_fields) > 1: # SLIT!!
                 msgs = split_server_msg(msg, top_unique_fields)
+            elif len(top_unique_fields) == 0:
+                continue
             else:
                 msgs = [msg]
 
@@ -185,6 +188,7 @@ class ConnectCQG(Connect):
                         # 3) RPC routing (futures), 
                         if key_type in {"rpc_reqid", "session", "sub", "info"}:
                             self._msg_router.on_message(key, msg)
+                            #print('router loop', key, msg)
                             #await self._misc_queue.put(msg)
              
     # ---- CQG messages methods ----

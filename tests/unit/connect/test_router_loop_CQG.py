@@ -378,6 +378,8 @@ async def test_router_loop_info_msg_routing_valid():
     
 @pytest.mark.asyncio
 async def test_router_loop_composite_msg() -> None:
+    num_comp_mkt_data = 5
+    num_order_statuses = 5
     # sub, 
     conn = ConnectCQG(
         host_name = "",
@@ -386,13 +388,12 @@ async def test_router_loop_composite_msg() -> None:
         immediate_connect=False,
         client=object()
         )
-    num_comp_mkt_data = 5
-    num_order_statuses = 5
+
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
     
-    msg_stream_comp_mkt_data = dummy_composite_mkt_data_stream(num=5)
-    msg_stream_comp_ord_statuses = dummy_composite_order_statuses_stream(num=5)
+    msg_stream_comp_mkt_data = dummy_composite_mkt_data_stream(num=num_comp_mkt_data)
+    msg_stream_comp_ord_statuses = dummy_composite_order_statuses_stream(num=num_order_statuses)
     
     start = time.perf_counter()
     for msg1, msg2 in zip(msg_stream_comp_mkt_data, msg_stream_comp_ord_statuses):
@@ -413,7 +414,6 @@ async def test_router_loop_composite_msg() -> None:
             rpc_keys.append(('rpc_reqid', 'order_request_acks', 'request_id', i*10 + 0))
             rpc_keys.append(('sub', 'trade_subscription_statuses', 'id', i*10 + 1))
             rpc_keys.append(('sub', 'trade_snapshot_completions', 'subscription_id', i*10 + 2))
-            rpc_keys.append(('substream','order_statuses','chain_order_id',str( i*10 + 3)))        
         return rpc_keys
     
     
@@ -428,7 +428,26 @@ async def test_router_loop_composite_msg() -> None:
     # For keys and fut for substream msg types
     rpc_keys = _build_key_answers_order_statuses()
     mkt_keys = _build_key_answers_mkt_data()
+    order_status_keys = [('substream','order_statuses','chain_order_id',str( i*10 + 3)) for i in range(num_order_statuses)]   
 
+
+
+async def test_router_loop_empty_msg():
+    num = 10
+    
+    conn = ConnectCQG(
+        host_name = "",
+        user_name = "",     
+        password = "",
+        immediate_connect=False,
+        client=object()
+        )
+
+    fake_transport = FakeTransport()    
+    conn._transport = fake_transport
+    
+    msg_stream = [ServerMsg() for _ in range(num)]
+    
 
 @pytest.mark.asyncio
 async def test_router_loop_transport_dies():...

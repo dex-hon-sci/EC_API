@@ -29,7 +29,7 @@ class TransportCQG:
             self, 
             host_name: str, 
             loop: asyncio.AbstractEventLoop,
-            client: Optional[webapi_client.WebApiClient] = None #
+            client: Optional[webapi_client.WebApiClient] = None
             ):
         self._loop = loop
         self._client = webapi_client.WebApiClient() if client is None else client
@@ -70,6 +70,7 @@ class TransportCQG:
 
             if server_msg is None:
                 # sentinel or EOF
+                logger.info("...")
                 break
 
             asyncio.run_coroutine_threadsafe(
@@ -100,6 +101,8 @@ class TransportCQG:
         try:
             self._client.disconnect()
         except Exception:
+            msg = "..."
+            logger.warning(msg)
             pass # <--- fix this later
         
         if self._send_thread:
