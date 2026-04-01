@@ -197,31 +197,36 @@ def dummy_info_stream(
     return info
         # res: TrdSubStatus.StatusCode = TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS,
 
-def dummy_composite_mkt_data_stream() -> list[ServerMsg]:
+def dummy_composite_order_statuses_stream(num:int = 10) -> list[ServerMsg]:
     
     def _composite_mkt_data_msg(
             server_msg: ServerMsg,
-            sub_id: int,
+            composite_ids: list[int]
             ) -> ServerMsg:        
-        server_msg = build_order_request_acks_server_msg()
-        server_msg = build_trade_subscription_statuses_server_msg(server_msg,sub_id)
-        server_msg = build_trade_snapshot_completetions_server_msg(server_msg)
-        server_msg = build_order_statuses_server_msg(server_msg)
+        
+        server_msg = build_order_request_acks_server_msg(server_msg, composite_ids[0])
+        server_msg = build_trade_subscription_statuses_server_msg(server_msg, composite_ids[1])
+        server_msg = build_trade_snapshot_completetions_server_msg(server_msg, composite_ids[2])
+        server_msg = build_order_statuses_server_msg(server_msg, str(composite_ids[3]))
 
-        return 
+        return server_msg
     
-    res = []
-    return res
+    ids = [[n*10 + i for i in range(4)] for n in num]
+    return [_composite_mkt_data_msg(ServerMsg(), sub_ids) for sub_ids in ids]
 
-def dummy_composite_order_statuses_stream() -> list[ServerMsg]:
+def dummy_composite_mkt_data_stream(num: int = 10) -> list[ServerMsg]:
 
-    def _composite_oder_statuses_msg(server_msg: ServerMsg): 
-        server_msg = ServerMsg()
+    def _composite_oder_statuses_msg(
+            server_msg: ServerMsg,
+            composite_ids: list[int]) -> ServerMsg: 
         server_msg = build_market_data_subscription_statuses_server_msg(server_msg)
         server_msg = build_real_time_market_data_server_msg(server_msg)
 
-        return
+        return server_msg
     
+    ids = [[n*10 + i for i in range(2)] for n in num]    
+    return [_composite_oder_statuses_msg(ServerMsg(),sub_ids) for sub_ids in ids]
+
 
 
 def dummy_mixed_full_stream(seed: int = 500) -> list[ServerMsg]:
