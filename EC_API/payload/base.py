@@ -15,7 +15,7 @@ from EC_API.ordering.enums import SubScope, OrderStatus
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
-
+from EC_API.ordering.trade_session import TradeSession
 @dataclass
 class Payload:
     """
@@ -31,15 +31,16 @@ class Payload:
     
     One Payload correspond to one order request.
     """
-    account_id: int = 0
-    request_id: int = 0
-    status: PayloadStatus = PayloadStatus.PENDING
+    #account_id: int = 0
+    #request_id: int = 0
     order_request_type: RequestType = RequestType.NEW_ORDER
+    status: PayloadStatus = PayloadStatus.PENDING
+    order_info: dict = field(default_factory=dict)
+
     start_time: datetime = datetime.now(timezone.utc)\
                                     + timedelta(days=1)# In long text format
     end_time: datetime = datetime.now(timezone.utc)\
                                     + timedelta(days=2) # In long text format
-    order_info: dict = field(default_factory=dict)
     check_method: PayloadFormatCheck = PayloadFormatCheck
     asset_safty_range: dict = field(default_factory=dict)
 
@@ -62,19 +63,21 @@ class ExecutePayload:
     # Execution object for CQG trade rounting connection
     def __init__(
             self, 
-            connect: Connect, 
+            trade_session: TradeSession, 
             payload: Payload,
-            request_id: int,
-            account_id: int,
+            #request_id: int,
+            #account_id: int,
             live_order: LiveOrder = LiveOrder
         ):
-        self._connect = connect 
+        #self._connect = connect 
+        self._trade_session = trade_session
         self.payload = payload
-        self.account_id = account_id
-        self.live_order = live_order # LiveOrder class, changable by users.
-        self.sub_scope: SubScope = SubScope.SUBSCRIPTION_SCOPE_ORDERS
+        self.live_order = live_order # LiveOrder class, vendor-specific.
+        #self.ordering_enums: OrderStatus = OrderStatus
+
+        #self.account_id = account_id
+        #self.sub_scope: SubScope = SubScope.SUBSCRIPTION_SCOPE_ORDERS
         # Choose what enums are used for match cases in change payload status
-        self.ordering_enums: OrderStatus = OrderStatus
         
     def unload(self) -> None:
         """
@@ -90,8 +93,10 @@ class ExecutePayload:
                 account_id = self.account_id,
                 sub_scope = self.sub_scope
                 )
-            server_msg = CLOrder.send(request_type = self.payload.order_request_type, 
-                                      request_details = self.payload.order_info)
+            CLOder.send(request_type = self.payload.order_request_type, 
+                        request_details = self.payload.order_info)
+            #server_msg = CLOrder.send(request_type = self.payload.order_request_type, 
+            #                          request_details = self.payload.order_info)
             
         else:
             raise Exception("Only pending payloads can be unloaded.")

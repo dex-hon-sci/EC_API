@@ -6,6 +6,7 @@ Created on Thu Aug  7 10:06:40 2025
 @author: dexter
 """
 import asyncio
+from typing import Any, Iterator
 import numpy as np
 # Import EC_API scripts
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
@@ -26,21 +27,58 @@ from EC_API.connect.cqg.builders import (build_resolve_symbol_msg)
 
 class MonitorDataCQG(Monitor):
     def __init__(self, conn: ConnectCQG):
-        
         self._conn = conn
         self._transport = conn._transport()
 
         self._loop = asyncio.get_running_loop()
         #self._transport = TransportCQG()
+        self._stream_router = self._conn._stream_router
         self.timeout = 1
+        
+        self.sub_mgr = None
+        
+    @property
+    def conn(self):
+        return self._conn
 
-    async def resolve_symbol():...
+    def rid(self) -> int:
+        return self.conn.rid()
+
+    async def _resolve_symbol(self, symbol_name: str):
+        # Get the metadata first
+        contract_metadata = await self._conn.resolve_symbol(symbol_name)
+        # Save the contract_id to subscription manager
     
-    async def subscribe_mkt_data():...
+    async def subscribe_mkt_data(self, symbol_name: str, level):
+        ref, fut = dict(), None
+        self._stream_router.subscribe(1)
+        contract_id = ref[symbol_name]
+        msg = build_realtime_data_request_msg(contract_id, self.rid(), level)
+        self._transport.send(msg)
+        
+        # Response handling
+        server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
     
-    async def unsubscribe_mkt_data():...
+    async def unsubscribe_mkt_data(self):
+        self._stream_router.unsubscribe(1)
+
     
-    async def stream():...
+    async def stream(self) -> Iterator[tuple[int]]:
+        # check if the rounter has the id already
+        
+        
+        yield
+    
+class SubMgr:
+    def __init__(self):
+        name2id_ref = dict()
+        ids_states = dict()
+    def add_name(name: str):
+        # Add symbol_name/chain_order_id 
+        return
+    def add_scale(name:str,scale:float):
+        return 
+    
 
 class MonitorRealTimeDataCQG(Monitor):
     
@@ -122,8 +160,8 @@ class MonitorRealTimeDataCQG2(Monitor):
     def conn(self):
         return self._conn
     
-    def _rid(self) -> int:
-        return self.conn.msg_id
+    def rid(self) -> int:
+        return self.conn.rid()
     
     @property
     def per_contract_queue(self)-> dict :

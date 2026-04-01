@@ -6,9 +6,6 @@ Created on Thu Apr  2 00:08:53 2026
 @author: dexter
 """
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
-from EC_API._typing import (
-    LogonResultType,
-    )
 from EC_API.connect.cqg.parsers import (
     parse_logon_result,
     parse_logged_off,

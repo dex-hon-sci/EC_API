@@ -81,6 +81,7 @@ class ConnectCQG(Connect):
 
         # State Control
         self.state: ConnectionState = ConnectionState.UNKNOWN
+        self.is_logged_on: bool = False
         self._timeout = 1 # make make this a ping based decision
 
         # Generic Message parameter

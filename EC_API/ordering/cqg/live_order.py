@@ -25,6 +25,7 @@ from EC_API.ordering.cqg.enums import (
 from EC_API.ordering.base import LiveOrder
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter
+from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg,
     build_new_order_request_msg, 
@@ -40,28 +41,31 @@ class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange
     # This object is specific for CQG type request
     def __init__(self, 
-                 conn: ConnectCQG, 
-                 router: MessageRouter,
+                 trade_session: TradeSessionCQG,
                  symbol_name: str, 
                  request_id: int, 
                  account_id: int,
-                 sub_scope: int = SubScope.ORDERS,
+                 #sub_scope: int = SubScope.ORDERS,
                  #msg_id: int = int(random_string(length=6)), # For symbol resolutions
                  auto_unsub: bool = True,
                  timeout: int | float = 1,
                  ):
         
         # Message Routing
-        self._conn = conn
+        self._trade_session = trade_session
+        self._conn = self._trade_session._conn
         self._transport = self._conn.transport
-        self._router = router
+        
+        # Routers
+        self._msg_router = self._conn._msg_router
+        self._stream_router = self._conn._exec_stream_router
         
         # CQG-related input parameters
         self._symbol_name = symbol_name
         self.request_id = request_id
         self.account_id = account_id
-        self.sub_scope = sub_scope
-        #self.msg_id = msg_id
+        #self.sub_scope = sub_scope
+
         self.trade_subscription_id = 0
         
         self.sub_mgr = None
@@ -74,10 +78,12 @@ class LiveOrderCQG(LiveOrder):
         self.timeout = timeout
         
     def rid(self):
-        return self._conn.rid
+        return self._conn.rid()
     
-    async def resolve_symbol(self):
-        return await self._conn.resolve_symbol(self.symbol)
+    def check_symbol_resolution(self, symbol_name):
+        return
+    def check_state():
+        return 
     
     async def _request_trade_subscription(
         self, 
@@ -91,7 +97,6 @@ class LiveOrderCQG(LiveOrder):
             subscribe = subscribe,
             skip_orders_snapshot = skip_orders_snapshot
             )
-        #rid = 0 # < --- look up and fix
         rid = self._conn.msg_id()
         key = ("trade_subscription_statuses", rid)
         fut = self._router.register(key)
@@ -108,8 +113,11 @@ class LiveOrderCQG(LiveOrder):
         client_msg = build_new_order_request_msg(**request_details)
         
         key = ("order_statuses", request_details['request_id'])
-        fut = self._router.register(key)
+        fut = self._stream_router.register(key)
         await self._transport.send(client_msg)
+        ####
+        #...
+        ####
         server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
         # change all these, we are using substream setup from now on
 
@@ -176,7 +184,7 @@ class LiveOrderCQG(LiveOrder):
         
         return server_msg
 
-    async def send_once(
+    async def send(
         self, 
         request_type: RequestType,
         request_details: dict,
