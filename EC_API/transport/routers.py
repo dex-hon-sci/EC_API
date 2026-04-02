@@ -46,11 +46,9 @@ class MessageRouter:
     def on_message(self, key: RouterKey, msg: Any) -> bool:
         fut = self.pending.pop(key, None)
         if fut is None:
-            print(key, False)
             return False
         if not fut.done():
             fut.set_result(msg)
-            print(key, True)
         return True
 
     def fail_all(self, exc: BaseException) -> None:

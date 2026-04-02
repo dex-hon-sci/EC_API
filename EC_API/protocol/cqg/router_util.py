@@ -53,7 +53,7 @@ def split_server_msg(msg: ServerMsg, targets: list[str]):
         if field_desc.is_repeated:
             getattr(server_msg, target).MergeFrom(getattr(msg, target))
         else:# singular field
-            setattr(server_msg, target,  getattr(server_msg, target))
+            setattr(server_msg, target, getattr(server_msg, target))
         res.append(server_msg)
 
     return res

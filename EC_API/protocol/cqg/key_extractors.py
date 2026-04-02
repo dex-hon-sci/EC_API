@@ -157,7 +157,7 @@ def extract_sub_router_keys(
     
     TARGET = {
         "trade_subscription_statuses",
-        "trade_snapshot_completions"
+        "trade_snapshot_completions",
         }
     
     def selector(fd, val)-> Iterable[KeyHit]:
@@ -225,7 +225,38 @@ def extract_substream_router_keys(
         
         if report_type and request_id_name and request_id_val is not None:
             keys.append(('substream', report_type, request_id_name, request_id_val))
+            request_id_name, request_id_val = None, None@register_extractor('md')
+            
+def extract_market_data_router_keys(
+        msg: ServerMsg, 
+        msg_type: str                      
+    ):
+    TARGET = {
+        "market_data_subscription_statuses"
+        "real_time_market_data"
+        }
+    def selector(fd, val)-> Iterable[KeyHit]:
+        if fd.message_type is not None and fd.name in TARGET:
+            yield (fd.name, None, fd.is_repeated, True)
+        elif fd.name in {'contract_id'} and not fd.is_repeated:
+            yield (fd.name, val, fd.is_repeated, False)
+    
+    outs = walk_fields(msg, selector, max_depth=6)
+    keys = []
+    report_type, request_id_name, request_id_val = None, None, None
+    for hit in outs:
+        if report_type is None and hit[0] in TARGET:
+            report_type = hit[0]
+
+        if request_id_name is None and hit[0] == "contract_id":
+            request_id_name = hit[0]
+            request_id_val = hit[1]
+        
+        if report_type and request_id_name and request_id_val is not None:
+            keys.append(('md', report_type, request_id_name, request_id_val))
             request_id_name, request_id_val = None, None
+    return keys
+
     return keys
 
 @register_extractor('md')
