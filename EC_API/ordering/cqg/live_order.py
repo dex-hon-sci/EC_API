@@ -104,24 +104,25 @@ class LiveOrderCQG(LiveOrder):
         await asyncio.wait_for(fut, timeout=timeout)
         
     async def _new_order_request(
-        self, 
-        request_details: dict[str, Any],
-        ) -> ServerMsg:
+        self, request_details: dict[str, Any]) -> None:
         para = locals().copy()
         
         rid = self._conn.msg_id()
         client_msg = build_new_order_request_msg(**request_details)
         
         key = ("order_statuses", request_details['request_id'])
-        fut = self._stream_router.register(key)
+        chain_order_id = request_details['cl_order_id']
+        
+        self._stream_router.subscribe(chain_order_id)
         await self._transport.send(client_msg)
+        
         ####
-        #...
+        #
         ####
-        server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
+        #server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
         # change all these, we are using substream setup from now on
 
-        return server_msg
+        #return server_msg
     
     async def _modify_order_request(
         self, 
@@ -183,7 +184,7 @@ class LiveOrderCQG(LiveOrder):
         server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
         
         return server_msg
-
+    
     async def send(
         self, 
         request_type: RequestType,

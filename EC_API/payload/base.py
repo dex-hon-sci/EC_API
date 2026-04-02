@@ -93,7 +93,7 @@ class ExecutePayload:
                 account_id = self.account_id,
                 sub_scope = self.sub_scope
                 )
-            CLOder.send(request_type = self.payload.order_request_type, 
+            CLOrder.send(request_type = self.payload.order_request_type, 
                         request_details = self.payload.order_info)
             #server_msg = CLOrder.send(request_type = self.payload.order_request_type, 
             #                          request_details = self.payload.order_info)

@@ -19,11 +19,23 @@ from EC_API.monitor.data_feed import DataFeed
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter
 from EC_API.monitor.cqg.builders import(
-    
     build_realtime_data_request_msg,
     build_reset_tracker_request_msg
     )
 from EC_API.connect.cqg.builders import (build_resolve_symbol_msg)
+
+class SubMgr:
+    def __init__(self):
+        name2id_ref = dict()
+        ids_states = dict()
+        
+    def add_name(name: str, sub_id: int | str):
+        # Add symbol_name/chain_order_id 
+        return
+    
+    def add_scale(name:str,scale:float):
+        return 
+    
 
 class MonitorDataCQG(Monitor):
     def __init__(self, conn: ConnectCQG):
@@ -35,7 +47,7 @@ class MonitorDataCQG(Monitor):
         self._stream_router = self._conn._stream_router
         self.timeout = 1
         
-        self.sub_mgr = None
+        self.sub_mgr = SubMgr()
         
     @property
     def conn(self):
@@ -47,7 +59,10 @@ class MonitorDataCQG(Monitor):
     async def _resolve_symbol(self, symbol_name: str):
         # Get the metadata first
         contract_metadata = await self._conn.resolve_symbol(symbol_name)
+        
         # Save the contract_id to subscription manager
+        self.sub_mgr.add_name(symbol_name, 1)
+        
     
     async def subscribe_mkt_data(self, symbol_name: str, level):
         ref, fut = dict(), None
@@ -69,16 +84,7 @@ class MonitorDataCQG(Monitor):
         
         yield
     
-class SubMgr:
-    def __init__(self):
-        name2id_ref = dict()
-        ids_states = dict()
-    def add_name(name: str):
-        # Add symbol_name/chain_order_id 
-        return
-    def add_scale(name:str,scale:float):
-        return 
-    
+
 
 class MonitorRealTimeDataCQG(Monitor):
     

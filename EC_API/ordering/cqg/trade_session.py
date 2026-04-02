@@ -26,6 +26,9 @@ class TradeSessionCQG:
     
     async def unsubscribe_trade_request() -> None:...
     
+    
+    async def wait_for_ack() -> None: ...
+    
     #build_trade_subscription_msg(
     #    trade_subscription_id: int, 
     #    subscribe: bool,
