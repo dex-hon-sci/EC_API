@@ -7,6 +7,7 @@ Created on Tue Mar 31 02:39:15 2026
 """
 from typing import Any, Callable
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+from EC_API._typing import Parser_func
 
 def parse_logon_result(server_msg: ServerMsg | None) -> dict[str, Any]:
     if not server_msg:
@@ -42,8 +43,7 @@ def parse_pong(server_msg: ServerMsg | None) -> tuple[str, str, int, int]:
     return ("pong", server_msg.pong.token, server_msg.pong.ping_utc_time, 
             server_msg.pong.pong_utc_time)
 
-# Meta data parsers
-type Parser_func = Callable[ServerMsg]
+# --- Metadata parsers ---
 metadata_parsers: dict[str, Parser_func] = {}
 
 def register_info_report_parsers(msg_name: str):

@@ -44,13 +44,14 @@ from EC_API.connect.cqg.enum_mapping import (
     CONN_LOGOFF_RESCODE_CQG2INT
     )
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg # remove this once parser functions are done
+from EC_API.exceptions import (
+    ConnectCancelledError
+    )
+from EC_API._typing import (
+    PongType
+    )
 
 logger = logging.getLogger(__name__)
-
-def dispatcher(msg_types: list[str]):...
-
-
-PongType = tuple[str, int, int]
 
 class ConnectCQG(Connect):
     # This class control all the functions related to connecting to CQG and 
@@ -265,7 +266,7 @@ class ConnectCQG(Connect):
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
-        int_msg = parse_logged_off(server_msg)
+        int_msg = parse_restore_or_join_session_result(server_msg)
         if not int_msg:
             return 
 

@@ -53,6 +53,11 @@ class InvalidDroppingPolicy(EC_APIError):
 # --- Common
 # --- Connect
 class ConnectError(EC_APIError):...
+
+class ConnectCancelledError(EC_APIError):
+    def __int__(self, message: str):
+        super().__init__(message)
+
 class DisconnectError(EC_APIError):...
 
 class AuthError(EC_APIError):...

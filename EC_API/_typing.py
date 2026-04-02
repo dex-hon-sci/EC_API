@@ -1,18 +1,12 @@
 import numpy as np
-import pandas as pd
-from pandas import Series, DataFrame as Frame, Index
-from typing import *
-
+from typing import TypeVar
 from typing import Any, Callable
-from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+#from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 
-from datetime import datetime, timedelta, tzinfo
 
 # Generic types
 Typ = TypeVar("T")
 Func = TypeVar("F", bound=Callable[..., Any])
-
-ServerMsgType = TypeVar("T")
 # Config
 
 # Arrays
@@ -23,7 +17,9 @@ Array3D = np.ndarray
 Record = np.void
 RecordArray = np.ndarray
 
-
+# --- MsgType
+ServerMsgType = TypeVar("T")
+ClientMsgType = TypeVar("T")
 # --- Routers
 # (msg_family, msg_type, id_field_name, id)
 RouterKey = tuple[str, str, str, int|str]
@@ -34,7 +30,6 @@ KeyHit = tuple[str, int, bool, bool]
 
 # --- Parsers
 type Parser_func = Callable[ServerMsgType]
-metadata_parsers: dict[str, Parser_func] = {}
 
 # --- Connect
 LogonResultType = dict[str, Any]
