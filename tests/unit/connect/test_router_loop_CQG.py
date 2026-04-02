@@ -16,7 +16,8 @@ from EC_API.transport.routers import StreamRouter, MessageRouter
 from EC_API.protocol.cqg.router_util import (
     extract_router_keys, server_msg_type,
     realtime_tick_contract_id,
-    order_statuses_order_id
+    order_statuses_order_id,
+    split_server_msg
     )
 from tests.unit.fixtures.proxy_clients import FakeTransport
 from tests.unit.fixtures.server_msg_builders_CQG import (
@@ -277,7 +278,7 @@ async def test_router_loop_session_msg_routing_valid():
     keys = [logon_key] + pong_keys + [restore_key, logoff_key]
     
     conn.start()
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.1)
 
     for fut, msg, key in zip(futs, msg_stream, keys):
         assert fut.done()
@@ -366,8 +367,10 @@ async def test_router_loop_info_msg_routing_valid():
     # Assume each msg has only one key in this case.
     all_keys = [extract_router_keys(msg)[0] for msg in msg_stream]
     all_futs = [msg_router.register_key(key) for key in all_keys]
+    
+    # Start the test
     conn.start()
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
 
     for msg, key, fut in zip(msg_stream, all_keys, all_futs):
         assert fut.done()
@@ -395,17 +398,47 @@ async def test_router_loop_composite_msg() -> None:
     msg_stream_comp_mkt_data = dummy_composite_mkt_data_stream(num=num_comp_mkt_data)
     msg_stream_comp_ord_statuses = dummy_composite_order_statuses_stream(num=num_order_statuses)
     
+    # Separate rpc msg and stream msg into two list for answer matching later
+    mkt_targets = ['market_data_subscription_statuses', 'real_time_market_data']
+    order_targets = ['order_request_acks', 'trade_subscription_statuses',
+                     'trade_snapshot_completions','order_statuses']
+
+    msg_stream_comp_mkt_data_rpc = [
+        split_server_msg(msg, mkt_targets)[0] 
+        for i, msg in enumerate(msg_stream_comp_mkt_data)]
+    msg_stream_comp_mkt_data_stream = [
+        split_server_msg(msg, mkt_targets)[1]
+        for i, msg in enumerate(msg_stream_comp_mkt_data)]
+    
+    #msg_stream_comp_mkt_data_stream = []
+    #for i, msg in enumerate(msg_stream_comp_mkt_data):
+    #    S = split_server_msg(msg, mkt_targets)
+    #    msg_stream_comp_mkt_data_stream.append(S[0])
+    #    msg_stream_comp_mkt_data_stream.append(S[1])
+        
+    
+    msg_stream_comp_ord_statuses_rpc = []
+    for i, msg in enumerate(msg_stream_comp_ord_statuses):
+        q = split_server_msg(msg, order_targets)
+        msg_stream_comp_ord_statuses_rpc.append(q[0])
+        msg_stream_comp_ord_statuses_rpc.append(q[1])
+        msg_stream_comp_ord_statuses_rpc.append(q[2])
+        
+    msg_stream_comp_ord_statuses_stream = [
+        split_server_msg(msg, order_targets)[3] 
+        for i, msg in enumerate(msg_stream_comp_ord_statuses)]
+        
+    # Put the two message streams in the fake transport client
     start = time.perf_counter()
     for msg1, msg2 in zip(msg_stream_comp_mkt_data, msg_stream_comp_ord_statuses):
         await fake_transport.in_q.put(msg1)
         await fake_transport.in_q.put(msg2)
-        
     elapsed = time.perf_counter() - start
     
     # Define MessageRouter+StreamRouter, put it in the Connect object
-    msg_router, stream_router = MessageRouter(), StreamRouter()
-    conn._msg_router = msg_router
-    conn._exec_stream_router = stream_router
+    conn._msg_router = MessageRouter()
+    conn._exec_stream_router =  StreamRouter()
+    conn._mkt_data_stream_router =  StreamRouter()
 
     # For keys and fut for rpc-like, sub-like msg types
     def _build_key_answers_order_statuses() -> list[RouterKey]:
@@ -427,11 +460,51 @@ async def test_router_loop_composite_msg() -> None:
 
     # For keys and fut for substream msg types
     rpc_keys = _build_key_answers_order_statuses()
-    mkt_keys = _build_key_answers_mkt_data()
-    order_status_keys = [('substream','order_statuses','chain_order_id',str( i*10 + 3)) for i in range(num_order_statuses)]   
+    rpc_futs = [conn._msg_router.register_key(key) for key in rpc_keys]
+    
+    # Subscribe to the right chain_order_id for order status
+    print('msg_stream_comp_ord_statuses_stream', len(msg_stream_comp_ord_statuses_stream))
+    for m in msg_stream_comp_ord_statuses_stream:
+        print(m.order_statuses)
+    chain_order_ids = {m.order_statuses[0].chain_order_id for m in msg_stream_comp_ord_statuses_stream}
+    queues = {cid: conn._exec_stream_router.subscribe(cid) for cid in chain_order_ids}
 
+    # Subscribe to the right contract_ids for real time data
+    contract_ids = {m.real_time_market_data[0].contract_id for m in msg_stream_comp_mkt_data_stream}
+    queues_mkt = {cid: conn._mkt_data_stream_router.subscribe(cid) for cid in contract_ids}
 
+    # start the test
+    conn.start()
+    await asyncio.sleep(0.1)
 
+    # Check RPC message. Both Trade session and Data channel uses the same
+    # MessageRouter
+    for msg, key, fut in zip(msg_stream_comp_ord_statuses_rpc, rpc_keys, rpc_futs):
+        assert fut.done()
+        assert key not in conn._msg_router.pending
+        assert fut.result() == msg
+        
+    # Check order status stream
+    try:
+        await asyncio.wait_for(_drain_all_stream_data(
+            queues, msg_stream_comp_ord_statuses_stream, order_statuses_order_id
+            ), timeout=1)
+    except asyncio.TimeoutError:
+        elapsed = time.perf_counter() - start
+        print(f"Drain time: {elapsed:.4f}s")
+        pytest.fail("Asyncio Time out")
+    
+    # check market data stream
+    try:
+        await asyncio.wait_for(_drain_all_stream_data(
+            queues_mkt, msg_stream_comp_mkt_data_stream, realtime_tick_contract_id
+            ), timeout=1)
+    except asyncio.TimeoutError:
+        elapsed = time.perf_counter() - start
+        print(f"Drain time: {elapsed:.4f}s")
+        pytest.fail("Asyncio Time out")
+    
+@pytest.mark.asyncio
 async def test_router_loop_empty_msg():
     num = 10
     

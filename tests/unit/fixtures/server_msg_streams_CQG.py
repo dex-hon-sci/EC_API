@@ -199,24 +199,24 @@ def dummy_info_stream(
 
 def dummy_composite_order_statuses_stream(num:int = 10) -> list[ServerMsg]:
     
-    def _composite_mkt_data_msg(
+    def _composite_oder_statuses_msg(
             server_msg: ServerMsg,
             composite_ids: list[int]
             ) -> ServerMsg:        
         
         server_msg = build_order_request_acks_server_msg(server_msg, composite_ids[0])
-        server_msg = build_trade_subscription_statuses_server_msg(server_msg, composite_ids[1])
+        server_msg = build_trade_subscription_statuses_server_msg(server_msg, sub_id = composite_ids[1])
         server_msg = build_trade_snapshot_completetions_server_msg(server_msg, composite_ids[2])
-        server_msg = build_order_statuses_server_msg(server_msg, str(composite_ids[3]))
+        server_msg = build_order_statuses_server_msg(server_msg, chain_order_id = str(composite_ids[3]))
 
         return server_msg
     
-    ids = [[n*10 + i for i in range(4)] for n in num]
-    return [_composite_mkt_data_msg(ServerMsg(), sub_ids) for sub_ids in ids]
+    ids = [[n*10 + i for i in range(4)] for n in range(num)]
+    return [_composite_oder_statuses_msg(ServerMsg(), sub_ids) for sub_ids in ids]
 
 def dummy_composite_mkt_data_stream(num: int = 10) -> list[ServerMsg]:
 
-    def _composite_oder_statuses_msg(
+    def _composite_mkt_data_msg(
             server_msg: ServerMsg,
             composite_ids: list[int]) -> ServerMsg: 
         server_msg = build_market_data_subscription_statuses_server_msg(server_msg)
@@ -224,8 +224,8 @@ def dummy_composite_mkt_data_stream(num: int = 10) -> list[ServerMsg]:
 
         return server_msg
     
-    ids = [[n*10 + i for i in range(2)] for n in num]    
-    return [_composite_oder_statuses_msg(ServerMsg(),sub_ids) for sub_ids in ids]
+    ids = [[n*10 + i for i in range(2)] for n in range(num)]    
+    return [_composite_mkt_data_msg(ServerMsg(),sub_ids) for sub_ids in ids]
 
 
 
