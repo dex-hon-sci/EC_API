@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
 from EC_API.connect.enums import ConnectionState
-from EC_API.transport.base import Transport
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.protocol.cqg.router_util import (
@@ -43,9 +42,10 @@ from EC_API.connect.cqg.enum_mapping import (
     CONN_RESTORE_RESCODE_CQG2INT, 
     CONN_LOGOFF_RESCODE_CQG2INT
     )
-from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg # remove this once parser functions are done
+from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.exceptions import (
-    ConnectCancelledError
+    ConnectCancelledError,
+    MsgBuilderError
     )
 from EC_API._typing import (
     PongType
@@ -68,9 +68,7 @@ class ConnectCQG(Connect):
         self._host_name = host_name
         self._user_name = user_name
         self._password = password
-        
-        self._client = client
-        
+                
         self.session_token: str = None
         self.client_app_id: str = None
         self.protocol_version_major: int = None
@@ -88,7 +86,7 @@ class ConnectCQG(Connect):
         # Generic Message parameter
         self._rid = 10 # starting request ID
         
-        # Define client
+        # Define client and transport layer
         self._client = webapi_client.WebApiClient() if client is None else client
         self._loop = asyncio.get_running_loop()
         self._transport = TransportCQG(
@@ -123,24 +121,21 @@ class ConnectCQG(Connect):
         return self._client
     
     @property
-    def transport(self) -> Transport:
+    def transport(self) -> TransportCQG:
         return self._transport
     # ------------------------
     
-    async def connect(self) -> None:
-       self._transport.connect()
-    
-    def disconnect(self)->None:
-       self._client.disconnect()
-    # -----------------------
-    
     # ---- Live cycle --------
-    def start(self) -> None:
+    def start(self) -> None: # Rework this as well
+        # try: 
         self._transport.connect()
+        # self.state
+
+        
         self._transport.start()
         self._router_task = asyncio.create_task(self._router_loop())
 
-    async def stop(self) -> None:
+    async def stop(self) -> None: # rework this
         self._stop_evt.set()
         try:
             self._transport.stop()
@@ -153,9 +148,13 @@ class ConnectCQG(Connect):
 
         while not self._stop_evt.is_set():
             # Use Try
-            msg: ServerMsg = await self._transport.recv()
-            
+            try:
+                msg: ServerMsg = await self._transport.recv()
+            except Exception:
+                pass
+                
             if not msg or not isinstance(msg, ServerMsg):
+                logger.warning("...")
                 continue
             
             # 0) check if it is a composite message
@@ -182,6 +181,7 @@ class ConnectCQG(Connect):
                     
                 # 3) Expensive RPC type key matching
                 keys = extract_router_keys(msg)
+                print("extracted_key", keys)
                 if len(keys) >1:
                     print("multiple keys:", keys)
                 for key in keys:
@@ -192,8 +192,16 @@ class ConnectCQG(Connect):
                             self._msg_router.on_message(key, msg)
                             #print('router loop', key, msg)
                             #await self._misc_queue.put(msg)
+    # ---- Failure Mode -------------------
+    async def _on_transport_failure(self, exc: Exception) -> None:
+        self.state = ConnectionState.DISCONNECTED
+        self._stop_evt.set()
+        
+    async def _reconnect_loop(self):...
+    
+    async def _update_timeout_loop(self):...
              
-    # ---- CQG messages methods ----
+    # ---- CQG messages function calls ----
     async def logon(
         self, 
         client_app_id: str ='WebApiTest', 
@@ -205,16 +213,18 @@ class ConnectCQG(Connect):
         **kwargs
         ) -> dict[str, Any] | None:
         
-        client_msg = build_logon_msg(
-            self._user_name, self._password,
-            client_app_id=client_app_id,
-            protocol_version_major= protocol_version_major,
-            protocol_version_minor=protocol_version_minor,
-            drop_concurrent_session = drop_concurrent_session,
-            private_label = private_label,
-            **kwargs
-            )
-        if not client_msg:
+        
+        try: 
+            client_msg = build_logon_msg(
+                self._user_name, self._password,
+                client_app_id=client_app_id,
+                protocol_version_major= protocol_version_major,
+                protocol_version_minor=protocol_version_minor,
+                drop_concurrent_session = drop_concurrent_session,
+                private_label = private_label,
+                **kwargs
+                )
+        except MsgBuilderError:
             return
         
         msg_key = ('session', 'logon_result', 'single', 0)
@@ -246,37 +256,43 @@ class ConnectCQG(Connect):
 
     async def restore_request(
             self, 
-            session_token: str = None, 
+            session_token: str | None= None, 
+            client_app_id: str | None = None,
+            protocol_version_major: int | None = None,
+            protocol_version_minor: int | None = None,
             **kwargs
         ) -> dict[str, Any] | None:
-        # Restoring session after dropoff
-        if session_token is None:
-            session_token = self.session_token
-
-        restore_msg = build_restore_msg(
-            self.client_app_id, 
-            self.protocol_version_major, 
-            self.protocol_version_minor, 
-            session_token,
-            **kwargs)
-        if not restore_msg:
+        # Restoring session after dropoff     
+        try:               
+            restore_msg = build_restore_msg(
+                client_app_id          if client_app_id          is not None else self.client_app_id,
+                protocol_version_major if protocol_version_major is not None else self.protocol_version_major,
+                protocol_version_minor if protocol_version_minor is not None else self.protocol_version_minor,
+                session_token          if session_token          is not None else self.session_token,
+                **kwargs)
+        except MsgBuilderError:
             return
-
+ 
         msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
-        server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+        server_msg = await asyncio.wait_for(fut, timeout=1)
+        print(server_msg)
         int_msg = parse_restore_or_join_session_result(server_msg)
         if not int_msg:
             return 
-
+        print("int_msg", int_msg)
         self.state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
         return int_msg
 
-    async def ping(self) -> PongType | None:
-        token = str(self.rid())
-        ping_msg = build_ping_msg(token, ping_utc_time=datetime.now(tz=timezone.utc))
-        if not ping_msg:
+    async def ping(self, token: str | None = None) -> PongType | None:
+        if not token:
+            token = str(self.rid())
+        utc_time = int(datetime.now(tz=timezone.utc).timestamp())
+        
+        try:
+            ping_msg = build_ping_msg(token, ping_utc_time=utc_time)
+        except MsgBuilderError:
             return
 
         msg_key =  ('session', 'pong', 'token', token)
@@ -290,9 +306,12 @@ class ConnectCQG(Connect):
         ) -> list[dict[str, str]] | None:
         
         # symbol Resolution
-        msg = build_resolve_symbol_msg(symbol, request_id, subscribe=True)
+        try:
+            msg = build_resolve_symbol_msg(symbol, request_id, subscribe=True)
+        except MsgBuilderError:
+            return
         msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", request_id)
-        fut = self._conn._msg_router.register_key(msg_key)
+        fut = self._msg_router.register_key(msg_key)
         await self._transport.send(msg)
         server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
         
@@ -300,6 +319,6 @@ class ConnectCQG(Connect):
         
         # parse a list of info
         
-        return 
+        return parse_symbol_resolution_report(server_msg)
     
 

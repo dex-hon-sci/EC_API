@@ -7,9 +7,6 @@ Created on Fri Nov 28 17:54:16 2025
 """
 import logging
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
-from EC_API.exceptions import (
-    MsgBuilderParaTypeError
-    )
 from EC_API.protocol.cqg.builder_util import (
     apply_optional_fields, 
     assert_input_types
@@ -20,6 +17,9 @@ from EC_API.connect.cqg.fields import (
     RESTORE_REQUEST_REQUIRED_FIELDS,
     PING_REQUEST_REQUIRED_FIELDS,
     RESOLVE_SYM_REQUEST_REQUIRED_FIELDS
+    )
+from EC_API.exceptions import (
+    MsgBuilderError
     )
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def build_logon_msg(
     except (KeyError, TypeError, ValueError) as e:
         msg = f"build_logon_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return None
+        raise MsgBuilderError(msg)
 
     #assert_input_types(kwargs, LOGON_OPTIONAL_FIELDS)
     
@@ -73,7 +73,7 @@ def build_logoff_msg(txt_msg: str="logoff") -> ClientMsg:
     except (TypeError, KeyError, ValueError) as e:
         msg = f"build_logoff_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return 
+        raise MsgBuilderError(msg) 
     
     # Logoff. Invoke this everytime when a connection is dropped
     client_msg = ClientMsg()
@@ -95,9 +95,8 @@ def build_restore_msg(
     except (TypeError, KeyError, ValueError) as e:
         msg = f"build_restore_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return 
-
-
+        raise MsgBuilderError(msg) 
+ 
     # Restore request taken from class attributes
     restore_msg = ClientMsg()
     restore_request = restore_msg.restore_or_join_session 
@@ -110,14 +109,14 @@ def build_restore_msg(
 def build_ping_msg(
         token: str, 
         ping_utc_time: int
-    ) -> ClientMsg | None:
+    ) -> ClientMsg:
     params = locals().copy()
     try:
         assert_input_types(params, PING_REQUEST_REQUIRED_FIELDS)
     except (TypeError, KeyError, ValueError) as e:
         msg = f"build_ping_msg invalid parameters: {str(e)}."
         logger.error(msg)
-        return 
+        raise MsgBuilderError(msg)
 
     client_msg = ClientMsg()
     pr = client_msg.ping
@@ -130,15 +129,15 @@ def build_resolve_symbol_msg(
     request_id: int, 
     subscribe: bool | None = None, 
     **kwargs
-    ) -> ClientMsg | None:
+    ) -> ClientMsg:
     params = locals().copy()
     params.pop('kwargs')
     try:
         assert_input_types(params, RESOLVE_SYM_REQUEST_REQUIRED_FIELDS)
     except (TypeError, KeyError, ValueError) as e:
-        msg = f"..."
+        msg = f"build_resolve_symbol_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return
+        raise MsgBuilderError(msg) 
 
     client_msg = ClientMsg()
     information_request = client_msg.information_requests.add()
