@@ -5,6 +5,8 @@ Created on Thu Nov 27 21:55:11 2025
 
 @author: dexter
 """
+import ssl
+import socket
 import logging
 import asyncio
 import threading
@@ -13,6 +15,12 @@ from typing import Optional
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
+from EC_API.exceptions import (
+    TransportConnectError,
+    TransportDisconnectError, 
+    TransportSendError,
+    TransportRecvError
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +51,18 @@ class TransportCQG:
         self._stop_evt = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
-    def connect(self) -> None:
-        self._client.connect(self._host_name)
+    def connect(self) -> None:        
+        try:
+            self._client.connect(self._host_name)
+        except socket.gaierror as e:
+            raise TransportConnectError(f"DNS failed for {self._host_name}.")
+        except ssl.SSLError as e:
+            raise TransportConnectError(f"TLS failed: {e}")
+        except (ConnectionRefusedError, TimeoutError, OSError) as e:
+            raise TransportConnectError(f"Connect failed: {e}")
+        except Exception as e:
+            raise TransportConnectError(f"Websocket handshake failed: {e}.")
+        
 
     # --- writer and reader loops -------------
     def _send_loop(self) -> None:
@@ -55,7 +73,12 @@ class TransportCQG:
                 break  # sentinel for shutdown
             try:
                 self._client.send_client_message(msg)
-            except Exception:
+            except (OSError) as e:
+                logger.error("I/O send error: %s", e)
+                break
+            except Exception as e:
+                logger.error("Unexpected send error: %s", e)
+
                 # log, maybe set a flag, etc.
                 break
             
@@ -64,7 +87,7 @@ class TransportCQG:
         while not self._stop_evt.is_set():
             try:
                 server_msg = self._client.receive_server_message()
-            except Exception:
+            except TransportRecvError:
                 # log, break on fatal error
                 break
 
@@ -100,10 +123,11 @@ class TransportCQG:
         # close client to poke receive
         try:
             self._client.disconnect()
-        except Exception:
+        except :
             msg = "..."
             logger.warning(msg)
             pass # <--- fix this later
+            raise TransportDisconnectError(msg)
         
         if self._send_thread:
             self._send_thread.join(timeout=1.0)

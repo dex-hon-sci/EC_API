@@ -2,14 +2,26 @@ class EC_APIError(Exception):
     """Base case for EC_API Error"""
     
 # --- Transport
+class TransportError(EC_APIError): pass
 
-
-# --- Builders
-class MsgBuilderParaTypeError(EC_APIError):
+class TransportSendError(TransportError):
     def __init__(self, message: str):
         super().__init__(message)
 
-class MsgBuilderParaError(EC_APIError):
+class TransportRecvError(TransportError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        
+class TransportConnectError(TransportError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class TransportDisconnectError(TransportError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+# --- Builders
+class MsgBuilderError(EC_APIError):
     def __init__(self, message: str):
         super().__init__(message)
 
@@ -42,11 +54,11 @@ class MaxSymbolsExceededError(EC_APIError):
         super().__init__(message)
         
 class MaxSubscribersExceededError(EC_APIError):
-    def __int__(self, message: str):
+    def __init__(self, message: str):
         super().__init__(message)
         
 class InvalidDroppingPolicy(EC_APIError):
-    def __int__(self, message: str):
+    def __init__(self, message: str):
         super().__init__(message)
     
 # -----------
@@ -55,13 +67,16 @@ class InvalidDroppingPolicy(EC_APIError):
 class ConnectError(EC_APIError):...
 
 class ConnectCancelledError(EC_APIError):
-    def __int__(self, message: str):
+    def __init__(self, message: str):
         super().__init__(message)
 
-class DisconnectError(EC_APIError):...
+class DisconnectError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
-class AuthError(EC_APIError):...
-
+class AuthError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- Monitor
 
