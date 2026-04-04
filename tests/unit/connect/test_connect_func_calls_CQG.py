@@ -124,7 +124,7 @@ async def test_ping_success() -> None:
 
 # ============================================================================= 
 # @pytest.mark.asyncio
-# def test_resolve_symbol_call():...
+# def test_resolve_symbol_success():...
 # 
 # =============================================================================
 # test_logon_failure_result_code

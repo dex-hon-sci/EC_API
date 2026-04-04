@@ -119,7 +119,6 @@ def test_extract_key_trade_subscription_statuses() -> None:
     assert len(router_keys) == 1
     assert router_keys[0] == ('sub', 'trade_subscription_statuses', 'id', 1)
  
-
 def test_extract_key_trade_snapshot_completions() -> None:
     msg = build_trade_snapshot_completetions_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
@@ -140,6 +139,7 @@ def test_extract_key_position_statuses() -> None:
     
 def test_extract_key_account_summary_statuses() -> None:
     msg = build_account_summary_statuses_server_msg(ServerMsg())
+    print(msg)
     router_keys = extract_router_keys(msg)
     print(router_keys)
     assert len(router_keys) == 1
