@@ -22,8 +22,9 @@ from EC_API.monitor.cqg.builders import(
     build_realtime_data_request_msg,
     build_reset_tracker_request_msg
     )
-from EC_API.connect.cqg.builders import (build_resolve_symbol_msg)
-
+from EC_API.exceptions import (
+    MsgBuilderError
+    )
 class SubMgr:
     def __init__(self):
         name2id_ref = dict()
@@ -66,21 +67,34 @@ class MonitorDataCQG(Monitor):
     
     async def subscribe_mkt_data(self, symbol_name: str, level):
         ref, fut = dict(), None
-        self._stream_router.subscribe(1)
         contract_id = ref[symbol_name]
-        msg = build_realtime_data_request_msg(contract_id, self.rid(), level)
+
+        try:
+            msg = build_realtime_data_request_msg(contract_id, self.rid(), level)
+        except MsgBuilderError as e:
+            return 
+        q = await self._stream_router.subscribe(contract_id)
+
         self._transport.send(msg)
         
         # Response handling
         server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
+        return q
     
-    async def unsubscribe_mkt_data(self):
-        self._stream_router.unsubscribe(1)
-
-    
-    async def stream(self) -> Iterator[tuple[int]]:
-        # check if the rounter has the id already
+    async def unsubscribe_mkt_data(self, symbol_name) -> None:
+        contract_id = self.sub_mgr.subs[symbol_name]
+        try:
+            msg = build_reset_tracker_request_msg(contract_id, self.rid())
+        except MsgBuilderError as e:
+            return 
         
+        self._transport.send(msg)
+        self._stream_router.unsubscribe(contract_id)
+
+    async def stream(self, contract_id) -> Iterator[tuple[int]]:
+        # check if the rounter has the id already
+        q = await self._stream_router.subscribe(contract_id)
+
         
         yield
     

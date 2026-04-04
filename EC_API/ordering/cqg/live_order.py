@@ -82,29 +82,34 @@ class LiveOrderCQG(LiveOrder):
     
     def check_symbol_resolution(self, symbol_name):
         return
+    
     def check_state():
         return 
     
-    async def _request_trade_subscription(
-        self, 
-        subscribe: bool = True,
-        skip_orders_snapshot: bool = False,
-        timeout: float = 1.0
-        ) -> None:
-                
-        client_msg = build_trade_subscription_msg(
-            trade_subscription_id=self.trade_subscription_id,
-            subscribe = subscribe,
-            skip_orders_snapshot = skip_orders_snapshot
-            )
-        rid = self._conn.msg_id()
-        key = ("trade_subscription_statuses", rid)
-        fut = self._router.register(key)
-        await self._transport.send(client_msg)
-        await asyncio.wait_for(fut, timeout=timeout)
+# =============================================================================
+#     async def _request_trade_subscription(
+#         self, 
+#         subscribe: bool = True,
+#         skip_orders_snapshot: bool = False,
+#         timeout: float = 1.0
+#         ) -> None:
+#                 
+#         client_msg = build_trade_subscription_msg(
+#             trade_subscription_id=self.trade_subscription_id,
+#             subscribe = subscribe,
+#             skip_orders_snapshot = skip_orders_snapshot
+#             )
+#         rid = self._conn.msg_id()
+#         key = ("trade_subscription_statuses", rid)
+#         fut = self._router.register(key)
+#         await self._transport.send(client_msg)
+#         await asyncio.wait_for(fut, timeout=timeout)
+# =============================================================================
         
     async def _new_order_request(
-        self, request_details: dict[str, Any]) -> None:
+            self, 
+            request_details: dict[str, Any]
+        ) -> None:
         para = locals().copy()
         
         rid = self._conn.msg_id()

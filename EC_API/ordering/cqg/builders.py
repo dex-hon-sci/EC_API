@@ -48,6 +48,9 @@ from EC_API.ordering.cqg.fields import (
     GOFLAT_ORDER_REQUIRED_FIELDS,
     GOFLAT_ORDER_OPTIONAL_FIELDS
     )
+from EC_API.exceptions import (
+    MsgBuilderError
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +60,7 @@ def build_trade_subscription_msg(
     subscribe: bool,
     sub_scope: SubScope | SubScopeCQG,
     skip_orders_snapshot: bool    
-    ) -> ClientMsg | None:
+    ) -> ClientMsg:
     
     params = locals().copy()
     
@@ -66,7 +69,7 @@ def build_trade_subscription_msg(
     except (TypeError, ValueError, KeyError) as e:
         msg = f"build_trade_subscription_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return 
+        raise MsgBuilderError(msg) 
 
     client_msg = ClientMsg()
     trade_sub_request = client_msg.trade_subscriptions.add()
@@ -96,7 +99,7 @@ def build_new_order_request_msg(
     duration: Duration | DurationCQG = Duration.DAY, 
     is_manual: bool = False,
     **kwargs
-    ) -> ClientMsg | None:
+    ) -> ClientMsg:
     
     defaults = {
     'exec_instructions': None,
@@ -124,7 +127,8 @@ def build_new_order_request_msg(
     except (TypeError, ValueError, KeyError) as e:
         msg = f"build_new_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return
+        raise MsgBuilderError(msg) 
+
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -162,7 +166,7 @@ def build_modify_order_request_msg(
     cl_order_id: str, 
     when_utc_timestamp: datetime = datetime.now(timezone.utc),
     **kwargs
-    ) -> ClientMsg | None:
+    ) -> ClientMsg:
 
     defaults = {
     'scaled_limit_price': None,
@@ -190,7 +194,7 @@ def build_modify_order_request_msg(
     except (TypeError, ValueError, KeyError) as e:
         msg = f"build_modify_order_request_msg invalid parameters: {str(e)}."
         logger.error(msg)
-        return
+        raise MsgBuilderError(msg) 
     
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -233,7 +237,7 @@ def build_cancel_order_request_msg(
     orig_cl_order_id: str, 
     cl_order_id: str,
     when_utc_timestamp: datetime = datetime.now(timezone.utc)
-    ) -> ClientMsg | None:
+    ) -> ClientMsg:
     
     params = locals().copy()
     try:
@@ -242,8 +246,7 @@ def build_cancel_order_request_msg(
     except (TypeError, ValueError, KeyError) as e:
         msg = f"build_cancel_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return
-
+        raise MsgBuilderError(msg) 
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
@@ -253,7 +256,6 @@ def build_cancel_order_request_msg(
     order_requests.cancel_order.orig_cl_order_id = orig_cl_order_id
     order_requests.cancel_order.cl_order_id = cl_order_id
     order_requests.cancel_order.when_utc_timestamp = when_utc_timestamp
-    
     return  client_msg
 
 def build_cancelall_order_request_msg(
@@ -269,9 +271,13 @@ def build_cancelall_order_request_msg(
     params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
+    try:
+        validate_required_fields(params, CANCELALL_ORDER_REQUIRED_FIELDS)
+    except (TypeError, ValueError, KeyError) as e:
+        msg = f"build_cancelall_order_request_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        raise MsgBuilderError(msg) 
 
-    validate_required_fields(params, CANCELALL_ORDER_REQUIRED_FIELDS)
-    
     # ... to be worked on
     
     client_msg = ClientMsg()
@@ -297,7 +303,8 @@ def build_activate_order_request_msg(
     except (TypeError, ValueError, KeyError) as e:
         msg = f"build_activate_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return
+        raise MsgBuilderError(msg) 
+
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
     order_request.request_id = request_id
@@ -335,7 +342,7 @@ def build_goflat_order_request_msg(
     except (TypeError, ValueError, KeyError) as e:
         msg = f"build_goflat_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
-        return 
+        raise MsgBuilderError(msg)  
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
