@@ -19,7 +19,7 @@ license = { text = "Proprietary"}
 
 [project.urls]
 Homepage = "https://github.com/dex-hon-sci/EC_API"
-#Issues = "https://github.com/yourusername/my_package_name/issues"
+Issues = "https://github.com/dex-hon-sci/EC_API/issues"
 
 [tool.setuptools]
 # IMPORTANT: only search packages under the EC_API directory
