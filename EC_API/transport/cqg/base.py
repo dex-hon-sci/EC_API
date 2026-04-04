@@ -15,6 +15,8 @@ from typing import Optional
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
+from EC_API.ext.WebAPI.websocket import (
+    WebSocketWantWriteError, WebSocketWantReadError)
 from EC_API.exceptions import (
     TransportConnectError,
     TransportDisconnectError, 
@@ -73,7 +75,7 @@ class TransportCQG:
                 break  # sentinel for shutdown
             try:
                 self._client.send_client_message(msg)
-            except (OSError) as e:
+            except (OSError, WebSocketWantWriteError) as e:
                 logger.error("I/O send error: %s", e)
                 break
             except Exception as e:
@@ -123,11 +125,12 @@ class TransportCQG:
         # close client to poke receive
         try:
             self._client.disconnect()
-        except :
-            msg = "..."
-            logger.warning(msg)
+        except (OSError, WebSocketWantWriteError) as e:
+            logger.warning("Disconnect Error")
             pass # <--- fix this later
-            raise TransportDisconnectError(msg)
+            #raise TransportDisconnectError(msg)
+        except Exception as e:
+            pass
         
         if self._send_thread:
             self._send_thread.join(timeout=1.0)
