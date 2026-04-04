@@ -15,9 +15,11 @@ class SubHandle:
     key: Tuple[str, int]   # e.g. ("orders", account_id) or ("trades", contract_id)
     token: int             # unique token per acquisition (optional)
     
-    
-class SubscriptionManagerCQG:
-    def __init__():
+class SubMgr:...
+
+class DataSubMgrCQG(SubMgr):
+    # enforce one subscription per contract id
+    def __init__(self):
         pass
     
     async def ensure_trade_subscription():
@@ -30,6 +32,8 @@ class SubscriptionManagerCQG:
     async def release_market_data():
         pass
 
+class TradeSubMgrCQG(SubMgr):
+    def __init__(self):...
 
 from __future__ import annotations
 import asyncio

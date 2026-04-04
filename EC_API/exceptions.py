@@ -1,7 +1,7 @@
 class EC_APIError(Exception):
     """Base case for EC_API Error"""
     
-# --- Transport
+# --- Transport ---
 class TransportError(EC_APIError): pass
 
 class TransportSendError(TransportError):
@@ -20,68 +20,72 @@ class TransportDisconnectError(TransportError):
     def __init__(self, message: str):
         super().__init__(message)
 
-# --- Builders
+# --- Builders ---
 class MsgBuilderError(EC_APIError):
     def __init__(self, message: str):
         super().__init__(message)
 
-# --- Parsers
+# --- Parsers ---
 class MsgParserError(EC_APIError):
     def __init__(self, message: str):
         super().__init__(message)
 
-# --- Routers
+# --- Routers ---
 class RoutingError(EC_APIError):...
 
-class DuplicateRouterKeyError(EC_APIError):
+class DuplicateRouterKeyError(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
 
-class UnknownRouterKeyError(EC_APIError):
+class UnknownRouterKeyError(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
         
-class UnknownSubscriptionError(EC_APIError):
+class UnknownSubscriptionError(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
         
-class SubscriptionQueueMismatchError(EC_APIError):
+class SubscriptionQueueMismatchError(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
         
-class MaxSymbolsExceededError(EC_APIError):
+class MaxSymbolsExceededError(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
         
-class MaxSubscribersExceededError(EC_APIError):
+class MaxSubscribersExceededError(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
         
-class InvalidDroppingPolicy(EC_APIError):
+class InvalidDroppingPolicy(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
-    
 # -----------
-# --- Common
 # --- Connect
 class ConnectError(EC_APIError):...
 
-class ConnectCancelledError(EC_APIError):
+class ConnectCancelledError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
 
-class DisconnectError(EC_APIError):
+class DisconnectError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
 
-class AuthError(EC_APIError):
+class AuthError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
 
 # --- Monitor
+class MonitorError(EC_APIError):...
 
 # --- Ordering
+class TradeSessionError(EC_APIError):...
 
 # --- Payload
+class PayloadError(EC_APIError):...
+
+# Safety check error
 
 # --- OpStrategy
+class OpStrategyError(EC_APIError):...

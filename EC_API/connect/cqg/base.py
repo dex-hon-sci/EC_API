@@ -45,7 +45,8 @@ from EC_API.connect.cqg.enum_mapping import (
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.exceptions import (
     ConnectCancelledError,
-    MsgBuilderError
+    MsgBuilderError,
+    TransportError
     )
 from EC_API._typing import (
     PongType
@@ -139,6 +140,8 @@ class ConnectCQG(Connect):
         self._stop_evt.set()
         try:
             self._transport.stop()
+        except TransportError:
+            pass
         finally:
             if self._task: # <---- Need to clarify this part
                 self._task.cancel()
@@ -147,10 +150,10 @@ class ConnectCQG(Connect):
     async def _router_loop(self) -> None:
 
         while not self._stop_evt.is_set():
-            # Use Try
+            # Use Try <== Work on this
             try:
                 msg: ServerMsg = await self._transport.recv()
-            except Exception:
+            except TransportError:
                 pass
                 
             if not msg or not isinstance(msg, ServerMsg):
@@ -277,11 +280,9 @@ class ConnectCQG(Connect):
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
         server_msg = await asyncio.wait_for(fut, timeout=1)
-        print(server_msg)
         int_msg = parse_restore_or_join_session_result(server_msg)
         if not int_msg:
             return 
-        print("int_msg", int_msg)
         self.state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
         return int_msg
 
