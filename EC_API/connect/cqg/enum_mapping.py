@@ -10,7 +10,7 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LOR
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff
 from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as Restore
 
-
+# --- CQG Enum translation to Internal Enum ---
 CONN_LOGON_RESCODE_CQG2INT = {
     # Failed Logon attempts but connection still intact
     LOR.ResultCode.RESULT_CODE_FAILURE: ConnectionState.CONNECTED_DEFAULT,
@@ -36,4 +36,37 @@ CONN_LOGOFF_RESCODE_CQG2INT = { # Move these two parsers
     LOff.LogoffReason.LOGOFF_REASON_REDIRECTED: ConnectionState.CONNECTED_LOGOFF,
     LOff.LogoffReason.LOGOFF_REASON_FORCED: ConnectionState.CONNECTED_LOGOFF,
     LOff.LogoffReason.LOGOFF_REASON_REASSIGNED: ConnectionState.CONNECTED_LOGOFF,    
+    }
+
+# --- State Lifecycle ---
+CONNECT_STATES_LIFECYCLE = {
+    ConnectionState.UNKNOWN: [
+        ConnectionState.CONNECTING
+        ],
+    ConnectionState.CONNECTING: [
+        ConnectionState.RECONNECTING,
+        ConnectionState.DISCONNECTED
+        ],
+    ConnectionState.CONNECTED_DEFAULT: [
+        ConnectionState.CONNECTED_LOGON,
+        ConnectionState.RECONNECTING
+        ],
+    ConnectionState.RECONNECTING: [
+        ConnectionState.CONNECTED_DEFAULT,
+        ConnectionState.DISCONNECTED
+        ],
+    ConnectionState.CONNECTED_LOGON: [
+        ConnectionState.CONNECTED_LOGOFF,
+        ],
+    ConnectionState.CONNECTED_LOGOFF: [
+        ConnectionState.DISCONNECTED
+        ],
+    ConnectionState.DISCONNECTED: [
+        ConnectionState.RECONNECTING,
+        ConnectionState.CLOSING
+        ],
+    ConnectionState.CLOSING: [
+        ConnectionState.CLOSED
+        ],
+    ConnectionState.CLOSED: [] # End State
     }

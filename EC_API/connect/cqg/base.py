@@ -40,16 +40,20 @@ from EC_API.connect.cqg.parsers import (
 from EC_API.connect.cqg.enum_mapping import (
     CONN_LOGON_RESCODE_CQG2INT,
     CONN_RESTORE_RESCODE_CQG2INT, 
-    CONN_LOGOFF_RESCODE_CQG2INT
+    CONN_LOGOFF_RESCODE_CQG2INT,
+    CONNECT_STATES_LIFECYCLE
     )
+from EC_API.utility.state_mgr import StateMgr
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.exceptions import (
+    TransportConnectError,
+    TransportDisconnectError,
     ConnectCancelledError,
     MsgBuilderError,
-    TransportError
     )
 from EC_API._typing import (
-    PongType
+    PongType,
+    ContractMetaDataType
     )
 
 logger = logging.getLogger(__name__)
@@ -78,11 +82,15 @@ class ConnectCQG(Connect):
         # Event Loop
         self._task: Optional[asyncio.Task] = None
         self._stop_evt = asyncio.Event()
+        self._timeout = 1 # make make this a ping based decision
 
         # State Control
         self.state: ConnectionState = ConnectionState.UNKNOWN
+        self._state_mgr = StateMgr(
+            CONNECT_STATES_LIFECYCLE, 
+            self.state, 
+            allowed_starts=[ConnectionState.UNKNOWN])
         self.is_logged_on: bool = False
-        self._timeout = 1 # make make this a ping based decision
 
         # Generic Message parameter
         self._rid = 10 # starting request ID
@@ -128,20 +136,22 @@ class ConnectCQG(Connect):
     
     # ---- Live cycle --------
     def start(self) -> None: # Rework this as well
-        # try: 
-        self._transport.connect()
-        # self.state
-
-        
-        self._transport.start()
-        self._router_task = asyncio.create_task(self._router_loop())
+        try: 
+            self._transport.connect()
+        except TransportConnectError as e:
+            logger.warning(str(e))
+            return 
+        else:
+            self.state = ConnectionState.CONNECTED_DEFAULT  
+            self._transport.start()
+            self._router_task = asyncio.create_task(self._router_loop())
 
     async def stop(self) -> None: # rework this
         self._stop_evt.set()
         try:
             self._transport.stop()
-        except TransportError:
-            pass
+        except TransportDisconnectError as e:
+            return
         finally:
             if self._task: # <---- Need to clarify this part
                 self._task.cancel()
@@ -150,14 +160,10 @@ class ConnectCQG(Connect):
     async def _router_loop(self) -> None:
 
         while not self._stop_evt.is_set():
-            # Use Try <== Work on this
-            try:
-                msg: ServerMsg = await self._transport.recv()
-            except TransportError:
-                pass
+            msg: ServerMsg = await self._transport.recv()
                 
             if not msg or not isinstance(msg, ServerMsg):
-                logger.warning("...")
+                logger.warning(f"Invalid Message Type, msg: {msg}")
                 continue
             
             # 0) check if it is a composite message
@@ -232,20 +238,25 @@ class ConnectCQG(Connect):
         
         msg_key = ('session', 'logon_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
+        
         await self._transport.send(client_msg)
+        
         server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
         int_msg = parse_logon_result(server_msg) # internal message
         if not int_msg:
             return 
-        self.state = CONN_LOGON_RESCODE_CQG2INT[int_msg['result_code']]
+        
+        next_state = CONN_LOGON_RESCODE_CQG2INT[int_msg['result_code']]
+        self._state_mgr.transition(self.state, next_state)
         return int_msg
     
     async def logoff(self) -> dict[str, Any] | None:
         # Logoff. Invoke this everytime when a connection is dropped
-        client_msg = build_logoff_msg("logoff")
-        if not client_msg:
-            return
-
+        try:
+            client_msg = build_logoff_msg("logoff")
+        except MsgBuilderError:
+            return 
+        
         msg_key = ('session', 'logged_off', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(client_msg)
@@ -254,7 +265,8 @@ class ConnectCQG(Connect):
         if not int_msg:
             return 
 
-        self.state = CONN_LOGOFF_RESCODE_CQG2INT[int_msg['logoff_reason']]
+        next_state = CONN_LOGOFF_RESCODE_CQG2INT[int_msg['logoff_reason']]
+        self._state_mgr.transition(self.state, next_state)
         return int_msg
 
     async def restore_request(
@@ -283,8 +295,12 @@ class ConnectCQG(Connect):
         int_msg = parse_restore_or_join_session_result(server_msg)
         if not int_msg:
             return 
-        self.state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
+        
+        next_state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
+        self._state_mgr.transition(self.state, next_state)
         return int_msg
+
+
 
     async def ping(self, token: str | None = None) -> PongType | None:
         if not token:
@@ -304,7 +320,7 @@ class ConnectCQG(Connect):
     
     async def resolve_symbol(
         self, symbol: str, request_id: int
-        ) -> list[dict[str, str]] | None:
+        ) -> ContractMetaDataType | None:
         
         # symbol Resolution
         try:
@@ -316,10 +332,8 @@ class ConnectCQG(Connect):
         await self._transport.send(msg)
         server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
         
-        # walk through the second layer of the message, Find all info report,
-        
+        # walk through the second layer of the message, Find all info report,        
         # parse a list of info
-        
         return parse_symbol_resolution_report(server_msg)
     
 

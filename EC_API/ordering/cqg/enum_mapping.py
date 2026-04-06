@@ -90,6 +90,30 @@ OrderStatus_MAP_INT2CQG = {
     CQG_OrdStatus.Status.TRADE_BROKEN: OrderStatus.ERROR,
     }
 
+# --- State Transition Map ---
+ORDER_STATES_LIFECYCLE = {
+    OrderStatus.PENDING: [
+        ],
+    OrderStatus.OPEN: [
+        ],
+    OrderStatus.REJECTED: [
+        ],
+    OrderStatus.EXPIRED: [
+        ],
+    OrderStatus.CANCELLED: [
+        ],
+    OrderStatus.ERROR: [
+        ]
+    }
 
-
+# =============================================================================
+#     PENDING = auto()
+#     OPEN = auto()
+#     FILLED = auto()
+#     CANCELLED = auto()
+#     REJECTED = auto()
+#     EXPIRED = auto()
+#     PARTIAL = auto()
+#     ERROR = auto()
+# =============================================================================
  

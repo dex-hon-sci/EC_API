@@ -1,6 +1,21 @@
 class EC_APIError(Exception):
     """Base case for EC_API Error"""
     
+# --- State Control ---
+class StateControlError(EC_APIError):...
+
+class StartStateError(StateControlError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        
+class InvalidCurrentStateError(StateControlError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class InvalidNextStateError(StateControlError):
+    def __init__(self, message: str):
+        super().__init__(message)
+    
 # --- Transport ---
 class TransportError(EC_APIError): pass
 
@@ -19,7 +34,7 @@ class TransportConnectError(TransportError):
 class TransportDisconnectError(TransportError):
     def __init__(self, message: str):
         super().__init__(message)
-
+        
 # --- Builders ---
 class MsgBuilderError(EC_APIError):
     def __init__(self, message: str):
@@ -64,9 +79,8 @@ class InvalidDroppingPolicy(RoutingError):
 # --- Subscription Manager ---
 class SubscriptionError(EC_APIError):...
 
-
-# -----------
-# --- Connect
+# ----------- Live objects (exist in runtime)
+# --- Connect ---
 class ConnectError(EC_APIError):...
 
 class ConnectCancelledError(ConnectError):
