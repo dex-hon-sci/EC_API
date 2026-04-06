@@ -20,176 +20,246 @@ class SubMgr:...
 class DataSubMgrCQG(SubMgr):
     # enforce one subscription per contract id
     def __init__(self):
-        pass
+        self._active_symbols = set()
+        self._sym2contrac_ids = dict()
+        self._active_data_streams = dict()
+        
+    def add_symbol(self, symbol_name, contract_id) -> bool:
+        if symbol_name in self._sym2contrac_ids:
+            return False
+        self._active_symbols.add(symbol_name)
+        self._sym2contrac_ids[symbol_name] = contract_id
+        return True
     
-    async def ensure_trade_subscription():
+    def remove_symbol(self):...
+    
+    def get_contract_id(self, symbol_name: str) -> int:...
+    
+    def get_contract_metadata(self, symbol_name: str)-> dict[str, str]:...
+        
+
+class TradeSubMgrCQG(DataSubMgrCQG):
+    def __init__(self):
+        self._pending = dict()
+        self._orders: dict()
+        
+        
+        async def ensure_market_data():
+            pass
+        
+        async def release_market_data():
+            pass
+        
+    async def ensure_trade_subs(self, symbol_name: str) -> bool:
         # A function that ensure trade subscriptions is present 
-        pass
-
-    async def ensure_market_data():
-        pass
-    
-    async def release_market_data():
-        pass
-
-class TradeSubMgrCQG(SubMgr):
-    def __init__(self):...
-
-from __future__ import annotations
-import asyncio
-from contextlib import asynccontextmanager
-
-class SubscriptionManagerCQG:
-    def __init__(self, transport, router, builders, parsers, request_id_gen):
-        self._transport = transport
-        self._router = router
-        self._b = builders
-        self._p = parsers
-        self._next_id = request_id_gen
-
-        self._lock = asyncio.Lock()
-
-        self._trade_subscribed = False
-        self._trade_inflight: asyncio.Future[None] | None = None
-
-        self._symbol_cache: dict[str, int] = {}
-        self._md_refcount: dict[int, int] = {}
-        self._md_inflight: dict[int, asyncio.Future[None]] = {}
-
-    # ---------- TRADE SUBSCRIPTION ----------
-    async def ensure_trade_subscription(self, *, timeout: float = 5.0) -> None:
-        async with self._lock:
-            if self._trade_subscribed:
-                return
-            if self._trade_inflight is not None:
-                fut = self._trade_inflight
-            else:
-                fut = asyncio.get_running_loop().create_future()
-                self._trade_inflight = fut
-
-                rid = self._next_id()
-                msg = self._b.build_trade_subscribe(request_id=rid)  # you’ll implement builder
-                key = ("ordering", "trade_subscription_status", rid)
-                reply_fut = self._router.register(key)
-
-                # Send outside lock to avoid holding lock across IO
-                async def _do():
-                    try:
-                        await self._transport.send(msg)
-                        server_msg = await asyncio.wait_for(reply_fut, timeout=timeout)
-                        ok = self._p.parse_trade_sub_status(server_msg)
-                        if not ok:
-                            raise RuntimeError("Trade subscription failed")
-                        async with self._lock:
-                            self._trade_subscribed = True
-                        fut.set_result(None)
-                    except Exception as e:
-                        fut.set_exception(e)
-                    finally:
-                        async with self._lock:
-                            self._trade_inflight = None
-
-                asyncio.create_task(_do())
-
-        # Await outside lock
-        await asyncio.wait_for(fut, timeout=timeout)
-
-    # ---------- SYMBOL RESOLVE ----------
-    async def resolve_symbol(self, symbol: str, *, timeout: float = 5.0) -> int:
-        async with self._lock:
-            if symbol in self._symbol_cache:
-                return self._symbol_cache[symbol]
-
-        rid = self._next_id()
-        msg = self._b.build_resolve_symbol(symbol=symbol, request_id=rid)
-        key = ("monitor", "resolve_symbol_result", rid)
-        fut = self._router.register(key)
-        await self._transport.send(msg)
-
-        server_msg = await asyncio.wait_for(fut, timeout=timeout)
-        contract_id = self._p.parse_resolve_symbol(server_msg)
-
-        async with self._lock:
-            self._symbol_cache[symbol] = contract_id
-
-        return contract_id
-
-    # ---------- MARKET DATA SUBSCRIPTION ----------
-    async def ensure_market_data(self, symbol: str, *, timeout: float = 5.0) -> int:
-        contract_id = await self.resolve_symbol(symbol, timeout=timeout)
-
-        async with self._lock:
-            # already subscribed?
-            if contract_id in self._md_refcount:
-                self._md_refcount[contract_id] += 1
-                return contract_id
-
-            # in-flight subscribe?
-            if contract_id in self._md_inflight:
-                inflight = self._md_inflight[contract_id]
-                self._md_refcount[contract_id] = 1  # “claim” usage
-            else:
-                inflight = asyncio.get_running_loop().create_future()
-                self._md_inflight[contract_id] = inflight
-                self._md_refcount[contract_id] = 1
-
-                rid = self._next_id()
-                msg = self._b.build_md_subscribe(contract_id=contract_id, request_id=rid)
-                key = ("monitor", "md_subscription_status", rid)
-                reply_fut = self._router.register(key)
-
-                async def _do():
-                    try:
-                        await self._transport.send(msg)
-                        server_msg = await asyncio.wait_for(reply_fut, timeout=timeout)
-                        ok = self._p.parse_md_sub_status(server_msg)
-                        if not ok:
-                            raise RuntimeError(f"MD subscription failed for {contract_id}")
-                        inflight.set_result(None)
-                    except Exception as e:
-                        inflight.set_exception(e)
-                        # rollback refcount on failure
-                        async with self._lock:
-                            self._md_refcount.pop(contract_id, None)
-                    finally:
-                        async with self._lock:
-                            self._md_inflight.pop(contract_id, None)
-
-                asyncio.create_task(_do())
-
-        # wait for subscription to be confirmed
-        await asyncio.wait_for(inflight, timeout=timeout)
-        return contract_id
-
-    async def release_market_data(self, contract_id: int, *, timeout: float = 5.0) -> None:
-        async with self._lock:
-            if contract_id not in self._md_refcount:
-                return
-            self._md_refcount[contract_id] -= 1
-            if self._md_refcount[contract_id] > 0:
-                return
-            # drop to 0: unsubscribe
-            self._md_refcount.pop(contract_id, None)
-
-        rid = self._next_id()
-        msg = self._b.build_md_unsubscribe(contract_id=contract_id, request_id=rid)
-        key = ("monitor", "md_unsubscribe_status", rid)
-        fut = self._router.register(key)
-        await self._transport.send(msg)
-        server_msg = await asyncio.wait_for(fut, timeout=timeout)
-        ok = self._p.parse_md_unsub_status(server_msg)
-        if not ok:
-            # don’t re-add refcount automatically; log + alert
-            raise RuntimeError(f"MD unsubscribe failed for {contract_id}")
-
-    @asynccontextmanager
-    async def market_data(self, symbol: str):
-        cid = await self.ensure_market_data(symbol)
+        if symbol_name not in self._active_symbols:
+            
+            return False
+        
+        return True
+            
+    async def trade_subscription_request(
+            self,
+            sub_id: int,
+            sub_scope: SubScope | SubScopeCQG                           
+        ) -> None:
         try:
-            yield cid
-        finally:
-            await self.release_market_data(cid)
+            msg = build_trade_subscription_msg(
+                sub_id, 
+                subscribe=True,
+                sub_scope = sub_scope,
+                skip_orders_snapshot = False   
+                )
+        except MsgBuilderError:
+            return 
+        
+        self._transport.send(msg)
+        # wait for three response, trade_sub_Status, snapshot, orderstatus 
+        sub_status_key = ('sub', 'trade_subscription_statuses', 'id', sub_id)
+        snapshot_key = ('sub', 'trade_snapshot_completions', 'subscription_id', 1)
+        fut_sub_status = self._msg_router.register_key(sub_status_key)
+        fut_snapshot = self._msg_router.register_key(snapshot_key)
+        
+        sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self._timeout)
+        snapshot_msg = await asyncio.wait_for(fut_snapshot, timeout=self._timeout)
+        
+        return 
+    
+    async def unsubscribe_trade_request(self, sub_id, sub_scope) -> None:
+        try:
+            msg = build_trade_subscription_msg(
+                sub_id, 
+                subscribe = False,
+                sub_scope = sub_scope,
+                skip_orders_snapshot = False   
+                )
+        except MsgBuilderError:
+            return 
+        self._transport.send(msg)
+        sub_status_key = ('sub', 'trade_subscription_statuses', 'id', sub_id)
+        fut_sub_status = self._msg_router.register_key(sub_status_key)
+        sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self._timeout)
+        return 
+    
+    
 
+# =============================================================================
+# from __future__ import annotations
+# import asyncio
+# from contextlib import asynccontextmanager
+# 
+# class SubscriptionManagerCQG:
+#     def __init__(self, transport, router, builders, parsers, request_id_gen):
+#         self._transport = transport
+#         self._router = router
+#         self._b = builders
+#         self._p = parsers
+#         self._next_id = request_id_gen
+# 
+#         self._lock = asyncio.Lock()
+# 
+#         self._trade_subscribed = False
+#         self._trade_inflight: asyncio.Future[None] | None = None
+# 
+#         self._symbol_cache: dict[str, int] = {}
+#         self._md_refcount: dict[int, int] = {}
+#         self._md_inflight: dict[int, asyncio.Future[None]] = {}
+# 
+#     # ---------- TRADE SUBSCRIPTION ----------
+#     async def ensure_trade_subscription(self, *, timeout: float = 5.0) -> None:
+#         async with self._lock:
+#             if self._trade_subscribed:
+#                 return
+#             if self._trade_inflight is not None:
+#                 fut = self._trade_inflight
+#             else:
+#                 fut = asyncio.get_running_loop().create_future()
+#                 self._trade_inflight = fut
+# 
+#                 rid = self._next_id()
+#                 msg = self._b.build_trade_subscribe(request_id=rid)  # you’ll implement builder
+#                 key = ("ordering", "trade_subscription_status", rid)
+#                 reply_fut = self._router.register(key)
+# 
+#                 # Send outside lock to avoid holding lock across IO
+#                 async def _do():
+#                     try:
+#                         await self._transport.send(msg)
+#                         server_msg = await asyncio.wait_for(reply_fut, timeout=timeout)
+#                         ok = self._p.parse_trade_sub_status(server_msg)
+#                         if not ok:
+#                             raise RuntimeError("Trade subscription failed")
+#                         async with self._lock:
+#                             self._trade_subscribed = True
+#                         fut.set_result(None)
+#                     except Exception as e:
+#                         fut.set_exception(e)
+#                     finally:
+#                         async with self._lock:
+#                             self._trade_inflight = None
+# 
+#                 asyncio.create_task(_do())
+# 
+#         # Await outside lock
+#         await asyncio.wait_for(fut, timeout=timeout)
+# 
+#     # ---------- SYMBOL RESOLVE ----------
+#     async def resolve_symbol(self, symbol: str, *, timeout: float = 5.0) -> int:
+#         async with self._lock:
+#             if symbol in self._symbol_cache:
+#                 return self._symbol_cache[symbol]
+# 
+#         rid = self._next_id()
+#         msg = self._b.build_resolve_symbol(symbol=symbol, request_id=rid)
+#         key = ("monitor", "resolve_symbol_result", rid)
+#         fut = self._router.register(key)
+#         await self._transport.send(msg)
+# 
+#         server_msg = await asyncio.wait_for(fut, timeout=timeout)
+#         contract_id = self._p.parse_resolve_symbol(server_msg)
+# 
+#         async with self._lock:
+#             self._symbol_cache[symbol] = contract_id
+# 
+#         return contract_id
+# 
+#     # ---------- MARKET DATA SUBSCRIPTION ----------
+#     async def ensure_market_data(self, symbol: str, *, timeout: float = 5.0) -> int:
+#         contract_id = await self.resolve_symbol(symbol, timeout=timeout)
+# 
+#         async with self._lock:
+#             # already subscribed?
+#             if contract_id in self._md_refcount:
+#                 self._md_refcount[contract_id] += 1
+#                 return contract_id
+# 
+#             # in-flight subscribe?
+#             if contract_id in self._md_inflight:
+#                 inflight = self._md_inflight[contract_id]
+#                 self._md_refcount[contract_id] = 1  # “claim” usage
+#             else:
+#                 inflight = asyncio.get_running_loop().create_future()
+#                 self._md_inflight[contract_id] = inflight
+#                 self._md_refcount[contract_id] = 1
+# 
+#                 rid = self._next_id()
+#                 msg = self._b.build_md_subscribe(contract_id=contract_id, request_id=rid)
+#                 key = ("monitor", "md_subscription_status", rid)
+#                 reply_fut = self._router.register(key)
+# 
+#                 async def _do():
+#                     try:
+#                         await self._transport.send(msg)
+#                         server_msg = await asyncio.wait_for(reply_fut, timeout=timeout)
+#                         ok = self._p.parse_md_sub_status(server_msg)
+#                         if not ok:
+#                             raise RuntimeError(f"MD subscription failed for {contract_id}")
+#                         inflight.set_result(None)
+#                     except Exception as e:
+#                         inflight.set_exception(e)
+#                         # rollback refcount on failure
+#                         async with self._lock:
+#                             self._md_refcount.pop(contract_id, None)
+#                     finally:
+#                         async with self._lock:
+#                             self._md_inflight.pop(contract_id, None)
+# 
+#                 asyncio.create_task(_do())
+# 
+#         # wait for subscription to be confirmed
+#         await asyncio.wait_for(inflight, timeout=timeout)
+#         return contract_id
+# 
+#     async def release_market_data(self, contract_id: int, *, timeout: float = 5.0) -> None:
+#         async with self._lock:
+#             if contract_id not in self._md_refcount:
+#                 return
+#             self._md_refcount[contract_id] -= 1
+#             if self._md_refcount[contract_id] > 0:
+#                 return
+#             # drop to 0: unsubscribe
+#             self._md_refcount.pop(contract_id, None)
+# 
+#         rid = self._next_id()
+#         msg = self._b.build_md_unsubscribe(contract_id=contract_id, request_id=rid)
+#         key = ("monitor", "md_unsubscribe_status", rid)
+#         fut = self._router.register(key)
+#         await self._transport.send(msg)
+#         server_msg = await asyncio.wait_for(fut, timeout=timeout)
+#         ok = self._p.parse_md_unsub_status(server_msg)
+#         if not ok:
+#             # don’t re-add refcount automatically; log + alert
+#             raise RuntimeError(f"MD unsubscribe failed for {contract_id}")
+# 
+#     @asynccontextmanager
+#     async def market_data(self, symbol: str):
+#         cid = await self.ensure_market_data(symbol)
+#         try:
+#             yield cid
+#         finally:
+#             await self.release_market_data(cid)
+# 
+# =============================================================================
 
 # =============================================================================
 #     

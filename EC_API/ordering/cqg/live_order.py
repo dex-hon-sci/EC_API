@@ -36,6 +36,9 @@ from EC_API.ordering.cqg.builders import (
     build_cancelall_order_request_msg,
     build_goflat_order_request_msg
     )
+from EC_API.exceptions import (
+    TradeSubscriptionMissingError
+    )
 
 class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange
@@ -86,26 +89,6 @@ class LiveOrderCQG(LiveOrder):
     def check_state():
         return 
     
-# =============================================================================
-#     async def _request_trade_subscription(
-#         self, 
-#         subscribe: bool = True,
-#         skip_orders_snapshot: bool = False,
-#         timeout: float = 1.0
-#         ) -> None:
-#                 
-#         client_msg = build_trade_subscription_msg(
-#             trade_subscription_id=self.trade_subscription_id,
-#             subscribe = subscribe,
-#             skip_orders_snapshot = skip_orders_snapshot
-#             )
-#         rid = self._conn.msg_id()
-#         key = ("trade_subscription_statuses", rid)
-#         fut = self._router.register(key)
-#         await self._transport.send(client_msg)
-#         await asyncio.wait_for(fut, timeout=timeout)
-# =============================================================================
-        
     async def _new_order_request(
             self, 
             request_details: dict[str, Any]
@@ -120,14 +103,7 @@ class LiveOrderCQG(LiveOrder):
         
         self._stream_router.subscribe(chain_order_id)
         await self._transport.send(client_msg)
-        
-        ####
-        #
-        ####
-        #server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
-        # change all these, we are using substream setup from now on
 
-        #return server_msg
     
     async def _modify_order_request(
         self, 
@@ -197,26 +173,37 @@ class LiveOrderCQG(LiveOrder):
         **kwargs
         ) -> None:
         
-        # resolve symbol -> get CONTRACT_ID from Contractmetadata
-        #CONTRACT_METADATA = await self._resolve_symbols(msg_id = self.msg_id, subscribe=None)
-        CONTRACT_METADATA = await self._conn.resolve_symbol(self._symbol_name)
-        CONTRACT_ID = CONTRACT_METADATA.contract_id
+# =============================================================================
+#         # resolve symbol -> get CONTRACT_ID from Contractmetadata
+#         #CONTRACT_METADATA = await self._resolve_symbols(msg_id = self.msg_id, subscribe=None)
+#         CONTRACT_METADATA = await self._conn.resolve_symbol(self._symbol_name)
+#         CONTRACT_ID = CONTRACT_METADATA.contract_id
+# 
+#         # Trade Subscription 
+#         CONTRACT_ID = await self._request_trade_subscription(
+#             self.trade_subscription_id,
+#             subscribe = True,
+#             sub_scope = self.sub_scope
+#             )
+#         # 2) ensure subscription (optional but recommended even for send_once)
+#         #handle = await self._subs.ensure_orders_subscribed(account_id=self.account_id, timeout=timeout)
+#         
+# =============================================================================
 
-        # Trade Subscription 
-        CONTRACT_ID = await self._request_trade_subscription(
-            self.trade_subscription_id,
-            subscribe = True,
-            sub_scope = self.sub_scope
-            )
-        # 2) ensure subscription (optional but recommended even for send_once)
-        #handle = await self._subs.ensure_orders_subscribed(account_id=self.account_id, timeout=timeout)
+        # Instead of doing trade subscription we CHeck sub scirption
+        if not self._trade_session.sub_mgr.check_sub(symbol):
+            raise TradeSubscriptionMissingError("...")
+        
+        # Get the contract_id
+        contract_id = self._trade_session.sub_mgr.get_contract_id_by_name(symbol)
+        
         rid = self._conn.msg_id()
 
         try:
             details = {
                 "account_id": self.account_id,
                 "request_id": rid,
-                "contract_id": CONTRACT_ID,
+                "contract_id": contract_id,
                 **request_details,  
                 }
         
@@ -254,14 +241,4 @@ class LiveOrderCQG(LiveOrder):
                     )
 
         return server_msg
-
-
-    async def place_order():
-        # a more comprehesive send that separate subscription and send
-        
-        # Check subscription Manager, if symbol is already in place,
-        # just send order.
-        # if not, subscribe
-        return 
-
 

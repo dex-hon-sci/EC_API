@@ -10,12 +10,13 @@ from typing import Any, Iterator
 import numpy as np
 # Import EC_API scripts
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.base import Monitor
 from EC_API.monitor.tick import TickBuffer
 from EC_API.monitor.tick_stats import TickBufferStat
 from EC_API.monitor.data_feed import DataFeed
 
+from EC_API.connect.cqg.base import ConnectCQG
+from EC_API.connect.cqg.sub_mgr import DataSubMgrCQG
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter
 from EC_API.monitor.cqg.builders import(
@@ -25,30 +26,21 @@ from EC_API.monitor.cqg.builders import(
 from EC_API.exceptions import (
     MsgBuilderError
     )
-class SubMgr:
-    def __init__(self):
-        name2id_ref = dict()
-        ids_states = dict()
-        
-    def add_name(name: str, sub_id: int | str):
-        # Add symbol_name/chain_order_id 
-        return
-    
-    def add_scale(name:str,scale:float):
-        return 
     
 
 class MonitorDataCQG(Monitor):
     def __init__(self, conn: ConnectCQG):
+        # Connections
+        self._loop = asyncio.get_running_loop()
         self._conn = conn
         self._transport = conn._transport()
 
-        self._loop = asyncio.get_running_loop()
-        #self._transport = TransportCQG()
+        # routers and sub_mgr
         self._stream_router = self._conn._stream_router
+        self.sub_mgr = DataSubMgrCQG()
+
         self.timeout = 1
         
-        self.sub_mgr = SubMgr()
         
     @property
     def conn(self):
@@ -57,15 +49,19 @@ class MonitorDataCQG(Monitor):
     def rid(self) -> int:
         return self.conn.rid()
 
-    async def _resolve_symbol(self, symbol_name: str):
+    async def _resolve_symbol(self, symbol_name: str) -> None:
+        # Check if it is was already there
         # Get the metadata first
-        contract_metadata = await self._conn.resolve_symbol(symbol_name)
+        contract_id, contract_metadata = await self._conn.resolve_symbol(symbol_name)
+        
+        # IF the return is good 
         
         # Save the contract_id to subscription manager
-        self.sub_mgr.add_name(symbol_name, 1)
+        self.sub_mgr.add_symbol(symbol_name, contract_id)
         
     
     async def subscribe_mkt_data(self, symbol_name: str, level):
+        # resolve symbol
         ref, fut = dict(), None
         contract_id = ref[symbol_name]
 
