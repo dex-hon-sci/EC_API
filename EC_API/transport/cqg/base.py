@@ -12,6 +12,7 @@ import asyncio
 import threading
 import queue
 from typing import Optional
+import google.protobuf.message
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.ext.WebAPI import webapi_client
@@ -32,7 +33,7 @@ class TransportCQG:
       - Two IO thread doing send/recv
       - a thread-safe outbound queue
       - an asyncio inbound queue
-    Only incharge of sending messages. Recv msg is controlled by the router
+    Only incharge of sending/recieving messages. 
     """
 
     def __init__(
@@ -51,51 +52,63 @@ class TransportCQG:
         self._in_q: asyncio.Queue[ServerMsg] = asyncio.Queue()
 
         self._stop_evt = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        #self._thread: Optional[threading.Thread] = None
 
     def connect(self) -> None:        
         try:
             self._client.connect(self._host_name)
         except socket.gaierror as e:
-            raise TransportConnectError(f"DNS failed for {self._host_name}.")
+            raise TransportConnectError(f"DNS failed for {self._host_name}:{e}.")
+        except (WebSocketWantReadError, WebSocketWantWriteError) as e:
+            raise TransportConnectError(f'Handshake Stalled (WantRead/WantWrite): {e}')
         except ssl.SSLError as e:
             raise TransportConnectError(f"TLS failed: {e}")
         except (ConnectionRefusedError, TimeoutError, OSError) as e:
             raise TransportConnectError(f"Connect failed: {e}")
         except Exception as e:
             raise TransportConnectError(f"Websocket handshake failed: {e}.")
-        
-
+    
     # --- writer and reader loops -------------
     def _send_loop(self) -> None:
         # writer loop for send
         while not self._stop_evt.is_set():
             msg = self._out_q.get()
+            
             if msg is None:
                 break  # sentinel for shutdown
+                
             try:
                 self._client.send_client_message(msg)
-            except (OSError, WebSocketWantWriteError) as e:
-                logger.error("I/O send error: %s", e)
-                break
+            except WebSocketWantWriteError as e:
+                raise TransportSendError(f"Send Buffer Full [WantWrite]:{e}.")
+            except OSError as e:
+                logger.error("I/O send error: %s.", e)
+                raise TransportSendError(f"Send socket error [{e.errno}]:{e}.")
+            except (TypeError, ValueError) as e:
+                raise TransportSendError(f"Send Protocol Error: {e}.")
             except Exception as e:
                 logger.error("Unexpected send error: %s", e)
-
-                # log, maybe set a flag, etc.
-                break
+                raise TransportSendError(f"Unexpected send error: {e}.")
             
     def _recv_loop(self) -> None:
         # reader loop for recv
         while not self._stop_evt.is_set():
             try:
                 server_msg = self._client.receive_server_message()
-            except TransportRecvError:
+            except WebSocketWantReadError as e:
+                raise TransportRecvError(f"Recv Buffer Empty [WantRead]:{e}.")
+            except OSError as e:
+                raise TransportRecvError(f"Recv socket error [{e.errno}]: {e}.")
+            except google.protobuf.message.DecodeError as e:
+                logger.error("Protobuf Decoder Error. Dropping message: %s",e)
+                continue
+            except Exception as e:
                 # log, break on fatal error
-                break
+                raise TransportRecvError(f"Unexpected recv error: {e}")
 
             if server_msg is None:
                 # sentinel or EOF
-                logger.info("...")
+                logger.info("Connection closed by server.")
                 break
 
             asyncio.run_coroutine_threadsafe(
@@ -118,24 +131,22 @@ class TransportCQG:
         self._recv_thread.start()
         
     def stop(self) -> None:
-        """Stop IO thread and close CQG connection."""        
+        """Stop IO thread and close CQG connection."""    
         self._stop_evt.set()
         # wake send loop
         self._out_q.put(None)
         # close client to poke receive
         try:
             self._client.disconnect()
-        except (OSError, WebSocketWantWriteError) as e:
-            logger.warning("Disconnect Error")
-            pass # <--- fix this later
-            #raise TransportDisconnectError(msg)
+        except (WebSocketWantWriteError, OSError) as e:
+            raise TransportDisconnectError(f"Disconnect Failed: {e}")
         except Exception as e:
-            pass
-        
-        if self._send_thread:
-            self._send_thread.join(timeout=1.0)
-        if self._recv_thread:
-            self._recv_thread.join(timeout=1.0)
+            raise TransportDisconnectError(f"Unexpected Disconnect Error: {e}")
+        finally:
+            if self._send_thread:
+                self._send_thread.join(timeout=1.0)
+            if self._recv_thread:
+                self._recv_thread.join(timeout=1.0)
     # --------------------
     
     # --- Public API -----

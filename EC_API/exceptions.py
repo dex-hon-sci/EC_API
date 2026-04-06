@@ -60,6 +60,11 @@ class MaxSubscribersExceededError(RoutingError):
 class InvalidDroppingPolicy(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
+        
+# --- Subscription Manager ---
+class SubscriptionError(EC_APIError):...
+
+
 # -----------
 # --- Connect
 class ConnectError(EC_APIError):...
@@ -79,13 +84,25 @@ class AuthError(ConnectError):
 # --- Monitor
 class MonitorError(EC_APIError):...
 
+class ContractIDMissingError(MonitorError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
 # --- Ordering
 class TradeSessionError(EC_APIError):...
+
+class TradeSubscriptionMissingError(TradeSessionError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- Payload
 class PayloadError(EC_APIError):...
 
 # Safety check error
+class PriceRangeGuardViolation(PayloadError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- OpStrategy
 class OpStrategyError(EC_APIError):...
