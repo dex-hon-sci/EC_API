@@ -300,8 +300,6 @@ class ConnectCQG(Connect):
         self._state_mgr.transition(self.state, next_state)
         return int_msg
 
-
-
     async def ping(self, token: str | None = None) -> PongType | None:
         if not token:
             token = str(self.rid())
