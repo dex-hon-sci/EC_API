@@ -54,8 +54,31 @@ def register_info_report_parsers(msg_name: str):
     return decorator
 
 @register_info_report_parsers('symbol_resoluion_report')
-def parse_symbol_resolution_report(server_msg: ServerMsg | None) -> dict[str, str]:
-    res = {
-        
+def parse_symbol_resolution_report(
+        server_msg: ServerMsg | None
+    ) -> list[dict[str, str]]:
+    if not server_msg:
+        return 
+    res = []
+    information_reports = server_msg.information_reports
+    for report in information_reports:
+        sym_rp = report.symbol_resolution_report
+        temp = {
+        'cotract_id': sym_rp.contract_metadata.cotract_id,
+        'contract_symbol': sym_rp.contract_metadata.contract_symbol,
+        'correct_price_scale': sym_rp.contract_metadata.correct_price_scale,
+        'display_price_scale': sym_rp.contract_metadata.display_price_scale,
+        'description': sym_rp.contract_metadata.description,
+        'title': sym_rp.contract_metadata.title,
+        'tick_size': sym_rp.contract_metadata.tick_size,
+        'currency': sym_rp.contract_metadata.currency,
+        'tick_value': sym_rp.contract_metadata.tick_value,
+        'cfi_code': sym_rp.contract_metadata.cfi_code,
+        'instrument_group_name': sym_rp.contract_metadata.instrument_group_name,
+        'session_info_id': sym_rp.contract_metadata.session_info_id,
+        'short_instrument_group_name': sym_rp.contract_metadata.short_instrument_group_name,
+        'instrument_group_description': sym_rp.contract_metadata.instrument_group_description,
+        'country_code': sym_rp.contract_metadata.country_code         
         }
+        res.append(temp)
     return res

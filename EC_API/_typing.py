@@ -1,21 +1,5 @@
-import numpy as np
 from typing import TypeVar
 from typing import Any, Callable
-#from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
-
-
-# Generic types
-Typ = TypeVar("T")
-Func = TypeVar("F", bound=Callable[..., Any])
-# Config
-
-# Arrays
-Array = np.ndarray  # ready to be used for n-dim data
-Array1D = np.ndarray
-Array2D = np.ndarray
-Array3D = np.ndarray
-Record = np.void
-RecordArray = np.ndarray
 
 # --- MsgType
 ServerMsgType = TypeVar("T")
@@ -36,6 +20,8 @@ LogonResultType = dict[str, Any]
 LogoffResultType = dict[str, Any]
 RestoreResultType = dict[str, Any]
 PongType = tuple[str, str, int, int] # ('pong', token, ping_time, pong_time)
+
+ContractMetaDataType = list[dict[str, str]]
 # --- Monitor
 # contract_id, O, H, L, C, volume_significand, volume_exponent, volume_significand, correct_price_scale
 MarketValueType = tuple[int, int, int, int, int, int, int]

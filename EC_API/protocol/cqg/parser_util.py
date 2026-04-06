@@ -5,7 +5,9 @@ Created on Thu Nov 27 12:12:27 2025
 
 @author: dexter
 """
-
+def parse_info_report():...
+    # this parser function is needed to handle mixed sub message type in 
+    # information report
 
 # =============================================================================
 # Trade Subscriptions Status
