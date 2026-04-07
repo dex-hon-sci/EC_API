@@ -16,10 +16,13 @@ from EC_API.exceptions import (
 logger = logging.getLogger(__name__)
         
 class SymbolRegistry:
+    """ 
+    Note that the operations for metadata and symbol-contract_id pairs are 
+    distinct. To make sure both are in the registry, use the register() and
+    deregister() functions.
+    """
     def __init__(self):
-        #self._active_symbols: set[str] = set()
         self._sym_to_contract_ids: dict[str, int] = dict()
-        #self._active_data_streams: dict[int, int] = dict()
         self._metadata: dict[str, ContractMetaDataType] = dict()
         
     # --- property
@@ -115,7 +118,6 @@ class SymbolRegistry:
         except MetaDataMissingError as e:
             logger.warning(str(e))
             return False
-        
         return True
         
     # --- getter methods
