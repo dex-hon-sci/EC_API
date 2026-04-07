@@ -80,7 +80,6 @@ class ConnectCQG(Connect):
         self.protocol_version_minor: Optional[int] = None
         
         # Event Loop
-        self._task: Optional[asyncio.Task] = None
         self._router_task: Optional[asyncio.Task] = None
         self._stop_evt = asyncio.Event()
         self._timeout = 1 # make make this a ping based decision
@@ -138,6 +137,13 @@ class ConnectCQG(Connect):
     
     # ---- Live cycle --------
     def start(self) -> None:
+        if self.state not in (
+                ConnectionState.UNKNOWN, 
+                ConnectionState.DISCONNECTED
+                ):
+            logger.warning("Invalid state: %s to run start() function call.", self.state)
+            return
+        
         if self.state == ConnectionState.UNKNOWN:
             self._state_mgr.transition_to(ConnectionState.CONNECTING)
         elif self.state == ConnectionState.DISCONNECTED:
@@ -158,23 +164,33 @@ class ConnectCQG(Connect):
         if self.state == ConnectionState.CONNECTED_LOGON:
             await self.logoff()
             
-
         self._stop_evt.set()
-        self._state_mgr.transition_to(ConnectionState.CLOSING)
+        
+        if self.state not in (
+                ConnectionState.DISCONNECTED,
+                ConnectionState.UNKNOWN,
+                ConnectionState.CLOSING,
+                ConnectionState.CLOSED
+            ):
+            self._state_mgr.transition_to(ConnectionState.DISCONNECTED)
+
+        if self.state == ConnectionState.DISCONNECTED:
+            self._state_mgr.transition_to(ConnectionState.CLOSING)
+
         try:
             self._transport.stop()
-            self._state_mgr.transition_to(ConnectionState.CLOSED)
         except TransportDisconnectError as e:
             logger.warning("Transport Dosconnect Failed: %s.", str(e))
         finally:
              if self._router_task:
-                 self._router_task.cancel()
-                 try:
-                     await self._router_task
-                 except (asyncio.CancelledError, Exception) as e:
-                     if not isinstance(e, asyncio.CancelledError):
-                         logger.warning("Router task raised on shutdown: %s", e)   
-                         
+                self._router_task.cancel()
+                try:
+                    await self._router_task
+                except (asyncio.CancelledError, Exception) as e:
+                    if not isinstance(e, asyncio.CancelledError):
+                        logger.warning("Router task raised on shutdown: %s", e)
+                self._state_mgr.transition_to(ConnectionState.CLOSED)
+
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
 
@@ -358,5 +374,3 @@ class ConnectCQG(Connect):
         # walk through the second layer of the message, Find all info report,        
         # parse a list of info
         return parse_symbol_resolution_report(server_msg)
-    
-

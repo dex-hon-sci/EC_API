@@ -10,12 +10,7 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.key_extractors import walk_fields
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
-
-# contract_id, O, H, L, C, volume_significand, volume_exponent, volume_significand, correct_price_scale
-MarketValueType = tuple[int, int, int, int, int, int, int]
-
-# contract_id, quote_utc_time, type, scaled_price, scaled_source_price
-QuotesValueE=Type = tuple[int, int, Any, int, int]
+from EC_API._typing import MarketValueType, QuotesValueType
 
 
 TARGET = {

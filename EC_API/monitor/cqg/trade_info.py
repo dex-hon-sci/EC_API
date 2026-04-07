@@ -10,7 +10,7 @@ from datetime import datetime
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.base import Monitor
-from EC_API.monitor.cqg.builders import build_trade_info_request_msg
+from EC_API.monitor.cqg.builders import build_trade_historical_orders_request_msg
 
 # MonitorActiveOrder/ MonitorActivePosition
 class MonitorTradeCQG(Monitor):
@@ -33,7 +33,7 @@ class MonitorTradeCQG(Monitor):
         to_date_timestamp = to_date.timestamp()
         
         rid = self._rid
-        client_msg = build_trade_info_request_msg( 
+        client_msg = build_trade_historical_orders_request_msg( 
             self.account_id, 
             self._rid,
             from_date,

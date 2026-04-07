@@ -7,9 +7,11 @@ Created on Tue Mar 31 05:01:41 2026
 """
 import asyncio
 from EC_API.connect.cqg.base import ConnectCQG
+from EC_API.connect.cqg.symbol_registry import SymbolRegistryCQG
 from EC_API.ordering.enums import OrderStatus
-from EC_API.ordering.enums import SubScopeCQG
-from EC_API.ordering.cqg.enums import SubScope
+from EC_API.ordering.cqg.enums import SubScopeCQG
+from EC_API.ordering.enums import SubScope
+from EC_API.ordering.cqg.sub_mgr import TradeSubMgrCQG
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg
     )
@@ -34,8 +36,8 @@ class TradeSessionCQG:
         # States control
         self.order_statuses: dict[str, OrderStatus] = dict()
         
-        # Subscirption Management
-        self.sub_mgr = None
+        # symbol registry and Subscirption Management
+        self.sub_mgr = TradeSubMgrCQG
         
     async def trade_subscription_request(
             self,

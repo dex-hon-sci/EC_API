@@ -34,7 +34,7 @@ def build_reset_tracker_request_msg(
     subscription.level = MKTDATASUBLEVEL_MAP_INT2CQG.get(MktDataSubLevel.LEVEL_NONE)
     return client_msg
 
-def build_trade_historicak_orders_request_msg(
+def build_trade_historical_orders_request_msg(
     account_id: int,
     request_id: int,
     from_date_timestamp: datetime,
