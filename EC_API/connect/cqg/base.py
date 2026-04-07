@@ -37,11 +37,11 @@ from EC_API.connect.cqg.parsers import (
     parse_pong,
     parse_symbol_resolution_report
     )
+from EC_API.connect.enums import CONNECT_STATES_LIFECYCLE
 from EC_API.connect.cqg.enum_mapping import (
     CONN_LOGON_RESCODE_CQG2INT,
     CONN_RESTORE_RESCODE_CQG2INT, 
     CONN_LOGOFF_RESCODE_CQG2INT,
-    CONNECT_STATES_LIFECYCLE
     )
 from EC_API.utility.state_mgr import StateMgr
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
@@ -66,31 +66,32 @@ class ConnectCQG(Connect):
             host_name: str, 
             user_name: str, 
             password: str,
-            immediate_connect: bool = True,
-            client: None = None
+            immediate_connect: bool = False,
+            client: Optional[webapi_client.WebApiClient] = None
         ):
         # Inputs
         self._host_name = host_name
         self._user_name = user_name
         self._password = password
                 
-        self.session_token: str = None
-        self.client_app_id: str = None
-        self.protocol_version_major: int = None
-        self.protocol_version_minor: int = None
+        self.session_token: Optional[str] = None
+        self.client_app_id: Optional[str] = None
+        self.protocol_version_major: Optional[int] = None
+        self.protocol_version_minor: Optional[int] = None
         
         # Event Loop
         self._task: Optional[asyncio.Task] = None
+        self._router_task: Optional[asyncio.Task] = None
         self._stop_evt = asyncio.Event()
         self._timeout = 1 # make make this a ping based decision
 
         # State Control
-        self.state: ConnectionState = ConnectionState.UNKNOWN
         self._state_mgr = StateMgr(
             CONNECT_STATES_LIFECYCLE, 
-            self.state, 
-            allowed_starts=[ConnectionState.UNKNOWN])
-        self.is_logged_on: bool = False
+            start = ConnectionState.UNKNOWN, 
+            cur = ConnectionState.UNKNOWN,
+            allowed_starts=[ConnectionState.UNKNOWN]
+            )
 
         # Generic Message parameter
         self._rid = 10 # starting request ID
@@ -113,9 +114,7 @@ class ConnectCQG(Connect):
         self._misc_queue: asyncio.Queue = asyncio.Queue() # For information report?
         
         if immediate_connect:
-            self._transport.connect()
-            self._transport.start()
-            self._router_task = asyncio.create_task(self._router_loop())
+            self.start()
             
     def rid(self) -> int: # request
         self._rid += 1
@@ -125,6 +124,10 @@ class ConnectCQG(Connect):
             
     # ---- Internal Getter Methods ----
     @property
+    def state(self) -> ConnectionState:
+        return self._state_mgr.cur
+    
+    @property
     def client(self):
         # return client connection object
         return self._client
@@ -132,30 +135,46 @@ class ConnectCQG(Connect):
     @property
     def transport(self) -> TransportCQG:
         return self._transport
-    # ------------------------
     
     # ---- Live cycle --------
-    def start(self) -> None: # Rework this as well
+    def start(self) -> None:
+        if self.state == ConnectionState.UNKNOWN:
+            self._state_mgr.transition_to(ConnectionState.CONNECTING)
+        elif self.state == ConnectionState.DISCONNECTED:
+            self._state_mgr.transition_to(ConnectionState.RECONNECTING)
+        
         try: 
             self._transport.connect()
         except TransportConnectError as e:
             logger.warning(str(e))
+            self._state_mgr.transition_to(ConnectionState.DISCONNECTED)
             return 
         else:
-            self.state = ConnectionState.CONNECTED_DEFAULT  
+            self._state_mgr.transition_to(ConnectionState.CONNECTED_DEFAULT)
             self._transport.start()
             self._router_task = asyncio.create_task(self._router_loop())
 
-    async def stop(self) -> None: # rework this
+    async def stop(self) -> None: 
+        if self.state == ConnectionState.CONNECTED_LOGON:
+            await self.logoff()
+            
+
         self._stop_evt.set()
+        self._state_mgr.transition_to(ConnectionState.CLOSING)
         try:
             self._transport.stop()
+            self._state_mgr.transition_to(ConnectionState.CLOSED)
         except TransportDisconnectError as e:
-            return
+            logger.warning("Transport Dosconnect Failed: %s.", str(e))
         finally:
-            if self._task: # <---- Need to clarify this part
-                self._task.cancel()
-
+             if self._router_task:
+                 self._router_task.cancel()
+                 try:
+                     await self._router_task
+                 except (asyncio.CancelledError, Exception) as e:
+                     if not isinstance(e, asyncio.CancelledError):
+                         logger.warning("Router task raised on shutdown: %s", e)   
+                         
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
 
@@ -163,12 +182,13 @@ class ConnectCQG(Connect):
             msg: ServerMsg = await self._transport.recv()
                 
             if not msg or not isinstance(msg, ServerMsg):
-                logger.warning(f"Invalid Message Type, msg: {msg}")
+                logger.warning("Invalid Message Type, msg: %s", msg)
                 continue
             
             # 0) check if it is a composite message
             top_unique_fields = server_msg_type(msg)
-            if len(top_unique_fields) > 1: # SLIT!!
+            
+            if len(top_unique_fields) > 1:
                 msgs = split_server_msg(msg, top_unique_fields)
             elif len(top_unique_fields) == 0:
                 continue
@@ -187,12 +207,12 @@ class ConnectCQG(Connect):
                 if is_order_update_stream(top_unique_field):
                     order_id = order_statuses_order_id(msg)
                     await self._exec_stream_router.publish(order_id, msg)
+                    continue
                     
                 # 3) Expensive RPC type key matching
                 keys = extract_router_keys(msg)
-                print("extracted_key", keys)
                 if len(keys) >1:
-                    print("multiple keys:", keys)
+                    logger.debug("multiple keys: %s", keys)
                 for key in keys:
                     if key is not None:        
                         key_type, msg_type, msg_id_type, msg_id = key
@@ -203,8 +223,7 @@ class ConnectCQG(Connect):
                             #await self._misc_queue.put(msg)
     # ---- Failure Mode -------------------
     async def _on_transport_failure(self, exc: Exception) -> None:
-        self.state = ConnectionState.DISCONNECTED
-        self._stop_evt.set()
+        pass
         
     async def _reconnect_loop(self):...
     
@@ -243,11 +262,13 @@ class ConnectCQG(Connect):
         
         server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
         int_msg = parse_logon_result(server_msg) # internal message
+        
         if not int_msg:
             return 
         
-        next_state = CONN_LOGON_RESCODE_CQG2INT[int_msg['result_code']]
-        self._state_mgr.transition(self.state, next_state)
+        if CONN_LOGON_RESCODE_CQG2INT.get(int_msg['result_code']):
+            next_state = CONN_LOGON_RESCODE_CQG2INT[int_msg['result_code']]
+            self._state_mgr.transition_to(next_state)
         return int_msg
     
     async def logoff(self) -> dict[str, Any] | None:
@@ -264,9 +285,11 @@ class ConnectCQG(Connect):
         int_msg = parse_logged_off(server_msg)
         if not int_msg:
             return 
-
-        next_state = CONN_LOGOFF_RESCODE_CQG2INT[int_msg['logoff_reason']]
-        self._state_mgr.transition(self.state, next_state)
+        
+        # Only accept specific path
+        if CONN_LOGOFF_RESCODE_CQG2INT.get(int_msg['logoff_reason']):
+            next_state = CONN_LOGOFF_RESCODE_CQG2INT[int_msg['logoff_reason']]
+            self._state_mgr.transition_to(next_state)
         return int_msg
 
     async def restore_request(
@@ -291,13 +314,15 @@ class ConnectCQG(Connect):
         msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
-        server_msg = await asyncio.wait_for(fut, timeout=1)
+        server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
         int_msg = parse_restore_or_join_session_result(server_msg)
+        
         if not int_msg:
             return 
         
-        next_state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
-        self._state_mgr.transition(self.state, next_state)
+        if CONN_RESTORE_RESCODE_CQG2INT.get(int_msg['result_code']):
+            next_state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
+            self._state_mgr.transition_to(next_state)
         return int_msg
 
     async def ping(self, token: str | None = None) -> PongType | None:

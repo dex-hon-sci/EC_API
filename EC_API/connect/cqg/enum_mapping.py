@@ -38,35 +38,4 @@ CONN_LOGOFF_RESCODE_CQG2INT = { # Move these two parsers
     LOff.LogoffReason.LOGOFF_REASON_REASSIGNED: ConnectionState.CONNECTED_LOGOFF,    
     }
 
-# --- State Lifecycle ---
-CONNECT_STATES_LIFECYCLE = {
-    ConnectionState.UNKNOWN: [
-        ConnectionState.CONNECTING
-        ],
-    ConnectionState.CONNECTING: [
-        ConnectionState.RECONNECTING,
-        ConnectionState.DISCONNECTED
-        ],
-    ConnectionState.CONNECTED_DEFAULT: [
-        ConnectionState.CONNECTED_LOGON,
-        ConnectionState.RECONNECTING
-        ],
-    ConnectionState.RECONNECTING: [
-        ConnectionState.CONNECTED_DEFAULT,
-        ConnectionState.DISCONNECTED
-        ],
-    ConnectionState.CONNECTED_LOGON: [
-        ConnectionState.CONNECTED_LOGOFF,
-        ],
-    ConnectionState.CONNECTED_LOGOFF: [
-        ConnectionState.DISCONNECTED
-        ],
-    ConnectionState.DISCONNECTED: [
-        ConnectionState.RECONNECTING,
-        ConnectionState.CLOSING
-        ],
-    ConnectionState.CLOSING: [
-        ConnectionState.CLOSED
-        ],
-    ConnectionState.CLOSED: [] # End State
-    }
+

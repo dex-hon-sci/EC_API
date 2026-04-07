@@ -29,7 +29,7 @@ class StateMgr:
         self.finalised: bool = False
         self.start: Enum = start
 
-        if not cur:
+        if cur is None:
             self.cur = self.start
         else:            
             self.cur = cur
@@ -49,7 +49,6 @@ class StateMgr:
         if self.finalised:
             return False
         
-        
         if next_state not in self.trans_map:
             raise InvalidNextStateError(f"Invalid Next State: {str(next_state)}.")
             
@@ -60,5 +59,4 @@ class StateMgr:
             self.finalised = True
             
         self.cur = next_state # assign transition
-        print(self.cur, next_state)
         return True

@@ -35,7 +35,8 @@ CONNECT_STATES_LIFECYCLE = {
         ],
     ConnectionState.CONNECTED_DEFAULT: [
         ConnectionState.CONNECTED_LOGON,
-        ConnectionState.RECONNECTING
+        ConnectionState.RECONNECTING,
+        ConnectionState.DISCONNECTED
         ],
     ConnectionState.RECONNECTING: [
         ConnectionState.CONNECTED_DEFAULT,
@@ -43,9 +44,11 @@ CONNECT_STATES_LIFECYCLE = {
         ],
     ConnectionState.CONNECTED_LOGON: [
         ConnectionState.CONNECTED_LOGOFF,
+        ConnectionState.DISCONNECTED
         ],
     ConnectionState.CONNECTED_LOGOFF: [
-        ConnectionState.DISCONNECTED
+        ConnectionState.DISCONNECTED,
+        ConnectionState.CLOSING
         ],
     ConnectionState.DISCONNECTED: [
         ConnectionState.RECONNECTING,
