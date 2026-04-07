@@ -76,6 +76,21 @@ class InvalidDroppingPolicy(RoutingError):
     def __init__(self, message: str):
         super().__init__(message)
         
+# --- Symbol Registry ---
+class SymbolRegistryError(EC_APIError):...
+
+class SymbolNotInRegistryError(SymbolRegistryError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class MetaDataMissingError(SymbolRegistryError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class DuplicateSymbolError(SymbolRegistryError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 # --- Subscription Manager ---
 class SubscriptionError(EC_APIError):...
 
