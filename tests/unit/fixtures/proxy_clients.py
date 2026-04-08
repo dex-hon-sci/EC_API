@@ -56,6 +56,11 @@ class FakeTransport:
     async def send(self, msg: ClientMsgType) -> None:
         self.out_q.put(msg)
         
-    def connect(self):...
+    def connect(self) -> bool:
+        return True
+    
+    def disconnect(self) -> bool:
+        return True
+    
     def start(self):...
     def stop(self):...

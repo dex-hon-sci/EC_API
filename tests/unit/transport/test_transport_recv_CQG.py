@@ -52,7 +52,7 @@ async def test_transport_recv2async_queue() -> None:
             
         res_code = recv_msg.logon_result.result_code        
         assert res_code == ele
-
+    transport.disconnect()
     transport.stop()
     
     

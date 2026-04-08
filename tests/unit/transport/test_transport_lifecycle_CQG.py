@@ -37,6 +37,7 @@ async def test_transport_lifecycle() -> None:
     threads = _find_threads("TransportCQG")
     assert any("send_loop" in t.name for t in threads)
     assert any("recv_loop" in t.name for t in threads)
+    transport.disconnect()
     transport.stop()
 
     deadline = time.monotonic() + 2.0

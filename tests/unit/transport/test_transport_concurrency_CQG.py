@@ -81,7 +81,7 @@ async def test_transport_concurrent_sendandrecv() -> None:
     # 3) Check we didn't spend "forever" waiting. This doesn't prove low latency,
     #    but it detects obvious blocking / deadlocks. Tune bound as needed.
     assert elapsed < 1.0
-    
+    transport.disconnect()
     transport.stop()
     deadline = time.monotonic() + 2.0
     while _find_threads("TransportCQG") and time.monotonic() < deadline:
@@ -113,7 +113,7 @@ async def test_transport_shutdown_on_disconnect():
 
     got1 = await asyncio.wait_for(transport.recv(), timeout=1.0)
     assert got1.logon_result.result_code == 0
-
+    transport.disconnect()
     transport.stop()
     
     deadline = time.monotonic() + 2.0

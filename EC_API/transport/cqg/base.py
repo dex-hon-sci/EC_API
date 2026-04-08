@@ -54,7 +54,8 @@ class TransportCQG:
         self._stop_evt = threading.Event()
         #self._thread: Optional[threading.Thread] = None
 
-    def connect(self) -> None:        
+    # --- Connection functions
+    def connect(self) -> bool:        
         try:
             self._client.connect(self._host_name)
         except socket.gaierror as e:
@@ -67,6 +68,17 @@ class TransportCQG:
             raise TransportConnectError(f"Connect failed: {e}")
         except Exception as e:
             raise TransportConnectError(f"Websocket handshake failed: {e}.")
+        return True
+    
+    def disconnect(self) -> bool:
+        try:
+            self._client.disconnect()
+        except (WebSocketWantWriteError, OSError) as e:
+            raise TransportDisconnectError(f"Disconnect Failed: {e}")
+        except Exception as e:
+            raise TransportDisconnectError(f"Unexpected Disconnect Error: {e}")
+            
+        return True
     
     # --- writer and reader loops -------------
     def _send_loop(self) -> None:
@@ -132,21 +144,24 @@ class TransportCQG:
         
     def stop(self) -> None:
         """Stop IO thread and close CQG connection."""    
+        # Stop both send/recv loops
         self._stop_evt.set()
         # wake send loop
         self._out_q.put(None)
         # close client to poke receive
-        try:
-            self._client.disconnect()
-        except (WebSocketWantWriteError, OSError) as e:
-            raise TransportDisconnectError(f"Disconnect Failed: {e}")
-        except Exception as e:
-            raise TransportDisconnectError(f"Unexpected Disconnect Error: {e}")
-        finally:
-            if self._send_thread:
-                self._send_thread.join(timeout=1.0)
-            if self._recv_thread:
-                self._recv_thread.join(timeout=1.0)
+# =============================================================================
+#         try:
+#             self._client.disconnect()
+#         except (WebSocketWantWriteError, OSError) as e:
+#             raise TransportDisconnectError(f"Disconnect Failed: {e}")
+#         except Exception as e:
+#             raise TransportDisconnectError(f"Unexpected Disconnect Error: {e}")
+#         finally:
+# =============================================================================
+        if self._send_thread:
+            self._send_thread.join(timeout=1.0)
+        if self._recv_thread:
+            self._recv_thread.join(timeout=1.0)
     # --------------------
     
     # --- Public API -----

@@ -55,7 +55,7 @@ async def test_transport_send2queue():
             
         label = fake_client.sent_messages[i].logon.private_label
         assert label == private_labels[i]
-        
+    transport.disconnect()
     transport.stop()
     threads = [t for t in threading.enumerate() if t.name.startswith("TransportCQG")]
     deadline = time.monotonic() + 2.0
