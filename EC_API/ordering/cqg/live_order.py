@@ -8,10 +8,10 @@ Created on Wed Jul 30 10:01:16 2025
 import asyncio
 from typing import Any
 from datetime import timezone
+import logging
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
-#from EC_API.connect.hearback import hearback, get_contract_metadata
 from EC_API.ordering.enums import (
     SubScope, OrderType,
     Duration, RequestType, 
@@ -27,7 +27,6 @@ from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.ordering.cqg.builders import (
-    build_trade_subscription_msg,
     build_new_order_request_msg, 
     build_modify_order_request_msg,
     build_cancel_order_request_msg,
@@ -37,8 +36,13 @@ from EC_API.ordering.cqg.builders import (
     build_goflat_order_request_msg
     )
 from EC_API.exceptions import (
-    TradeSubscriptionMissingError
+    TradeSubscriptionMissingError,
+    MissingSymbolResolutionError,
+    OrderRequestError,
+    MsgBuilderError
     )
+
+logger = logging.getLogger(__name__)
 
 class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange
@@ -55,50 +59,39 @@ class LiveOrderCQG(LiveOrder):
                  ):
         
         # Message Routing
-        self._trade_session = trade_session
-        self._conn = self._trade_session._conn
-        self._transport = self._conn.transport
+        self._trade_session: TradeSessionCQG = trade_session
+        self._conn: ConnectCQG = self._trade_session._conn
+        self._transport: TransportCQG = self._conn.transport
         
-        # Routers
-        self._msg_router = self._conn._msg_router
-        self._stream_router = self._conn._exec_stream_router
-        
+        # Event Loop
+        self.timeout = self._conn._timeout
+                
         # CQG-related input parameters
         self._symbol_name = symbol_name
         self.request_id = request_id
         self.account_id = account_id
-        #self.sub_scope = sub_scope
-
-        self.trade_subscription_id = 0
-        
-        self.sub_mgr = None
-        
-        #self._per_order_queues = dict[]
-        self._order_state: dict[str, dict] = {}          # order_id -> latest parsed state
-        self._terminal_fut: dict[str, asyncio.Future] = {}  # order_id -> Future
-        # Settings
-        self.auto_unsub = auto_unsub
-        self.timeout = timeout
-        
+                
+    # ---
     def rid(self):
         return self._conn.rid()
-    
-    def check_symbol_resolution(self, symbol_name):
-        return
     
     def check_state():
         return 
     
+    # --- CQG function calls
     async def _new_order_request(
             self, 
             request_details: dict[str, Any]
         ) -> None:
         para = locals().copy()
         
-        rid = self._conn.msg_id()
-        client_msg = build_new_order_request_msg(**request_details)
+        try:
+            client_msg = build_new_order_request_msg(**request_details)
+        except MsgBuilderError:
+            raise OrderRequestError 
         
-        key = ("order_statuses", request_details['request_id'])
+        key = ('substream','order_statuses','chain_order_id','')
+        #key = ("order_statuses", request_details['request_id'])
         chain_order_id = request_details['cl_order_id']
         
         self._stream_router.subscribe(chain_order_id)
@@ -110,9 +103,14 @@ class LiveOrderCQG(LiveOrder):
         request_id: int,
         request_details: dict[str, Any],
         ) -> ServerMsg:
-        client_msg = build_modify_order_request_msg(**request_details)
         
-        key = ("order_statuses", request_details['request_id'])
+        try:
+            client_msg = build_modify_order_request_msg(**request_details)
+        except MsgBuilderError:
+            raise OrderRequestError 
+
+        key = ('substream','order_statuses','chain_order_id','')
+        #key = ("order_statuses", request_details['request_id'])
         fut = self._router.register(key)
         await self._transport.send(client_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
@@ -124,9 +122,13 @@ class LiveOrderCQG(LiveOrder):
         request_details: dict[str, Any],
         **kwargs
         ) -> ServerMsg:
-
-        client_msg = build_cancel_order_request_msg(**request_details)
-        key = ("order_statuses", request_details['request_id'])
+        try:
+            client_msg = build_cancel_order_request_msg(**request_details)
+        except MsgBuilderError:
+            raise OrderRequestError 
+        
+        key = ('substream','order_statuses','chain_order_id','')
+        #key = ("order_statuses", request_details['request_id'])
         fut = self._router.register(key)
         await self._transport.send(client_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
@@ -136,9 +138,13 @@ class LiveOrderCQG(LiveOrder):
         self,
         request_details: dict[str, Any],
         ) -> ServerMsg:
-        
-        client_msg = build_activate_order_request_msg(**request_details)
-        key = ("order_statuses", request_details['request_id'])
+        try:
+            client_msg = build_activate_order_request_msg(**request_details)
+        except MsgBuilderError:
+            raise OrderRequestError 
+
+        #key = ("order_statuses", request_details['request_id'])
+        key = ('substream','order_statuses','chain_order_id','')
         fut = self._router.register(key)
         await self._transport.send(client_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
@@ -157,51 +163,48 @@ class LiveOrderCQG(LiveOrder):
         self, 
         request_details: dict[str, Any],
         ) -> ServerMsg:
-        
-        client_msg = build_goflat_order_request_msg(**request_details)
-        key = ("order_statuses", request_details['request_id'])
+        try:
+            client_msg = build_goflat_order_request_msg(**request_details)
+        except MsgBuilderError:
+            raise OrderRequestError 
+
+        #key = ("order_statuses", request_details['request_id'])
+        key = ('substream','order_statuses','chain_order_id','')
         fut = self._router.register(key)
         await self._transport.send(client_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
         
         return server_msg
     
+    # --- Function call ---
     async def send(
         self, 
         request_type: RequestType,
         request_details: dict,
         **kwargs
         ) -> None:
-        
-# =============================================================================
-#         # resolve symbol -> get CONTRACT_ID from Contractmetadata
-#         #CONTRACT_METADATA = await self._resolve_symbols(msg_id = self.msg_id, subscribe=None)
-#         CONTRACT_METADATA = await self._conn.resolve_symbol(self._symbol_name)
-#         CONTRACT_ID = CONTRACT_METADATA.contract_id
-# 
-#         # Trade Subscription 
-#         CONTRACT_ID = await self._request_trade_subscription(
-#             self.trade_subscription_id,
-#             subscribe = True,
-#             sub_scope = self.sub_scope
-#             )
-#         # 2) ensure subscription (optional but recommended even for send_once)
-#         #handle = await self._subs.ensure_orders_subscribed(account_id=self.account_id, timeout=timeout)
-#         
-# =============================================================================
 
-        # Instead of doing trade subscription we CHeck sub scirption
-        if not self._trade_session.sub_mgr.check_sub(symbol):
-            raise TradeSubscriptionMissingError("...")
-        
-        # Get the contract_id
+        # Get the Inputs
+        symbol = request_details['symbol']
+        account_id = self._trade_session._conn._account_id
         contract_id = self._trade_session.sub_mgr.get_contract_id_by_name(symbol)
+        rid = self._conn.rid()
         
-        rid = self._conn.msg_id()
+        # Check Symbol resolution
+        if not self._trade_session.symbol_registry.has_symbol(symbol):
+            raise MissingSymbolResolutionError(
+                f"Symbol: {symbol} is not in the registry."
+                )
+            
+        # Check Trade ID
+        if not self._trade_session.has_orders_scope():
+            raise TradeSubscriptionMissingError(
+                "Trade subscription has to be done before sending order."
+                )
 
-        try:
+        try: # then send
             details = {
-                "account_id": self.account_id,
+                "account_id": account_id,
                 "request_id": rid,
                 "contract_id": contract_id,
                 **request_details,  
@@ -230,15 +233,8 @@ class LiveOrderCQG(LiveOrder):
                     
                 case RequestType.GOFLAT_ORDER:
                     server_msg = await self._goflat_order_request(details)
-        
-        finally:
-            if self.auto_unsub:
-                # Unsubscribe from trade subscription
-                unsub_trade_msg = await self._request_trade_subscription(
-                    self.trade_subscription_id,
-                    subscribe = False,
-                    sub_scope =self.sub_scope
-                    )
+        except OrderRequestError as e:
+            logger.warning(f'{request_type} request failed.')
 
         return server_msg
 
