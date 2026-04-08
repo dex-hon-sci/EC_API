@@ -113,6 +113,10 @@ class AuthError(ConnectError):
 class SymbolResolutionError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
+        
+class MissingSymbolResolutionError(ConnectError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- Monitor
 class MonitorError(EC_APIError):...
@@ -131,6 +135,12 @@ class TradeSessionError(EC_APIError):...
 class TradeSubscriptionMissingError(TradeSessionError):
     def __init__(self, message: str):
         super().__init__(message)
+        
+# --- LiveOrder
+class OrderRequestError(TradeSessionError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 
 # --- Payload
 class PayloadError(EC_APIError):...

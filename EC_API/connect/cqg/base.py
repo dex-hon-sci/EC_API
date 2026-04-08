@@ -66,6 +66,7 @@ class ConnectCQG(Connect):
             host_name: str, 
             user_name: str, 
             password: str,
+            account_id: str = "",
             immediate_connect: bool = False,
             client: Optional[webapi_client.WebApiClient] = None
         ):
@@ -73,7 +74,9 @@ class ConnectCQG(Connect):
         self._host_name = host_name
         self._user_name = user_name
         self._password = password
+        self._account_id = account_id
                 
+        # Sessions para
         self.session_token: Optional[str] = None
         self.client_app_id: Optional[str] = None
         self.protocol_version_major: Optional[int] = None
