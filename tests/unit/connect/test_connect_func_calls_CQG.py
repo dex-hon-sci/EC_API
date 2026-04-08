@@ -8,7 +8,6 @@ Created on Tue Mar 31 18:18:05 2026
 import asyncio
 import pytest
 import time
-from unittest.mock import patch
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.connect.enums import ConnectionState
 from EC_API.transport.routers import MessageRouter
@@ -65,6 +64,8 @@ async def test_logon_call_success() -> None:
     assert result is not None
     assert result['result_code'] == LgRes.ResultCode.RESULT_CODE_SUCCESS
     assert conn.state == ConnectionState.CONNECTED_LOGON
+    conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
+
     await conn.stop()
     
 # --- Logoff tests
@@ -72,6 +73,7 @@ async def test_logon_call_success() -> None:
 async def test_logoff_call_success() -> None:
     conn, ft = make_conn()
     conn.start()
+    conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
 
     response = build_logged_off_server_msg(
         ServerMsg(), 
@@ -106,6 +108,7 @@ async def test_restore_request_success() -> None:
     assert result is not None
     assert result['result_code'] == RstJoinSessRes.ResultCode.RESULT_CODE_SUCCESS
     assert conn.state == ConnectionState.CONNECTED_LOGON
+    conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
     await conn.stop()
 
 # --- ping tests

@@ -93,7 +93,7 @@ class ConnectCQG(Connect):
             )
 
         # Generic Message parameter
-        self._rid = 10 # starting request ID
+        self._rid = 10 # initial request ID
         
         # Define client and transport layer
         self._client = webapi_client.WebApiClient() if client is None else client
@@ -136,13 +136,13 @@ class ConnectCQG(Connect):
         return self._transport
     
     # ---- Live cycle --------
-    def start(self) -> None:
+    def start(self) -> bool:
         if self.state not in (
                 ConnectionState.UNKNOWN, 
                 ConnectionState.DISCONNECTED
                 ):
             logger.warning("Invalid state: %s to run start() function call.", self.state)
-            return
+            return False
         
         if self.state == ConnectionState.UNKNOWN:
             self._state_mgr.transition_to(ConnectionState.CONNECTING)
@@ -154,30 +154,48 @@ class ConnectCQG(Connect):
         except TransportConnectError as e:
             logger.warning(str(e))
             self._state_mgr.transition_to(ConnectionState.DISCONNECTED)
-            return 
-        else:
+            return False
+        else: # Only start transport threads when connection is established.
             self._state_mgr.transition_to(ConnectionState.CONNECTED_DEFAULT)
             self._transport.start()
             self._router_task = asyncio.create_task(self._router_loop())
+        return True
 
-    async def stop(self) -> None: 
-        if self.state == ConnectionState.CONNECTED_LOGON:
-            await self.logoff()
-            
-        self._stop_evt.set()
-        
-        if self.state not in (
-                ConnectionState.DISCONNECTED,
-                ConnectionState.UNKNOWN,
+    async def stop(self) -> bool: 
+        # Prerequisites
+        if self.state in (
+                ConnectionState.UNKNOWN, 
                 ConnectionState.CLOSING,
                 ConnectionState.CLOSED
-            ):
+                ):
+            logger.warning(f"Current State:{self.state} cannot initiate disconnection.")
+            return False
+        
+        # --- DISCONNECTION STATE
+        # (1) ensure logoff is done before stopping
+        if self.state == ConnectionState.CONNECTED_LOGON:
+            # Successful Logoff automatically move state to LOGOFF
+            logoff_msg = await self.logoff() 
+            if not logoff_msg:
+                return False
+       
+        try:  # Try Disconnect first before joining the threads
+             self._transport.disconnect()
+        except TransportDisconnectError as e:
+            logger.warning(str(e))
+            return False
+        else:
             self._state_mgr.transition_to(ConnectionState.DISCONNECTED)
-
+            
+        # --- CLOSING STATE
         if self.state == ConnectionState.DISCONNECTED:
             self._state_mgr.transition_to(ConnectionState.CLOSING)
+            
+        # Stop the Router loop
+        self._stop_evt.set()
+        
 
-        try:
+        try: # This stops the send and recv loops and join the threads
             self._transport.stop()
         except TransportDisconnectError as e:
             logger.warning("Transport Dosconnect Failed: %s.", str(e))
@@ -190,6 +208,8 @@ class ConnectCQG(Connect):
                     if not isinstance(e, asyncio.CancelledError):
                         logger.warning("Router task raised on shutdown: %s", e)
                 self._state_mgr.transition_to(ConnectionState.CLOSED)
+                
+        return True
 
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
