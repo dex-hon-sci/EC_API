@@ -6,10 +6,8 @@ Created on Wed Jul 30 10:14:08 2025
 @author: dexter
 """
 
-from .trade_info import MonitorTradeCQG
 from .realtime_data import MonitorDataCQG
 from .enums import MktDataSubLevelCQG
 
-__all__ = ["MonitorTradeCQG", 
-           "MonitorDataCQG",
+__all__ = ["MonitorDataCQG",
            "MktDataSubLevelCQG"]

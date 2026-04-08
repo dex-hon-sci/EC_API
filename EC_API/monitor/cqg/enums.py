@@ -9,7 +9,6 @@ from enum import Enum, auto
 
 from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as CQG_MDS
 from EC_API.monitor.enums import MktDataSubLevel
-from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
 
 
 class MktDataSubLevelCQG(Enum):

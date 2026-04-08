@@ -9,10 +9,6 @@ import asyncio
 from typing import AsyncIterator
 import logging
 # Import EC_API scripts
-#from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
-#from EC_API.monitor.tick import TickBuffer
-#from EC_API.monitor.tick_stats import TickBufferStat
-#from EC_API.monitor.data_feed import DataFeed
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.connect.cqg.base import ConnectCQG
@@ -47,7 +43,7 @@ class MonitorDataCQG(Monitor):
         
         # Event Loop
         self._loop = asyncio.get_running_loop()
-        self.timeout = 1
+        self.timeout = self._conn._timeout
 
         # symbol_registry and routers
         self._stream_router: StreamRouter = self._conn._mkt_data_stream_router
@@ -81,26 +77,32 @@ class MonitorDataCQG(Monitor):
                 
         contract_id = self._symbol_registry.get_contract_ids(symbol_name)
 
-        await self.realtime_data_request(contract_id, level)
+        await self._realtime_data_request(contract_id, level)
         q = self._stream_router.subscribe(contract_id)
         
         try:
-            while True:
-                msg = await q.get()
+            while not self._conn._stop_evt.is_set():
+                try:
+                    msg = await q.get()
+                except asyncio.TimeoutError:
+                    continue
                 yield parse_real_time_market_data(msg)
+            
         finally:
-            await self.unsubscribe_mkt_data(contract_id)
+            await self._unsubscribe_mkt_data(contract_id)
             self._stream_router.unsubscribe(contract_id, q)
 
     
     # --- CQG function calls
-    async def realtime_data_request(
+    async def _realtime_data_request(
             self, 
             contract_id: int, 
             level: MktDataSubLevel | MktDataSubLevelCQG
         ) -> None:
+        # !!! Import Note: Try not to have concurrent callers for the same 
+        # symbol at the same time. Message Router may fail. Space out the 
+        # function calls.
         
-        # resolve symbol
         if not MKTDATASUBLEVEL_MAP_INT2CQG.get(level):
             raise UnsupportedLevelError(f"Level: {level} unsupported.")
         try:
@@ -109,26 +111,25 @@ class MonitorDataCQG(Monitor):
         except MsgBuilderError:
             return 
         
-        key = ('md', 'market_data_subscription_statuses', 'contract_id', contract_id)
+        key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
         fut = self._msg_router.register_key(key)
         
-        self._transport.send(msg)  
+        await self._transport.send(msg)  
         await asyncio.wait_for(fut, timeout=self.timeout)
         return
     
-    async def unsubscribe_mkt_data(
+    async def _unsubscribe_mkt_data(
             self, 
-            symbol_name
+            contract_id: int
         ) -> None:
-        contract_id = self._symbol_registry.get_contract_ids(symbol_name)
         try:
             msg = build_reset_tracker_request_msg(contract_id, self.rid())
-        except MsgBuilderError as e:
+        except MsgBuilderError:
             return 
         
-        key = ('md', 'market_data_subscription_statuses', 'contract_id', contract_id)
+        key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
         fut = self._msg_router.register_key(key)
-        self._transport.send(msg)
+        await self._transport.send(msg)
         await asyncio.wait_for(fut, timeout=self.timeout)
         return 
 

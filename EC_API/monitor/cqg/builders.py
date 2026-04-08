@@ -34,18 +34,3 @@ def build_reset_tracker_request_msg(
     subscription.level = MKTDATASUBLEVEL_MAP_INT2CQG.get(MktDataSubLevel.LEVEL_NONE)
     return client_msg
 
-def build_trade_historical_orders_request_msg(
-    account_id: int,
-    request_id: int,
-    from_date_timestamp: datetime,
-    to_date_timestamp: datetime,
-    ) -> ClientMsg:
-    client_msg = ClientMsg()
-    information_requests = client_msg.information_requests.add()
-    
-    information_requests.id = request_id
-    information_requests.historical_orders_request.from_date= int(from_date_timestamp)
-    information_requests.historical_orders_request.to_date= int(to_date_timestamp)
-    information_requests.historical_orders_request.account_ids.append(account_id)
-
-    return client_msg
