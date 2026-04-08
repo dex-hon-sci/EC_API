@@ -136,11 +136,18 @@ class SymbolRegistry:
         return self._metadata[symbol_name]
     
     # --- inqury functions
-    def is_active(self, symbol_name:str) -> bool:
-        if symbol_name in self._active_symbols:
-            return True
-        return False
-    
+    def has_symbol(self, symbol_name: str) -> bool:
+        if symbol_name in self._sym_to_contract_ids.keys() and \
+           symbol_name in self._metadata.keys(): return True
+        else: return False
+
+# =============================================================================
+#     def is_active(self, symbol_name:str) -> bool:
+#         if symbol_name in self._active_symbols:
+#             return True
+#         return False
+#     
+# =============================================================================
     def num_active_streams(self, symbol_name:str):
         if not self._active_data_streams.get(symbol_name):
             raise SymbolNotInRegistryError(
