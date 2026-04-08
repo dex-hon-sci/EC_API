@@ -175,7 +175,11 @@ class ConnectCQG(Connect):
         # (1) ensure logoff is done before stopping
         if self.state == ConnectionState.CONNECTED_LOGON:
             # Successful Logoff automatically move state to LOGOFF
-            logoff_msg = await self.logoff() 
+            try:
+                logoff_msg = await self.logoff() 
+            except TransportConnectError as e:
+                logger.warning(str(e)) # proceed to ungraceful disconnection
+                
             if not logoff_msg:
                 return False
        
@@ -193,7 +197,6 @@ class ConnectCQG(Connect):
             
         # Stop the Router loop
         self._stop_evt.set()
-        
 
         try: # This stops the send and recv loops and join the threads
             self._transport.stop()
@@ -378,15 +381,15 @@ class ConnectCQG(Connect):
         return parse_pong(server_msg)
     
     async def resolve_symbol(
-        self, symbol: str, request_id: int
+        self, symbol: str,
         ) -> ContractMetaDataType | None:
         
         # symbol Resolution
         try:
-            msg = build_resolve_symbol_msg(symbol, request_id, subscribe=True)
+            msg = build_resolve_symbol_msg(symbol, self.rid, subscribe=True)
         except MsgBuilderError:
             return
-        msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", request_id)
+        msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", self.rid)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(msg)
         server_msg = await asyncio.wait_for(fut, timeout=self._timeout)

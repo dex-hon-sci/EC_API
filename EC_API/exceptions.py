@@ -109,6 +109,10 @@ class DisconnectError(ConnectError):
 class AuthError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
+        
+class SymbolResolutionError(ConnectError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- Monitor
 class MonitorError(EC_APIError):...
@@ -117,10 +121,9 @@ class ContractIDMissingError(MonitorError):
     def __init__(self, message: str):
         super().__init__(message)
         
-class UnsupportedError(MonitorError):
+class UnsupportedLevelError(MonitorError):
     def __init__(self, message: str):
         super().__init__(message)
-
 
 # --- Ordering
 class TradeSessionError(EC_APIError):...
@@ -133,7 +136,7 @@ class TradeSubscriptionMissingError(TradeSessionError):
 class PayloadError(EC_APIError):...
 
 # Safety check error
-class PriceRangeGuardViolation(PayloadError):
+class PriceRangeViolationError(PayloadError):
     def __init__(self, message: str):
         super().__init__(message)
 

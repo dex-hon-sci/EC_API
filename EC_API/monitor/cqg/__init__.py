@@ -7,9 +7,9 @@ Created on Wed Jul 30 10:14:08 2025
 """
 
 from .trade_info import MonitorTradeCQG
-from .realtime_data import MonitorRealTimeDataCQG
+from .realtime_data import MonitorDataCQG
 from .enums import MktDataSubLevelCQG
 
 __all__ = ["MonitorTradeCQG", 
-           "MonitorRealTimeDataCQG",
+           "MonitorDataCQG",
            "MktDataSubLevelCQG"]
