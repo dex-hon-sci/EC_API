@@ -156,6 +156,7 @@ def extract_sub_router_keys(
     ) -> list[RouterKey]: 
     
     TARGET = {
+        "market_data_subscription_statuses", 
         "trade_subscription_statuses",
         "trade_snapshot_completions",
         }
@@ -165,7 +166,7 @@ def extract_sub_router_keys(
             yield (fd.name, None, fd.is_repeated, True)
         
         else:
-            if fd.name in {'id', 'subscription_id'} and not fd.is_repeated:             
+            if fd.name in {'id', 'subscription_id', 'contract_id'} and not fd.is_repeated:             
                 yield (fd.name, val, fd.is_repeated, False)
 
     outs = walk_fields(msg, selector, max_depth=2)
@@ -174,7 +175,7 @@ def extract_sub_router_keys(
     for hit in outs:
         if report_type is None and hit[0] in TARGET:
             report_type = hit[0]
-        if request_id_name is None and hit[0] in {'id', 'subscription_id'}:
+        if request_id_name is None and hit[0] in {'id', 'subscription_id', 'contract_id'}:
             request_id_name = hit[0] 
             request_id_val = hit[1]
 
@@ -198,7 +199,6 @@ def extract_substream_router_keys(
         'position_statuses': 'contract_id',
         #'account_summary_statuses': 'account_id'
         }
-    print("extract_substream_router_keys")
     
     def selector(fd, val)-> Iterable[KeyHit]:
         if fd.message_type is not None and fd.name in TARGET:
@@ -207,7 +207,6 @@ def extract_substream_router_keys(
             yield (fd.name, val, fd.is_repeated, False)
 
     outs = walk_fields(msg, selector, max_depth=2)
-    print("outs", outs)
     keys = []
     report_type, request_id_name, request_id_val = None, None, None
     for hit in outs:
@@ -235,7 +234,6 @@ def extract_market_data_router_keys(
         msg_type: str                      
     ):
     TARGET = {
-        "market_data_subscription_statuses", 
         "real_time_market_data"
         }
     def selector(fd, val)-> Iterable[KeyHit]:

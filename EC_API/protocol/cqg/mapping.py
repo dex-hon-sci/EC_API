@@ -244,7 +244,7 @@ SERVER_MSG_FAMILY = {
     "account_summary_statuses": "substream",
     "go_flat_statuses": "rpc_reqid",
     # (4) realtime
-    "market_data_subscription_statuses":  "md",
+    "market_data_subscription_statuses":  "sub",
     "real_time_market_data": "md",
     # (5) historical
     "time_and_sales_reports": "rpc_reqid",

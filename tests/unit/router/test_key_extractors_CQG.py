@@ -155,7 +155,7 @@ def test_extract_key_market_data_subscription_statuses() -> None:
     msg = build_market_data_subscription_statuses_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
-    assert router_keys[0] == ('md', 'market_data_subscription_statuses', 'contract_id', 1)
+    assert router_keys[0] == ('sub', 'market_data_subscription_statuses', 'contract_id', 1)
 
 def test_extract_key_real_time_market_data() -> None:
     msg = build_real_time_market_data_server_msg(ServerMsg())
