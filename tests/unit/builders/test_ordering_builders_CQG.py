@@ -17,6 +17,7 @@ from EC_API.ordering.cqg.builders import (
     build_cancel_order_request_msg,
     build_activate_order_request_msg,
     build_goflat_order_request_msg,
+    build_trade_historical_orders_request_msg
     )
 
 ACCOUNT_ID = 000000
@@ -33,6 +34,24 @@ def test_build_trade_subscription_msg_valid() -> None:
     assert msg.trade_subscriptions[0].subscribe == True
     assert msg.trade_subscriptions[0].skip_orders_snapshot == True 
     assert msg.trade_subscriptions[0].subscription_scopes[0] == CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS
+
+def test_build_trade_historical_orders_request_msg_valid() -> None:
+    FROM_DT = datetime.now(timezone.utc) - timedelta(days=10)
+    TO_DT = datetime.now(timezone.utc) - timedelta(days=1)
+    
+    FROM_DT = FROM_DT.timestamp()
+    TO_DT = TO_DT.timestamp()
+    
+    msg = build_trade_historical_orders_request_msg(
+        account_id = 10001,
+        request_id = 333,
+        from_date_timestamp = FROM_DT,
+        to_date_timestamp = TO_DT,
+        )
+    assert msg.information_requests[0].id == 333
+    assert msg.information_requests[0].historical_orders_request.account_ids[0] == 10001
+    assert msg.information_requests[0].historical_orders_request.from_date == int(FROM_DT)
+    assert msg.information_requests[0].historical_orders_request.to_date == int(TO_DT)
 
 def test_build_new_order_request_msg_valid() -> None:
     

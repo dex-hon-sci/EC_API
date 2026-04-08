@@ -411,7 +411,6 @@ def build_market_data_subscription_statuses_server_msg(
     market_data_subscription_statuses = server_msg.market_data_subscription_statuses.add()
     market_data_subscription_statuses.contract_id = 1
     market_data_subscription_statuses.status_code = res
-    
     market_data_subscription_statuses.level = MktDSub.Level.LEVEL_TRADES
         
     return server_msg
