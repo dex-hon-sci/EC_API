@@ -54,8 +54,7 @@ ASSETS_SAFETY_RANGE = {
 
 # Define Payloads for asset A
 TE_PL_A = Payload(  
-    account_id=ACCOUNT_ID,
-    request_id=100,
+    #request_id=100,
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.NEW_ORDER,
     start_time = datetime.now(timezone.utc) +\
@@ -80,8 +79,7 @@ TE_PL_A = Payload(
     )
 
 TE_mod_PL_A = Payload(
-    account_id=ACCOUNT_ID,
-    request_id=102,
+    #request_id=102,
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.MODIFY_ORDER,
     start_time = datetime.now(timezone.utc) +\
@@ -99,8 +97,7 @@ TE_mod_PL_A = Payload(
     )
 
 TP_PL1_A = Payload(
-    account_id=ACCOUNT_ID,
-    request_id=103,
+    #request_id=103,
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.NEW_ORDER,
     start_time = datetime.now(timezone.utc) +\
@@ -120,8 +117,8 @@ TP_PL1_A = Payload(
     asset_safty_range = ASSETS_SAFETY_RANGE
     )
 TP_PL2_A = Payload(
-    account_id=ACCOUNT_ID,
-    request_id=104,
+    #account_id=ACCOUNT_ID,
+    #request_id=104,
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.NEW_ORDER,
     start_time = datetime.now(timezone.utc) +\
@@ -141,8 +138,8 @@ TP_PL2_A = Payload(
     asset_safty_range = ASSETS_SAFETY_RANGE
     )
 cancel_PL_A = Payload(
-    account_id=ACCOUNT_ID,
-    request_id=105,
+    #account_id=ACCOUNT_ID,
+    #request_id=105,
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.CANCEL_ORDER,
     start_time = datetime.now(timezone.utc) +\
@@ -158,8 +155,8 @@ cancel_PL_A = Payload(
     asset_safty_range = ASSETS_SAFETY_RANGE
     )
 overtime_PL_A = Payload(
-    account_id=ACCOUNT_ID,
-    request_id=106,
+    #account_id=ACCOUNT_ID,
+    #request_id=106,
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.LIQUIDATEALL_ORDER,
     start_time = datetime.now(timezone.utc) +\

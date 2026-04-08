@@ -27,8 +27,8 @@ from EC_API.ext.WebAPI.historical_2_pb2 import VolumeProfileReport as VolPrfRep
 # (1) logon_result (v)
 # (2) restore_or_join_session_result (v)
 # (3) concurrent_connection_join_results (v)
-# (3) logged_off (v)
-# (4) pong (v)
+# (4) logged_off (v)
+# (5) pong (v)
 ###LgRes.ResultCode.RESULT_CODE_SUCCESS
 def build_logon_result_server_msg(
         server_msg: ServerMsg,

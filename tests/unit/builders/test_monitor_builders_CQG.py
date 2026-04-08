@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from EC_API.monitor.cqg.builders import (
     build_realtime_data_request_msg,
     build_reset_tracker_request_msg,
-    build_trade_info_request_msg
+    build_trade_historical_orders_request_msg
     )
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
@@ -38,14 +38,14 @@ def test_build_reset_tracker_request_msg_valid() -> None:
     assert msg.market_data_subscriptions[0].level == CQG_MDS.Level.LEVEL_NONE
 
 
-def test_build_trade_info_request_msg_valid() -> None:
+def test_build_trade_historical_orders_request_msg_valid() -> None:
     FROM_DT = datetime.now(timezone.utc) - timedelta(days=10)
     TO_DT = datetime.now(timezone.utc) - timedelta(days=1)
     
     FROM_DT = FROM_DT.timestamp()
     TO_DT = TO_DT.timestamp()
     
-    msg = build_trade_info_request_msg(
+    msg = build_trade_historical_orders_request_msg(
         account_id = 10001,
         request_id = 333,
         from_date_timestamp = FROM_DT,

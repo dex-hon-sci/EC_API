@@ -51,7 +51,7 @@ def test_payload_construction_succes() -> None:
         "exec_instructions": ExecInstruction.AON
         }
     PL1 = Payload(
-          request_id = 100,
+          # requesr_id= 100,
           status = PayloadStatus.PENDING,
           order_request_type = RequestType.NEW_ORDER,
           start_time = datetime.now(timezone.utc),
@@ -78,7 +78,7 @@ def test_CQGFormatCheck_check_crendential_fail_null() -> None:
         }
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): symbol_name is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -106,7 +106,7 @@ def test_CQGFormatCheck_check_crendential_fail_TypeError() -> None:
         }
     with pytest.raises(TypeError, match="Type Error, symbol_name must be: str."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -135,7 +135,7 @@ def test_CQGFormatCheck_check_request_specific_fields_NEW_ORDER_fail_null() -> N
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): order_type is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -163,7 +163,7 @@ def test_CQGFormatCheck_check_request_specific_fields_NEW_ORDER_fail_TypeError()
     
     with pytest.raises(TypeError, match=r"Type Error, order_type must be: OrderType."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -182,7 +182,7 @@ def test_CQGFormatCheck_check_request_specific_fields_MODIFY_ORDER_fail_null() -
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): orig_cl_order_id is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.MODIFY_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -202,7 +202,7 @@ def test_CQGFormatCheck_check_request_specific_fields_MODIFY_ORDER_fail_TypeErro
     
     with pytest.raises(TypeError, match=r"Type Error, scaled_limit_price must be: int."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.MODIFY_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -221,7 +221,7 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCEL_ORDER_fail_null() -
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): cl_order_id is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.CANCEL_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -240,7 +240,7 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCEL_ORDER_fail_TypeErro
     
     with pytest.raises(TypeError, match=r"Type Error, orig_cl_order_id must be: str."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.CANCEL_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -259,7 +259,7 @@ def test_CQGFormatCheck_check_request_specific_fields_ACTIVATE_ORDER_fail_null()
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): cl_order_id is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.ACTIVATE_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -278,7 +278,7 @@ def test_CQGFormatCheck_check_request_specific_fields_ACTIVATE_ORDER_fail_TypeEr
     
     with pytest.raises(TypeError, match=r"Type Error, orig_cl_order_id must be: str."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.ACTIVATE_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -296,7 +296,7 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCELALL_ORDER_fail_null(
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): cl_order_id is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.CANCELALL_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -314,7 +314,7 @@ def test_CQGFormatCheck_check_request_specific_fields_CANCELALL_ORDER_fail_TypeE
     
     with pytest.raises(TypeError, match=r"Type Error, cl_order_id must be: str."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.CANCELALL_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -332,7 +332,7 @@ def test_CQGFormatCheck_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_no
     
     with pytest.raises(AttributeError, match=r"islong is not an acceptable field for RequestType.LIQUIDATEALL_ORDER request."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.LIQUIDATEALL_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -350,7 +350,7 @@ def test_CQGFormatCheck_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_Ty
     
     with pytest.raises(TypeError, match=r"Type Error, when_utc_timestamp must be: datetime."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.LIQUIDATEALL_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -368,7 +368,7 @@ def test_CQGFormatCheck_check_request_specific_fields_GOFLAT_ORDER_fail_notaccep
     
     with pytest.raises(AttributeError, match=r"when_utc is not an acceptable field for RequestType.GOFLAT_ORDER request."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.GOFLAT_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -386,7 +386,7 @@ def test_CQGFormatCheck_check_request_specific_fields_GOFLAT_ORDER_fail_TypeErro
     
     with pytest.raises(TypeError, match=r"Type Error, when_utc_timestamp must be: datetime."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.GOFLAT_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -413,7 +413,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_LMT_fail_null()->N
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): scaled_limit_price is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -439,7 +439,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STP_fail_null()->N
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): scaled_stop_price is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -465,7 +465,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_null()->N
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): scaled_limit_price is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -491,7 +491,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_GTD_fail_null()->N
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): good_thru_date is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -518,7 +518,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_null()-
     
     with pytest.raises(KeyError, match=r"Essential parameter\(s\): scaled_trail_offset is missing."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -543,7 +543,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_LMT_fail_TypeError
     
     with pytest.raises(TypeError, match=r"Type Error, scaled_limit_price must be: int."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -568,7 +568,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STP_fail_TypeError
     
     with pytest.raises(TypeError, match=r"Type Error, scaled_stop_price must be: int."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -594,7 +594,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_STL_fail_TypeError
     
     with pytest.raises(TypeError, match=r"Type Error, scaled_limit_price must be: int."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -621,7 +621,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_GTD_fail_TypeError
     
     with pytest.raises(TypeError, match=r"Type Error, good_thru_date must be: int."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -648,7 +648,7 @@ def test_CQGFormatCheck_check_order_specific_essential_fields_Trail_fail_TypeErr
     
     with pytest.raises(TypeError, match=r"Type Error, scaled_trail_offset must be: int."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -675,7 +675,7 @@ def test_CQGFormatCheck_check_valid_value_LMT_price_up() -> None:
     
     with pytest.raises(ValueError, match=r"scaled_limit_price is outside of the allowed range: \[100, 10000\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -701,7 +701,7 @@ def test_CQGFormatCheck_check_valid_value_LMT_price_down() -> None:
     
     with pytest.raises(ValueError, match=r"scaled_limit_price is outside of the allowed range: \[100, 10000\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -727,7 +727,7 @@ def test_CQGFormatCheck_check_valid_value_STP_price_up() -> None:
     
     with pytest.raises(ValueError, match=r"scaled_stop_price is outside of the allowed range: \[100, 15000\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -753,7 +753,7 @@ def test_CQGFormatCheck_check_valid_value_STP_price_down() -> None:
     
     with pytest.raises(ValueError, match=r"scaled_stop_price is outside of the allowed range: \[100, 15000\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -774,7 +774,7 @@ def test_CQGFormatCheck_check_valid_value_qty_up() -> None:
     
     with pytest.raises(ValueError, match=r"qty is outside of the allowed range: \[1, 10\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.MODIFY_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -794,7 +794,7 @@ def test_CQGFormatCheck_check_valid_value_qty_down() -> None:
     
     with pytest.raises(ValueError, match=r"qty is outside of the allowed range: \[1, 10\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.MODIFY_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -820,7 +820,7 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_up() -> None:
     
     with pytest.raises(ValueError, match=r"qty_significant is outside of the allowed range: \[1, 9\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -846,7 +846,7 @@ def test_CQGFormatCheck_check_valid_value_qty_significant_down() -> None:
     
     with pytest.raises(ValueError, match=r"qty_significant is outside of the allowed range: \[1, 9\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -872,7 +872,7 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_up() -> None:
     
     with pytest.raises(ValueError, match=r"qty_exponent is outside of the allowed range: \[0, 1\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
@@ -898,7 +898,7 @@ def test_CQGFormatCheck_check_valid_value_qty_exponent_down() -> None:
     
     with pytest.raises(ValueError, match=r"qty_exponent is outside of the allowed range: \[0, 1\]."):
         PL = Payload(          
-            request_id = 100,
+            # requesr_id= 100,
             status = PayloadStatus.PENDING,
             order_request_type = RequestType.NEW_ORDER,
             start_time = datetime.now(timezone.utc),
