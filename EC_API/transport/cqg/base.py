@@ -148,21 +148,11 @@ class TransportCQG:
         self._stop_evt.set()
         # wake send loop
         self._out_q.put(None)
-        # close client to poke receive
-# =============================================================================
-#         try:
-#             self._client.disconnect()
-#         except (WebSocketWantWriteError, OSError) as e:
-#             raise TransportDisconnectError(f"Disconnect Failed: {e}")
-#         except Exception as e:
-#             raise TransportDisconnectError(f"Unexpected Disconnect Error: {e}")
-#         finally:
-# =============================================================================
+
         if self._send_thread:
             self._send_thread.join(timeout=1.0)
         if self._recv_thread:
             self._recv_thread.join(timeout=1.0)
-    # --------------------
     
     # --- Public API -----
     async def send(self, client_msg: ClientMsg) -> None:

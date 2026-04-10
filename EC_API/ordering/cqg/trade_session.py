@@ -12,7 +12,6 @@ from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.ordering.enums import OrderStatus
 from EC_API.ordering.cqg.enums import SubScopeCQG
 from EC_API.ordering.enums import SubScope
-from EC_API.ordering.cqg.sub_mgr import TradeSubMgrCQG
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg,
     build_trade_historical_orders_request_msg
@@ -49,7 +48,6 @@ class TradeSessionCQG:
 
         # symbol registry and Subscirption Manager
         self.symbol_registry: SymbolRegistry = SymbolRegistry()
-        self.sub_mgr: TradeSubMgrCQG = TradeSubMgrCQG(self.symbol_registry)
         
     # --- Property --- 
     @property
@@ -58,13 +56,15 @@ class TradeSessionCQG:
 
     def rid(self) -> int:
         return self.conn.rid()
-        
 
     # --- Checks
     def has_orders_scope(self) -> bool:
         return any(SubScope.ORDERS in scopes 
                    for scopes in self._active_subs.values())
-        
+    def has_positions_scope() -> bool:
+        return 
+    
+    
     # --- function calls
     async def wait_for_ack(self) -> None: ...
     
