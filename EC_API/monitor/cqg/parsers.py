@@ -29,7 +29,7 @@ def parse_market_data_subscription_statuses(
         ) -> list[dict[str, str]]:
     market_data_subscription_statuses = server_msg.market_data_subscription_statuses
     
-    if len(market_data_subscription_statuses) == 0:
+    if not market_data_subscription_statuses:
         raise MsgParserError("Empty field for market_data_subscription_statuses")
     
     return [{
