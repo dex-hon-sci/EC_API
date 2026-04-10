@@ -98,6 +98,10 @@ class SubscriptionError(EC_APIError):...
 # --- Connect ---
 class ConnectError(EC_APIError):...
 
+class ConnectRequestError(ConnectError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class ConnectCancelledError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
@@ -136,6 +140,10 @@ class MonitorDataRequestError(MonitorError):
 # --- Ordering
 class TradeSessionError(EC_APIError):...
 
+class TradeSessionRequestError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class TradeSubscriptionMissingError(TradeSessionError):
     def __init__(self, message: str):
         super().__init__(message)
@@ -144,7 +152,6 @@ class TradeSubscriptionMissingError(TradeSessionError):
 class OrderRequestError(TradeSessionError):
     def __init__(self, message: str):
         super().__init__(message)
-
 
 # --- Payload
 class PayloadError(EC_APIError):...

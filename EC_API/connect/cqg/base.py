@@ -6,7 +6,7 @@ Created on Mon Aug 18 11:34:22 2025
 @author: dexter
 """
 import asyncio
-from typing import Optional, Any
+from typing import Optional, Any, Callable
 import logging
 from datetime import datetime, timezone
 
@@ -16,14 +16,14 @@ from EC_API.connect.enums import ConnectionState
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.protocol.cqg.router_util import (
-        extract_router_keys, 
-        server_msg_type,
-        is_realtime_tick, 
-        is_order_update_stream, 
-        is_trade_history,
-        realtime_tick_contract_id, 
-        order_statuses_order_id,
-        split_server_msg
+    extract_router_keys, 
+    server_msg_type,
+    is_realtime_tick, 
+    is_order_update_stream, 
+    is_trade_history,
+    realtime_tick_contract_id, 
+    order_statuses_order_id,
+    split_server_msg
     )
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
@@ -45,11 +45,14 @@ from EC_API.connect.cqg.enum_mapping import (
     )
 from EC_API.utility.state_mgr import StateMgr
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
     TransportConnectError,
     TransportDisconnectError,
+    ConnectRequestError,
     ConnectCancelledError,
     MsgBuilderError,
+    MsgParserError
     )
 from EC_API._typing import (
     PongType,
@@ -59,8 +62,8 @@ from EC_API._typing import (
 logger = logging.getLogger(__name__)
 
 class ConnectCQG(Connect):
-    # This class control all the functions related to connecting to CQG and 
-    # subscriptions related functions
+    """
+    """
     def __init__(
             self, 
             host_name: str, 
@@ -283,31 +286,26 @@ class ConnectCQG(Connect):
         **kwargs
         ) -> dict[str, Any] | None:
         
-        
-        try: 
-            client_msg = build_logon_msg(
-                self._user_name, self._password,
-                client_app_id=client_app_id,
-                protocol_version_major= protocol_version_major,
-                protocol_version_minor=protocol_version_minor,
-                drop_concurrent_session = drop_concurrent_session,
-                private_label = private_label,
-                **kwargs
-                )
-        except MsgBuilderError:
-            return
-        
+        with msg_io_error_handler(MsgBuilderError):
+            client_msg =build_logon_msg(
+                    self._user_name, self._password,
+                    client_app_id=client_app_id,
+                    protocol_version_major= protocol_version_major,
+                    protocol_version_minor=protocol_version_minor,
+                    drop_concurrent_session = drop_concurrent_session,
+                    private_label = private_label,
+                    **kwargs
+                    )
+            
         msg_key = ('session', 'logon_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         
         await self._transport.send(client_msg)
-        
         server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
-        int_msg = parse_logon_result(server_msg) # internal message
         
-        if not int_msg:
-            return 
-        
+        with msg_io_error_handler(MsgBuilderError):
+            int_msg = parse_logon_result(server_msg) # internal message
+                
         if CONN_LOGON_RESCODE_CQG2INT.get(int_msg['result_code']):
             next_state = CONN_LOGON_RESCODE_CQG2INT[int_msg['result_code']]
             self._state_mgr.transition_to(next_state)
@@ -315,18 +313,16 @@ class ConnectCQG(Connect):
     
     async def logoff(self) -> dict[str, Any] | None:
         # Logoff. Invoke this everytime when a connection is dropped
-        try:
+        with msg_io_error_handler(ConnectRequestError):
             client_msg = build_logoff_msg("logoff")
-        except MsgBuilderError:
-            return 
         
         msg_key = ('session', 'logged_off', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(client_msg)
         server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
-        int_msg = parse_logged_off(server_msg)
-        if not int_msg:
-            return 
+        
+        with msg_io_error_handler(ConnectRequestError):
+            int_msg = parse_logged_off(server_msg)
         
         # Only accept specific path
         if CONN_LOGOFF_RESCODE_CQG2INT.get(int_msg['logoff_reason']):
@@ -343,24 +339,22 @@ class ConnectCQG(Connect):
             **kwargs
         ) -> dict[str, Any] | None:
         # Restoring session after dropoff     
-        try:               
+        with msg_io_error_handler(ConnectRequestError):
             restore_msg = build_restore_msg(
                 client_app_id          if client_app_id          is not None else self.client_app_id,
                 protocol_version_major if protocol_version_major is not None else self.protocol_version_major,
                 protocol_version_minor if protocol_version_minor is not None else self.protocol_version_minor,
                 session_token          if session_token          is not None else self.session_token,
                 **kwargs)
-        except MsgBuilderError:
-            return
+
  
         msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(restore_msg)
         server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
-        int_msg = parse_restore_or_join_session_result(server_msg)
         
-        if not int_msg:
-            return 
+        with msg_io_error_handler(ConnectRequestError):
+            int_msg = parse_restore_or_join_session_result(server_msg)
         
         if CONN_RESTORE_RESCODE_CQG2INT.get(int_msg['result_code']):
             next_state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]
@@ -375,7 +369,7 @@ class ConnectCQG(Connect):
         try:
             ping_msg = build_ping_msg(token, ping_utc_time=utc_time)
         except MsgBuilderError:
-            return
+            raise ConnectRequestError("")
 
         msg_key =  ('session', 'pong', 'token', token)
         fut = self._msg_router.register_key(msg_key)
@@ -388,10 +382,9 @@ class ConnectCQG(Connect):
         ) -> ContractMetaDataType | None:
         
         # symbol Resolution
-        try:
+        with msg_io_error_handler(ConnectRequestError):
             msg = build_resolve_symbol_msg(symbol, self.rid, subscribe=True)
-        except MsgBuilderError:
-            return
+
         msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", self.rid)
         fut = self._msg_router.register_key(msg_key)
         await self._transport.send(msg)
@@ -399,4 +392,5 @@ class ConnectCQG(Connect):
         
         # walk through the second layer of the message, Find all info report,        
         # parse a list of info
-        return parse_symbol_resolution_report(server_msg)
+        with msg_io_error_handler(ConnectRequestError):
+            return parse_symbol_resolution_report(server_msg)

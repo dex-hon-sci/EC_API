@@ -11,6 +11,7 @@ from EC_API.protocol.cqg.key_extractors import walk_fields
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
 from EC_API._typing import MarketValueType, QuotesValueType
+from EC_API.exceptions import MsgParserError
 
 
 TARGET = {
@@ -23,11 +24,26 @@ TARGET = {
     MktDataSubLevelCQG.LEVEL_END_OF_DAY: ""
     }
 
+def parse_market_data_subscription_statuses(
+        server_msg: ServerMsg
+        ) -> list[dict[str, str]]:
+    market_data_subscription_statuses = server_msg.market_data_subscription_statuses
+    
+    if len(market_data_subscription_statuses) == 0:
+        raise MsgParserError("Empty field for market_data_subscription_statuses")
+    
+    return [{
+        'contract_id': msg.contract_id,
+        'status_code': msg.status_code,
+        'level': msg.level        
+        } for msg in market_data_subscription_statuses]
+        
+
 def parse_real_time_market_data(
         server_msg: ServerMsg, 
         level: MktDataSubLevel | MktDataSubLevelCQG
         ) -> list[MarketValueType]:
-    
+    # Master function that handle real time market data by provided levels
     def selector(fd, val) -> Iterable[Any]:
         if fd.message_type is not None and fd.name == "real_time_market_data":
             yield 
@@ -38,8 +54,8 @@ def parse_real_time_market_data(
 
     return outs
 
-def parse_order_statuses_data(server_msg: ServerMsg)-> dict[str,Any]:
-    return 
+##def parse_order_statuses_data(server_msg: ServerMsg)-> dict[str,Any]:
+#    return 
 
 # =============================================================================
 # def parse_real_time_market_data2(server_msg: ServerMsg)-> list[dict[str,Any]]:

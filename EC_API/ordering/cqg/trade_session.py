@@ -18,7 +18,8 @@ from EC_API.ordering.cqg.builders import (
     )
 from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.exceptions import (
-    MsgBuilderError
+    MsgBuilderError,
+    TradeSessionRequestError
     )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class TradeSessionCQG:
         # States control
         self._active_subs: dict[int, set[SubScope]] = {}
         self.order_statuses: dict[str, OrderStatus] = dict()
+        self._account_summaries: dict[str, None] = dict()
         self._order_state: dict[str, dict] = {}        # order_id → latest status
         self._order_futures: dict[str, asyncio.Future] = {}  # for awaiting terminal state
         self._tracker_task: asyncio.Task = None
@@ -61,6 +63,7 @@ class TradeSessionCQG:
     def has_orders_scope(self) -> bool:
         return any(SubScope.ORDERS in scopes 
                    for scopes in self._active_subs.values())
+    
     def has_positions_scope() -> bool:
         return 
     
@@ -96,8 +99,10 @@ class TradeSessionCQG:
                 sub_scope = sub_scope,
                 skip_orders_snapshot = False   
                 )
-        except MsgBuilderError:
-            return 
+        except MsgBuilderError as e:
+            raise TradeSessionRequestError(
+                f"Failed to build trade_subscription_request for sub_id:{sub_id}."
+                ) from e
         
         await self._transport.send(msg)
         # wait for three response, trade_sub_Status, snapshot, orderstatus 
@@ -123,8 +128,10 @@ class TradeSessionCQG:
                 sub_scope = sub_scope,
                 skip_orders_snapshot = False   
                 )
-        except MsgBuilderError:
-            return 
+        except MsgBuilderError as e:
+            raise TradeSessionRequestError(
+                f"Failed to build unsubscribe_trade_request for sub_id:{sub_id}."
+                ) from e
         await self._transport.send(msg)
         sub_status_key = ('sub', 'trade_subscription_statuses', 'id', sub_id)
         fut_sub_status = self._msg_router.register_key(sub_status_key)
@@ -147,11 +154,13 @@ class TradeSessionCQG:
                 from_date,
                 to_date
                 )
-        except MsgBuilderError:
-            return 
+        except MsgBuilderError as e:
+            raise TradeSessionRequestError(
+                f"Failed to build request_historical_orders for time period:{from_date} to {to_date}."
+                ) from e
         key = ('info', 'information_reports:historical_orders_report', 'id', rid)
         fut = self._router.register(key)
         await self._transport.send(client_msg)
         server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
         
-        #return server_msg
+        return server_msg

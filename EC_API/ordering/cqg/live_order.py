@@ -35,6 +35,7 @@ from EC_API.ordering.cqg.builders import (
     build_cancelall_order_request_msg,
     build_goflat_order_request_msg
     )
+from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
     TradeSubscriptionMissingError,
     MissingSymbolResolutionError,
@@ -85,10 +86,8 @@ class LiveOrderCQG(LiveOrder):
         ) -> None:
         para = locals().copy()
         
-        try:
+        with msg_io_error_handler(OrderRequestError):
             client_msg = build_new_order_request_msg(**request_details)
-        except MsgBuilderError:
-            raise OrderRequestError 
         
         key = ('substream','order_statuses','chain_order_id','')
         #key = ("order_statuses", request_details['request_id'])
@@ -104,10 +103,8 @@ class LiveOrderCQG(LiveOrder):
         request_details: dict[str, Any],
         ) -> ServerMsg:
         
-        try:
+        with msg_io_error_handler(OrderRequestError):
             client_msg = build_modify_order_request_msg(**request_details)
-        except MsgBuilderError:
-            raise OrderRequestError 
 
         key = ('substream','order_statuses','chain_order_id','')
         #key = ("order_statuses", request_details['request_id'])
@@ -122,10 +119,8 @@ class LiveOrderCQG(LiveOrder):
         request_details: dict[str, Any],
         **kwargs
         ) -> ServerMsg:
-        try:
+        with msg_io_error_handler(OrderRequestError):
             client_msg = build_cancel_order_request_msg(**request_details)
-        except MsgBuilderError:
-            raise OrderRequestError 
         
         key = ('substream','order_statuses','chain_order_id','')
         #key = ("order_statuses", request_details['request_id'])
@@ -138,10 +133,8 @@ class LiveOrderCQG(LiveOrder):
         self,
         request_details: dict[str, Any],
         ) -> ServerMsg:
-        try:
+        with msg_io_error_handler(OrderRequestError):
             client_msg = build_activate_order_request_msg(**request_details)
-        except MsgBuilderError:
-            raise OrderRequestError 
 
         #key = ("order_statuses", request_details['request_id'])
         key = ('substream','order_statuses','chain_order_id','')
@@ -163,10 +156,8 @@ class LiveOrderCQG(LiveOrder):
         self, 
         request_details: dict[str, Any],
         ) -> ServerMsg:
-        try:
+        with msg_io_error_handler(OrderRequestError):
             client_msg = build_goflat_order_request_msg(**request_details)
-        except MsgBuilderError:
-            raise OrderRequestError 
 
         #key = ("order_statuses", request_details['request_id'])
         key = ('substream','order_statuses','chain_order_id','')
