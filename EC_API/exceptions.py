@@ -105,6 +105,10 @@ class ConnectRequestError(ConnectError):
 class ConnectCancelledError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
+        
+class ConnectTimeOutError(ConnectError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 class DisconnectError(ConnectError):
     def __init__(self, message: str):
@@ -121,10 +125,15 @@ class SymbolResolutionError(ConnectError):
 class MissingSymbolResolutionError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
+        
 
 # --- Monitor
 class MonitorError(EC_APIError):...
 
+class MonitorTimeOutError(MonitorError):
+    def __init__(self, message: str):
+        super().__init__(message)
+    
 class ContractIDMissingError(MonitorError):
     def __init__(self, message: str):
         super().__init__(message)
@@ -138,7 +147,11 @@ class MonitorDataRequestError(MonitorError):
         super().__init__(message)
 
 # --- Ordering
-class TradeSessionError(EC_APIError):...
+class TradeSessionError(EC_APIError): ...
+
+class TradeSessionTimeOutError(TradeSessionError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 class TradeSessionRequestError(EC_APIError):
     def __init__(self, message: str):
@@ -149,7 +162,13 @@ class TradeSubscriptionMissingError(TradeSessionError):
         super().__init__(message)
         
 # --- LiveOrder
-class OrderRequestError(TradeSessionError):
+class LiveOrderError(EC_APIError): ...
+
+class LiveOrderTimeOutError(LiveOrderError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class OrderRequestError(LiveOrderError):
     def __init__(self, message: str):
         super().__init__(message)
 

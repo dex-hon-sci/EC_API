@@ -32,10 +32,10 @@ from EC_API.monitor.cqg.parsers import (
 from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
-    MsgBuilderError,
     SymbolResolutionError,
     UnsupportedLevelError,
-    MonitorDataRequestError
+    MonitorDataRequestError,
+    MonitorTimeOutError
     )
 from EC_API._typing import MarketValueType
 
@@ -123,35 +123,34 @@ class MonitorDataCQG(Monitor):
         # symbol at the same time. Message Router may fail. Space out the 
         # function calls.
         if not MKTDATASUBLEVEL_MAP_INT2CQG.get(level):
-            print("MonitorDataRequestError")
             raise MonitorDataRequestError(f"Level: {level} unsupported.")
             
-        with msg_io_error_handler(MonitorDataRequestError):
+        with msg_io_error_handler(
+                MonitorDataRequestError,
+                timeout_error = MonitorTimeOutError
+            ):
             msg = build_realtime_data_request_msg(contract_id, self.rid(), level)
-        #except MsgBuilderError as e:
-        #    raise MonitorDataRequestError(
-        #        f"Failed to build real-time data request for contract_id:{contract_id}"
-        #        ) from e
         
-        key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
-        fut = self._msg_router.register_key(key)
-        
-        await self._transport.send(msg)  
-        confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
-        with msg_io_error_handler(MonitorDataRequestError):
+            key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
+            fut = self._msg_router.register_key(key)
+            
+            await self._transport.send(msg)  
+            confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return parse_market_data_subscription_statuses(confirm_msg)
     
     async def _unsubscribe_mkt_data(
             self, 
             contract_id: int
         ) -> list[dict[str,str]]:
-        with msg_io_error_handler(MonitorDataRequestError):
+        with msg_io_error_handler(
+                MonitorDataRequestError,
+                timeout_error = MonitorTimeOutError
+            ):
             msg = build_reset_tracker_request_msg(contract_id, self.rid())
         
-        key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
-        fut = self._msg_router.register_key(key)
-        await self._transport.send(msg)
-        confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
-        with msg_io_error_handler(MonitorDataRequestError):
+            key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
+            fut = self._msg_router.register_key(key)
+            await self._transport.send(msg)
+            confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return parse_market_data_subscription_statuses(confirm_msg)
 

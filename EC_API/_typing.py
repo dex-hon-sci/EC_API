@@ -33,3 +33,4 @@ MarketValueType = tuple[int, int, int, int, int, int, int]
 QuotesValueType = tuple[int, int, Any, int, int]
 
 # --- LiveOrder
+OrderStatusType = dict[str, Any]
