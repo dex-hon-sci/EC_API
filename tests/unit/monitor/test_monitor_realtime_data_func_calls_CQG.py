@@ -1,6 +1,8 @@
 import pytest
 import asyncio
 
+from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscriptionStatus as MktDSubStatus
+from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as MktDSub
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.cqg.realtime_data import MonitorDataCQG
@@ -31,7 +33,7 @@ async def test_realtime_data_request_valid() -> None:
         )
     fake_transport = FakeTransport()
     conn._transport = fake_transport
-    conn._timeout = 1.0
+    conn._timeout = 0.1
     
     conn.start()
     MD = MonitorDataCQG(conn)
@@ -44,12 +46,16 @@ async def test_realtime_data_request_valid() -> None:
         _inject_after_send(fake_transport, msg)
         )    
     assert result is not None
+    assert isinstance(result,list)
+    assert len(result) == 1 
+    assert result[0]['contract_id'] == 19
+    assert result[0]['status_code'] == MktDSubStatus.StatusCode.STATUS_CODE_SUCCESS
+    assert result[0]['level'] == MktDSub.Level.LEVEL_TRADES
     # Add assert after finishing the parser functions
     await conn.stop()
 
 @pytest.mark.asyncio    
 async def test_unsubscribe_mkt_data_valid() -> None:
-    #fake_client = FakeCQGClient()
     conn = ConnectCQG(
         "host_name", "user_name", "password", 
         immediate_connect= False, client=object()
@@ -60,15 +66,21 @@ async def test_unsubscribe_mkt_data_valid() -> None:
     
     conn.start()
     MD = MonitorDataCQG(conn)
-    #await MD._realtime_data_request(19, MktDataSubLevel.LEVEL_TRADES)
     
-    msg = build_market_data_subscription_statuses_server_msg(ServerMsg(), contract_id=19)
+    msg = build_market_data_subscription_statuses_server_msg(
+        ServerMsg(), contract_id=19, level=MktDSub.Level.LEVEL_NONE)
 
     result, _ = await asyncio.gather(
         MD._unsubscribe_mkt_data(19),
         _inject_after_send(fake_transport, msg)
         )    
     assert result is not None
+    assert isinstance(result,list)
+    assert len(result) == 1
+    assert result[0]['contract_id'] == 19
+    assert result[0]['status_code'] == MktDSubStatus.StatusCode.STATUS_CODE_SUCCESS
+    assert result[0]['level'] == MktDSub.Level.LEVEL_NONE
+ 
     await conn.stop()
 
 @pytest.mark.asyncio
