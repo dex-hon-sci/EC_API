@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from EC_API.payload.base import Payload
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
+from EC_API.payload.safety import PayloadFormatCheck
 from EC_API.payload.cqg.safety import CQGFormatCheck
 from EC_API.ordering.enums import (
     Side, 

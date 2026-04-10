@@ -188,3 +188,55 @@ class TradeSessionCQG:
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
         
             return server_msg
+        
+# =============================================================================
+#         
+# ---
+#   Proposed Structure
+# 
+#   Two containers, exactly as you described:
+# 
+#   # in TradeSessionCQG.__init__
+# 
+#   self._active_orders: set[str]              = set()
+#   # chain_order_id → latest parsed status dict
+#   self._order_state:   dict[str, dict]       = {}
+# 
+#   The _order_futures dict you've already commented out can stay out — the one-shot
+#   msg_router Future handles the initial ack, these two are purely for the tracker loop.
+# 
+#   ---
+#   _tracker_loop Logic
+# 
+#   The key insight is that stream_router is keyed by chain_order_id. Each active order
+#   has its own queue. The loop just drains all active queues non-blockingly each
+#   iteration:
+# 
+#   TERMINAL = {OrderStatus.FILLED, OrderStatus.CANCELLED,
+#               OrderStatus.REJECTED, OrderStatus.EXPIRED}
+# 
+#   async def _tracker_loop(self):
+#       while not self._stop_evt.is_set():
+#           done = set()
+# 
+#           for chain_order_id in self._active_orders:
+#               queues = self._stream_router._subs.get(chain_order_id, [])
+#               for q in queues:
+#                   while not q.empty():
+#                       order_status_msg = q.get_nowait()
+#                       status = parse_order_status(order_status_msg)  # your parser
+#                       self._order_state[chain_order_id] = status
+# 
+#                       if status['status'] in TERMINAL:
+#                           done.add(chain_order_id)
+# 
+#           for chain_order_id in done:
+#               self._active_orders.discard(chain_order_id)
+#               # optionally unsubscribe the queue here too
+# 
+#           await asyncio.sleep(0)   # yield to event loop, keeps it lightweight
+# 
+#   asyncio.sleep(0) instead of a timed sleep — it yields control back to the event loop
+#   every cycle without adding artificial latency. The loop only does real work when
+#   queues are non-empty.
+# =============================================================================

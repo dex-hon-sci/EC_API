@@ -16,7 +16,8 @@ from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PayloadFormatCheck
 from EC_API.ordering.trade_session import TradeSession
-@dataclass
+
+@dataclass(slots=True)
 class Payload:
     """
     A vendor-agnoistic objects that contain the information needed for a 
@@ -31,8 +32,6 @@ class Payload:
     
     One Payload correspond to one order request.
     """
-    #account_id: int = 0
-    #request_id: int = 0
     order_request_type: RequestType = RequestType.NEW_ORDER
     status: PayloadStatus = PayloadStatus.PENDING
     order_info: dict = field(default_factory=dict)
