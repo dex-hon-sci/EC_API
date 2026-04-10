@@ -128,6 +128,10 @@ class ContractIDMissingError(MonitorError):
 class UnsupportedLevelError(MonitorError):
     def __init__(self, message: str):
         super().__init__(message)
+        
+class MonitorDataRequestError(MonitorError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- Ordering
 class TradeSessionError(EC_APIError):...

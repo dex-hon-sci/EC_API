@@ -406,12 +406,14 @@ def build_go_flat_statuses_server_msg(
 # (2) real_time_market_data (v)
 def build_market_data_subscription_statuses_server_msg(
         server_msg: ServerMsg,
+        contract_id: int = 1,
+        level: MktDSub.Level =  MktDSub.Level.LEVEL_TRADES,
         res: MktDSubStatus.StatusCode = MktDSubStatus.StatusCode.STATUS_CODE_SUCCESS
     ) -> ServerMsg:
     market_data_subscription_statuses = server_msg.market_data_subscription_statuses.add()
-    market_data_subscription_statuses.contract_id = 1
+    market_data_subscription_statuses.contract_id = contract_id
     market_data_subscription_statuses.status_code = res
-    market_data_subscription_statuses.level = MktDSub.Level.LEVEL_TRADES
+    market_data_subscription_statuses.level = level
         
     return server_msg
 

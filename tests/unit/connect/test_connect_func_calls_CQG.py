@@ -11,7 +11,7 @@ import time
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.connect.enums import ConnectionState
 from EC_API.transport.routers import MessageRouter
-from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg, ClientMsg
+from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LgRes
 from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as RstJoinSessRes
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LgOff
