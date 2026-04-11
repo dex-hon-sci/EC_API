@@ -192,9 +192,7 @@ def test_extract_key_non_timed_bar_reports() -> None:
 
 # ---- Test composite messages and splitter
 def test_splitter_valid() -> None:
-    server_msg = ServerMsg()
-    
-    mkt_msg = build_market_data_subscription_statuses_server_msg(server_msg)
+    mkt_msg = build_market_data_subscription_statuses_server_msg(ServerMsg())
     mkt_msg = build_real_time_market_data_server_msg(mkt_msg)
 
     res = split_server_msg(

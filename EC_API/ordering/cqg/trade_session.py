@@ -66,6 +66,25 @@ class TradeSessionCQG:
 
     def rid(self) -> int:
         return self.conn.rid()
+    
+    # ---- Dunder meothos ---
+    async def __aenter__(self):
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        for sub_id, scopes in list(self._active_subs.items()):
+            for scope in scopes:
+                try:
+                    await self.unsubscribe_trade_request(sub_id, scope)
+                except Exception: # <-- fix this later
+                    pass
+        if self._tracker_task and not self._tracker_task.done():
+            self._tracker_task.cancel()
+            try:
+                await self._tracker_task
+            except asyncio.CancelledError:
+                pass
+        return False        
 
     # --- Checks
     def has_orders_scope(self) -> bool:
@@ -117,17 +136,16 @@ class TradeSessionCQG:
                 sub_scope = sub_scope,
                 skip_orders_snapshot = False   
                 )
-        #except MsgBuilderError as e:
-        #    raise TradeSessionRequestError(
-        #        f"Failed to build trade_subscription_request for sub_id:{sub_id}."
-        #        ) from e
         
             await self._transport.send(msg)
             # wait for three response, trade_sub_Status, snapshot, orderstatus 
             sub_status_key = ('sub', 'trade_subscription_statuses', 'id', sub_id)
-            snapshot_key = ('sub', 'trade_snapshot_completions', 'subscription_id', 1)
+            snapshot_key = ('sub', 'trade_snapshot_completions', 'subscription_id', sub_id)
             fut_sub_status = self._msg_router.register_key(sub_status_key)
             fut_snapshot = self._msg_router.register_key(snapshot_key)
+            
+            print(fut_sub_status)
+            print(fut_snapshot)
             
             sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self._timeout)
             snapshot_msg = await asyncio.wait_for(fut_snapshot, timeout=self._timeout)

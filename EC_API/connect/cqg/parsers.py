@@ -65,7 +65,7 @@ def parse_symbol_resolution_report(
     for report in information_reports:
         sym_rp = report.symbol_resolution_report
         temp = {
-        'cotract_id': sym_rp.contract_metadata.cotract_id,
+        'cotract_id': sym_rp.contract_metadata.contract_id,
         'contract_symbol': sym_rp.contract_metadata.contract_symbol,
         'correct_price_scale': sym_rp.contract_metadata.correct_price_scale,
         'display_price_scale': sym_rp.contract_metadata.display_price_scale,

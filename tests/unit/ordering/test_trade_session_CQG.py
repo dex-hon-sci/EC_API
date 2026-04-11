@@ -3,6 +3,7 @@ import pytest
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus as TrdSubStatus
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
+from EC_API.connect.enums import ConnectionState
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.ordering.enums import SubScope
 from tests.unit.fixtures.proxy_clients import FakeTransport
@@ -12,7 +13,8 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_real_time_market_data_server_msg
     )
 from EC_API.exceptions import (
-    TradeSessionRequestError, TradeSubscriptionMissingError
+    TradeSessionRequestError, 
+    TradeSubscriptionMissingError
     )
 
 
@@ -32,16 +34,16 @@ def make_conn():
         )
     fake_transport = FakeTransport()
     conn._transport = fake_transport
-    conn._timeout = 0.1
+    conn._timeout = 0.6
     return conn, fake_transport
 
 @pytest.mark.asyncio
 async def test_trade_subscription_request_valid()->None:
     conn,ft = make_conn()
     TS = TradeSessionCQG(conn)
+    conn.start()
     
-    msg = ServerMsg()
-    response1 = build_trade_subscription_statuses_server_msg(msg, sub_id = 2)
+    response1 = build_trade_subscription_statuses_server_msg(ServerMsg(), sub_id = 2)
     response2 = build_trade_snapshot_completetions_server_msg(response1, sub_id = 2)
     
     result, _ = await asyncio.gather(
@@ -49,16 +51,30 @@ async def test_trade_subscription_request_valid()->None:
         _inject_after_send(ft, response2)
         )    
     assert result is not None
-    assert isinstance(result.trade_subscription_statuses, list)
-    assert len(result.trade_subscription_statuses)==2
+    assert isinstance(result, tuple)
+    assert len(result)==2
     assert result[0].trade_subscription_statuses[0].id == 2
     assert result[0].trade_subscription_statuses[0].status_code == TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS
 
     assert result[1].trade_snapshot_completions[0].subscription_id == 2
     assert len(result[1].trade_snapshot_completions[0].subscription_scopes) == 4
+    await conn.stop()
     
 @pytest.mark.asyncio
-async def test_trade_subscription_request_invalid()->None:...
+async def test_trade_subscription_request_builder_invalid()->None:
+    conn,ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    conn.start()
+    conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
+    
+    with pytest.raises(TradeSessionRequestError):
+        await TS.trade_subscription_request("2", SubScope.ORDERS) #<-- incorrect input
+        
+@pytest.mark.asyncio
+async def test_trade_subscription_request_parser_invalid()->None:...
+
+@pytest.mark.asyncio
+async def test_trade_subscription_request_timeout_invalid()->None:...
 
 @pytest.mark.asyncio
 async def test_unsubscribe_trade_request_valid()->None: ...
