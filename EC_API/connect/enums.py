@@ -26,36 +26,44 @@ class ConnectionState(Enum):
 # --- State Lifecycle ---
 CONNECT_STATES_LIFECYCLE = {
     ConnectionState.UNKNOWN: [
-        ConnectionState.CONNECTING
+        ConnectionState.CONNECTING,
+        ConnectionState.UNKNOWN # Each node can always point to itself
         ],
     ConnectionState.CONNECTING: [
+        ConnectionState.CONNECTING,
         ConnectionState.RECONNECTING,
         ConnectionState.CONNECTED_DEFAULT,
         ConnectionState.DISCONNECTED
         ],
     ConnectionState.CONNECTED_DEFAULT: [
+        ConnectionState.CONNECTED_DEFAULT,
         ConnectionState.CONNECTED_LOGON,
         ConnectionState.RECONNECTING,
         ConnectionState.DISCONNECTED
         ],
     ConnectionState.RECONNECTING: [
+        ConnectionState.RECONNECTING,
         ConnectionState.CONNECTED_DEFAULT,
         ConnectionState.DISCONNECTED
         ],
     ConnectionState.CONNECTED_LOGON: [
+        ConnectionState.CONNECTED_LOGON,
         ConnectionState.CONNECTED_LOGOFF,
         ConnectionState.DISCONNECTED
         ],
     ConnectionState.CONNECTED_LOGOFF: [
+        ConnectionState.CONNECTED_LOGOFF,
         ConnectionState.CONNECTED_LOGON,
         ConnectionState.DISCONNECTED,
         #ConnectionState.CLOSING
         ],
     ConnectionState.DISCONNECTED: [
+        ConnectionState.DISCONNECTED,
         ConnectionState.RECONNECTING,
         ConnectionState.CLOSING
         ],
     ConnectionState.CLOSING: [
+        ConnectionState.CLOSING,
         ConnectionState.CLOSED
         ],
     ConnectionState.CLOSED: [] # End State

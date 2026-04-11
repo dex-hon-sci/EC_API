@@ -7,6 +7,7 @@ Created on Mon Aug 18 11:34:22 2025
 """
 import asyncio
 from typing import Optional, Any, Callable
+import warnings
 import logging
 from datetime import datetime, timezone
 
@@ -170,9 +171,35 @@ class ConnectCQG(Connect):
                 ConnectionState.CLOSING,
                 ConnectionState.CLOSED
                 ): # Move to Logoff(if needed) and then Disconnect 
-            logger.warning("Connect object not properly stopped.\
-                        Procced to automatic connection shutdown.")
-            
+            return 
+        
+        warnings.warn(
+            f"Unclosed {self}. Call await stop() or use async with caluse.", 
+            ResourceWarning, source=self)
+        
+        if self.state == ConnectionState.CONNECTED_LOGOFF:
+            try: # Emergency Sync logoff
+                logoff_msg = build_logoff_msg("logoff")
+                self._client.send_client_message(logoff_msg)
+            except Exception:
+                pass
+        
+        try:
+            self._transport.disconnect()
+        except TransportDisconnectError:
+            logger.warning("Transport Layer not properly disconnect.")
+
+        if getattr(self, '_stop_evt', None):
+            self._stop_evt.set()
+        try:
+            self._transport.stop()
+        except Exception:                
+            logger.warning("Transport Layer not properly stopped.")
+                
+        router_task = getattr(self, '_router_task', None)
+        if router_task and not router_task.done():
+            router_task.cancel()  # schedules cancellation only — cannot await      
+    
     # ---- Internal Getter Methods ----
     @property
     def state(self) -> ConnectionState:
@@ -268,6 +295,7 @@ class ConnectCQG(Connect):
         # teardown service in destructor
         
         return
+    
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
 
@@ -320,10 +348,12 @@ class ConnectCQG(Connect):
         pass
         
     async def _reconnect_loop(self, num_attempt: int =10):
-        while True:
+        while not self._stop_evt.set():
             ...
     
-    async def _update_timeout_loop(self):...
+    async def _update_timeout_loop(self):
+        while not self._stop_evt.set():
+            ...
              
     # ---- CQG messages function calls ----
     async def logon(
@@ -395,6 +425,8 @@ class ConnectCQG(Connect):
             **kwargs
         ) -> dict[str, Any] | None:
         # Restoring session after dropoff     
+        #self._msg_router.transition_to(ConnectionState.RECONNECTING)
+
         with msg_io_error_handler(
                 ConnectRequestError, 
                 timeout_error = ConnectTimeOutError
@@ -439,7 +471,6 @@ class ConnectCQG(Connect):
     async def resolve_symbol(
         self, symbol: str,
         ) -> ContractMetaDataType | None:
-        
         # symbol Resolution
         with msg_io_error_handler(
                 ConnectRequestError, 
