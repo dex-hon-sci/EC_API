@@ -64,6 +64,19 @@ logger = logging.getLogger(__name__)
 
 class ConnectCQG(Connect):
     """
+    The connection Layer fasciliate communications between our local 
+    applications and the CQG Server. 
+    
+    It uses a TransportCQG object that
+    manage synchronous messainging via websocket. ConnectCQG the extract 
+    the server messages asynchronously from the in-queue and place 
+    client messages schronously in the out-queue within the transport 
+    layer. 
+    
+    High-level Services, such as MonotorData or TradeSession build 
+    on top of the connection layer to perform specific functions.
+    
+    Session-specific function calls to CQG are also in this class.
     """
     def __init__(
             self, 
@@ -87,9 +100,10 @@ class ConnectCQG(Connect):
         self.protocol_version_minor: Optional[int] = None
         
         # Event Loop
+        self._loop = asyncio.get_running_loop()
         self._router_task: Optional[asyncio.Task] = None
         self._stop_evt = asyncio.Event()
-        self._timeout = 1 # make make this a ping based decision
+        self._timeout: float | int = 1 # make make this a ping based decision
 
         # State Control
         self._state_mgr = StateMgr(
@@ -100,11 +114,10 @@ class ConnectCQG(Connect):
             )
 
         # Generic Message parameter
-        self._rid = 10 # initial request ID
+        self._rid: int = 10 # initial request ID
         
         # Define client and transport layer
         self._client = webapi_client.WebApiClient() if client is None else client
-        self._loop = asyncio.get_running_loop()
         self._transport = TransportCQG(
             self._host_name,
             loop = self._loop, 
@@ -128,6 +141,38 @@ class ConnectCQG(Connect):
             self._rid = 1
         return self._rid
             
+    # ---- Dunder methods override
+    async def __aenter__(self): 
+        self.start()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:
+        if self.state not in (                
+                ConnectionState.UNKNOWN, 
+                ConnectionState.CLOSING,
+                ConnectionState.CLOSED
+                ): # Move to Logoff(if needed) and then Disconnect 
+            logger.warning("Connect object not properly stopped.\
+                        Procced to automatic connection shutdown.")
+            await self.stop()
+            return True
+        
+        return False
+        
+    def __del__(self):
+        # Guard against partial init
+        state = getattr(self, '_state_mgr', None)
+        if state is None:
+            return  # __init__ never completed
+    
+        if self.state not in (                
+                ConnectionState.UNKNOWN, 
+                ConnectionState.CLOSING,
+                ConnectionState.CLOSED
+                ): # Move to Logoff(if needed) and then Disconnect 
+            logger.warning("Connect object not properly stopped.\
+                        Procced to automatic connection shutdown.")
+            
     # ---- Internal Getter Methods ----
     @property
     def state(self) -> ConnectionState:
@@ -141,7 +186,7 @@ class ConnectCQG(Connect):
     @property
     def transport(self) -> TransportCQG:
         return self._transport
-    
+
     # ---- Live cycle --------
     def start(self) -> bool:
         if self.state not in (
@@ -183,11 +228,9 @@ class ConnectCQG(Connect):
         if self.state == ConnectionState.CONNECTED_LOGON:
             # Successful Logoff automatically move state to LOGOFF
             try:
-                logoff_msg = await self.logoff() 
-            except TransportConnectError as e:
+                await self.logoff() 
+            except (ConnectRequestError, ConnectTimeOutError) as e:
                 logger.warning(str(e)) # proceed to ungraceful disconnection
-                
-            if not logoff_msg:
                 return False
        
         try:  # Try Disconnect first before joining the threads
@@ -220,7 +263,11 @@ class ConnectCQG(Connect):
                 self._state_mgr.transition_to(ConnectionState.CLOSED)
                 
         return True
-
+    
+    def sync_teardown() -> None:
+        # teardown service in destructor
+        
+        return
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
 
@@ -267,11 +314,14 @@ class ConnectCQG(Connect):
                             self._msg_router.on_message(key, msg)
                             #print('router loop', key, msg)
                             #await self._misc_queue.put(msg)
+                                    
     # ---- Failure Mode -------------------
     async def _on_transport_failure(self, exc: Exception) -> None:
         pass
         
-    async def _reconnect_loop(self):...
+    async def _reconnect_loop(self, num_attempt: int =10):
+        while True:
+            ...
     
     async def _update_timeout_loop(self):...
              
