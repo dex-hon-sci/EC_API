@@ -20,7 +20,8 @@ from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
     TradeSessionRequestError,
-    TradeSessionTimeOutError
+    TradeSessionTimeOutError,
+    TradeSubscriptionMissingError
     )
 from EC_API._typing import OrderStatusType
 
@@ -36,7 +37,6 @@ class TradeSessionCQG:
         self._transport = self._conn.transport
         
         # Event Loop
-        self._timeout = self._conn._timeout
         self._tracker_task: asyncio.Task = None
         self._stop_evt = self._conn._stop_evt
         
@@ -44,25 +44,31 @@ class TradeSessionCQG:
         self._stream_router = self._conn._exec_stream_router
         self._msg_router = self._conn._msg_router
         
-        # Containers
+        # Containers - Subs
         self._active_subs: dict[int, set[SubScope]] = {}
-        
+        # Containers - orders
         self.active_orders: set[str] = set()
-        self.order_statuses: dict[str, OrderStatusType] = dict()
-
+        self.order_statuses: dict[str, OrderStatusType] = dict() # order_id to status
+        self.order_details: dict[str, dict] = dict()
+        
         self._account_summaries: dict[str, None] = dict()
         #self._order_futures: dict[str, asyncio.Future] = {}  # for awaiting terminal state
 
         # symbol registry 
         self.symbol_registry: SymbolRegistry = SymbolRegistry()
-        
-        # States control
-        self.state = self._conn.state
-        
+
     # --- Property --- 
     @property
     def conn(self):
         return self._conn
+    
+    @property
+    def state(self):
+        return self._conn._state_mgr.cur
+    
+    @property
+    def timeout(self):
+        return self._conn._timeout
 
     def rid(self) -> int:
         return self.conn.rid()
@@ -104,13 +110,22 @@ class TradeSessionCQG:
     async def wait_for_terminal(self, order_id: str) -> dict:
         # blocks until filled/cancelled/rejected
         ...
-    
+    # --- status tracker 
     async def _tracker_loop(self):
+        TERMINAL_STATES = {
+            OrderStatus.FILLED, OrderStatus.CANCELLED,
+            OrderStatus.REJECTED, OrderStatus.EXPIRED
+            }
         # subscribes to exec_stream_router, updates _order_state
         while not self._stop_evt.is_set():
             
+            
+            for chain_order_id in self._active_orders:
+                queues = self._stream_router._subs.get(chain_order_id, [])
+
              # Look at the order status stream (By Level) using the chain_order_id
-             self._active_subs.get()
+             #self._active_subs.get()
+             
              # update the trackers
           
             # check if the it is at the end state, if so, pop
@@ -124,7 +139,7 @@ class TradeSessionCQG:
             sub_scope: SubScope | SubScopeCQG                           
         ) -> None:
         
-        # check symbol resolution,
+        # check symbol resolution, Check if sub_id is already there
         
         with msg_io_error_handler(
                 TradeSessionRequestError, 
@@ -137,18 +152,16 @@ class TradeSessionCQG:
                 skip_orders_snapshot = False   
                 )
         
-            await self._transport.send(msg)
             # wait for three response, trade_sub_Status, snapshot, orderstatus 
             sub_status_key = ('sub', 'trade_subscription_statuses', 'id', sub_id)
             snapshot_key = ('sub', 'trade_snapshot_completions', 'subscription_id', sub_id)
             fut_sub_status = self._msg_router.register_key(sub_status_key)
             fut_snapshot = self._msg_router.register_key(snapshot_key)
             
-            print(fut_sub_status)
-            print(fut_snapshot)
-            
-            sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self._timeout)
-            snapshot_msg = await asyncio.wait_for(fut_snapshot, timeout=self._timeout)
+            await self._transport.send(msg)
+
+            sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self.timeout)
+            snapshot_msg = await asyncio.wait_for(fut_snapshot, timeout=self.timeout)
             
             return sub_status_msg, snapshot_msg
     
@@ -157,24 +170,29 @@ class TradeSessionCQG:
             sub_id: int, 
             sub_scope: SubScope | SubScopeCQG
         ) -> None:
+        
+        
         with msg_io_error_handler(
                 TradeSessionRequestError,                               
                 timeout_error = TradeSessionTimeOutError
             ):
+            if sub_id not in self._active_subs.keys():
+                raise TradeSubscriptionMissingError(
+                    f"sub_id: {sub_id} is not in the active subscription list"
+                    )
+
             msg = build_trade_subscription_msg(
                 sub_id, 
                 subscribe = False,
                 sub_scope = sub_scope,
                 skip_orders_snapshot = False   
                 )
-            #except MsgBuilderError as e:
-            #    raise TradeSessionRequestError(
-            #        f"Failed to build unsubscribe_trade_request for sub_id:{sub_id}."
-            #        ) from e
-            await self._transport.send(msg)
             sub_status_key = ('sub', 'trade_subscription_statuses', 'id', sub_id)
             fut_sub_status = self._msg_router.register_key(sub_status_key)
-            sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self._timeout)
+            
+            await self._transport.send(msg)
+
+            sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self.timeout)
             return sub_status_msg
 
     async def request_historical_orders(
@@ -185,7 +203,7 @@ class TradeSessionCQG:
         
         #from_date_timestamp = from_date.timestamp()
         #to_date_timestamp = to_date.timestamp()
-        rid = self.rid
+        rid = self.rid()
         with msg_io_error_handler(
                 TradeSessionRequestError,
                 timeout_error = TradeSessionTimeOutError
@@ -196,14 +214,10 @@ class TradeSessionCQG:
                 from_date,
                 to_date
                 )
-            #except MsgBuilderError as e:
-            #    raise TradeSessionRequestError(
-            #        f"Failed to build request_historical_orders for time period:{from_date} to {to_date}."
-            #        ) from e
             key = ('info', 'information_reports:historical_orders_report', 'id', rid)
-            fut = self._router.register(key)
+            fut = self._msg_router.register(key)
             await self._transport.send(client_msg)
-            server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+            server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
         
             return server_msg
         

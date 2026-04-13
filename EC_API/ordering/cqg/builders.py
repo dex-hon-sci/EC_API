@@ -233,7 +233,7 @@ def build_modify_order_request_msg(
 def build_cancel_order_request_msg(
     account_id: int, 
     request_id: int,
-    order_id: int, 
+    order_id: int, # server
     orig_cl_order_id: str, 
     cl_order_id: str,
     when_utc_timestamp: datetime = datetime.now(timezone.utc)
@@ -290,7 +290,7 @@ def build_cancelall_order_request_msg(
 def build_activate_order_request_msg(
     account_id: int,
     request_id: int, 
-    order_id: str, 
+    order_id: str, # server ID
     orig_cl_order_id: str, 
     cl_order_id: str,
     when_utc_timestamp: datetime,
@@ -392,7 +392,7 @@ def build_liquidateall_order_request_msg(
 
 def build_suspend_order_request_msg() -> ClientMsg:
     return 
-
+# ----
 def build_trade_historical_orders_request_msg(
     account_id: int,
     request_id: int,

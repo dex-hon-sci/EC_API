@@ -8,6 +8,7 @@ Created on Thu Mar 19 01:06:27 2026
 from typing import Any, Iterable
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.key_extractors import walk_fields
+from EC_API.protocol.cqg.parser_util import register_parser
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
 from EC_API._typing import MarketValueType, QuotesValueType
@@ -24,21 +25,21 @@ TARGET = {
     MktDataSubLevelCQG.LEVEL_END_OF_DAY: ""
     }
 
+@register_parser('market_data_subscription_statuses')
 def parse_market_data_subscription_statuses(
         server_msg: ServerMsg
         ) -> list[dict[str, str]]:
-    market_data_subscription_statuses = server_msg.market_data_subscription_statuses
-    
-    if not market_data_subscription_statuses:
-        raise MsgParserError("Empty field for market_data_subscription_statuses")
-    
-    return [{
-        'contract_id': msg.contract_id,
-        'status_code': msg.status_code,
-        'level': msg.level        
-        } for msg in market_data_subscription_statuses]
-        
+    try:
+        market_data_subscription_statuses = server_msg.market_data_subscription_statuses
+        return [{
+            'contract_id': msg.contract_id,
+            'status_code': msg.status_code,
+            'level': msg.level        
+            } for msg in market_data_subscription_statuses]
+    except Exception:
+        raise MsgParserError("Failed to parse market_data_subscription_statuses")
 
+@register_parser('real_time_market_data')
 def parse_real_time_market_data(
         server_msg: ServerMsg, 
         level: MktDataSubLevel | MktDataSubLevelCQG

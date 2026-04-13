@@ -424,13 +424,14 @@ class ConnectCQG(Connect):
             protocol_version_minor: int | None = None,
             **kwargs
         ) -> dict[str, Any] | None:
-        # Restoring session after dropoff     
-        #self._msg_router.transition_to(ConnectionState.RECONNECTING)
+        # Restoring session after dropoff   
 
         with msg_io_error_handler(
                 ConnectRequestError, 
                 timeout_error = ConnectTimeOutError
             ):
+            self._state_mgr.transition_to(ConnectionState.RECONNECTING)
+
             restore_msg = build_restore_msg(
                 client_app_id          if client_app_id          is not None else self.client_app_id,
                 protocol_version_major if protocol_version_major is not None else self.protocol_version_major,
@@ -443,8 +444,7 @@ class ConnectCQG(Connect):
             await self._transport.send(restore_msg)
             server_msg = await asyncio.wait_for(fut, timeout = self._timeout)
             
-            with msg_io_error_handler(ConnectRequestError):
-                int_msg = parse_restore_or_join_session_result(server_msg)
+            int_msg = parse_restore_or_join_session_result(server_msg)
             
             if CONN_RESTORE_RESCODE_CQG2INT.get(int_msg['result_code']):
                 next_state = CONN_RESTORE_RESCODE_CQG2INT[int_msg['result_code']]

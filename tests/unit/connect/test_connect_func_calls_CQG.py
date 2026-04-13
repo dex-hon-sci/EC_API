@@ -224,7 +224,7 @@ async def test_restore_request_failure_result_code() -> None:
     )
 
     assert result['result_code'] == RstJoinSessRes.ResultCode.RESULT_CODE_FAILURE
-    assert conn.state == ConnectionState.CONNECTED_DEFAULT
+    assert conn.state == ConnectionState.DISCONNECTED
     await conn.stop()
 
 

@@ -26,6 +26,7 @@ from EC_API.ordering.base import LiveOrder
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
+from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_INT2CQG
 from EC_API.ordering.cqg.builders import (
     build_new_order_request_msg, 
     build_modify_order_request_msg,
@@ -40,7 +41,8 @@ from EC_API.exceptions import (
     TradeSubscriptionMissingError,
     MissingSymbolResolutionError,
     OrderRequestError,
-    LiveOrderTimeOutError
+    LiveOrderTimeOutError,
+    MissingOrderIDError
     )
 
 logger = logging.getLogger(__name__)
@@ -66,16 +68,17 @@ class LiveOrderCQG(LiveOrder):
         
         self.msg_router: MessageRouter = self._conn._msg_router
         self.stream_router: StreamRouter = self._conn._exec_stream_router
-        
-        # Event Loop
-        self.timeout = self._conn._timeout
-                
+                        
         # CQG-related input parameters
         self._symbol_name = symbol_name
         self.request_id = request_id
         self.account_id = account_id
                 
     # ---
+    @property
+    def timeout(self):
+        return self._conn._timeout
+    
     def rid(self):
         return self._conn.rid()
     
@@ -101,6 +104,10 @@ class LiveOrderCQG(LiveOrder):
             fut = self.msg_router.register(key)
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+            
+            # update trade session trackers for order's initial state 
+            self.trade_session.active_order.add(server_msg.order_statuses[0].chain_order_id)
+            self.trade_session.order_status[server_msg.chain_order_id] = OrderStatus_MAP_INT2CQG[server_msg.result_code]
             return server_msg
     
     async def _modify_order_request(
@@ -108,6 +115,7 @@ class LiveOrderCQG(LiveOrder):
         request_id: int,
         request_details: dict[str, Any],
         ) -> ServerMsg:
+        # check if there is a chain_order_id in the chamber
         
         with msg_io_error_handler(
                 OrderRequestError,
@@ -209,6 +217,19 @@ class LiveOrderCQG(LiveOrder):
             raise TradeSubscriptionMissingError(
                 "Trade subscription has to be done before sending order."
                 )
+            
+        if request_type not in (
+                RequestType.NEW_ORDER, 
+                RequestType.CANCELALL_ORDER,
+                RequestType.LIQUIDATEALL_ORDER,
+                RequestType.GOFLAT_ORDER):
+            
+            order_id = request_details['order_id']
+            
+            if not self.trade_session.active_orders.get(order_id):
+                raise MissingOrderIDError(
+                    f"Order ID: {order_id} is not in active orders."
+                    )
 
         try: # then send
             details = {

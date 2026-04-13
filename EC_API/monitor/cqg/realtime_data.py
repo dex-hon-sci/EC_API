@@ -49,24 +49,30 @@ class MonitorDataCQG(Monitor):
         
         # Event Loop
         self._loop = asyncio.get_running_loop()
-        self.timeout = self._conn._timeout
 
         # symbol_registry and routers
         self._stream_router: StreamRouter = self._conn._mkt_data_stream_router
         self._msg_router: MessageRouter = self._conn._msg_router
         self._symbol_registry: SymbolRegistry = SymbolRegistry()
         
-        # State Control
-        self.state = self._conn.state
-        
     # --- Property --- 
     @property
     def conn(self):
         return self._conn
+    
+    @property
+    def state(self):
+        return self._conn._state_mgr.cur
 
+    @property
+    def timeout(self):
+        return self._conn._timeout
+    
     def rid(self) -> int:
         return self.conn.rid()
         
+    # --- Dunder methods overrides
+    # Automatically unsubscirbe and destroy the queue copy of the symbol in stream
     # --- function calls
     async def stream(
             self, 
@@ -98,20 +104,20 @@ class MonitorDataCQG(Monitor):
         try:
             while not self._conn._stop_evt.is_set():
                 try:
-                    msg = await q.get()
+                    msg = await asyncio.wait_for(q.get(), timeout = self._conn._timeout)
                 except asyncio.TimeoutError:
                     continue
-                yield parse_real_time_market_data(msg)
+                yield parse_real_time_market_data(msg, level)
             
         finally:
             try:
                 await self._unsubscribe_mkt_data(contract_id)
             except MonitorDataRequestError:
                 logger.warning(f"Unsubscribe contract_id: {contract_id} failed.")
-                return
+                
             finally:
                 self._stream_router.unsubscribe(contract_id, q)
-
+                return
     
     # --- CQG function calls
     async def _realtime_data_request(

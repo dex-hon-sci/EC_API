@@ -24,10 +24,10 @@ CONN_LOGON_RESCODE_CQG2INT = {
     }
 
 CONN_RESTORE_RESCODE_CQG2INT = {
-    Restore.ResultCode.RESULT_CODE_FAILURE: ConnectionState.CONNECTED_DEFAULT,
-    Restore.ResultCode.RESULT_CODE_UNKNOWN_SESSION: ConnectionState.CONNECTED_DEFAULT,
-    Restore.ResultCode.RESULT_CODE_ACCESS_DENIED: ConnectionState.CONNECTED_DEFAULT,
-    Restore.ResultCode.RESULT_CODE_INVALID_PARAMS: ConnectionState.CONNECTED_DEFAULT,
+    Restore.ResultCode.RESULT_CODE_FAILURE: ConnectionState.DISCONNECTED,
+    Restore.ResultCode.RESULT_CODE_UNKNOWN_SESSION: ConnectionState.DISCONNECTED,
+    Restore.ResultCode.RESULT_CODE_ACCESS_DENIED: ConnectionState.DISCONNECTED,
+    Restore.ResultCode.RESULT_CODE_INVALID_PARAMS: ConnectionState.DISCONNECTED,
     Restore.ResultCode.RESULT_CODE_SUCCESS: ConnectionState.CONNECTED_LOGON,
     }
 

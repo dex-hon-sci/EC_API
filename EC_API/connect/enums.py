@@ -42,6 +42,7 @@ CONNECT_STATES_LIFECYCLE = {
         ConnectionState.DISCONNECTED
         ],
     ConnectionState.RECONNECTING: [
+        ConnectionState.CONNECTED_LOGON,
         ConnectionState.RECONNECTING,
         ConnectionState.CONNECTED_DEFAULT,
         ConnectionState.DISCONNECTED

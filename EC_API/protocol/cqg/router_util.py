@@ -7,21 +7,31 @@ Created on Mon Jan 12 06:21:10 2026
 """
 import logging
 #from google.protobuf.descriptor import Descriptor, FieldDescriptor
+from typing import Any
+
 from google.protobuf.internal.containers import (
     RepeatedScalarFieldContainer, 
     RepeatedCompositeFieldContainer
-)
+    )
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
-from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR, SERVER_MSG_FAMILY
+from EC_API.protocol.cqg.mapping import (
+    MAP_RESPONSES_TYPES_STR, 
+    SERVER_MSG_FAMILY
+    )
 from EC_API.protocol.cqg.key_extractors import (
     extractors, RouterKey
-)
+    )
+from EC_API.protocol.cqg.parser_util import (
+    master_parsers
+    )
+
 logger = logging.getLogger(__name__)
 
 def server_msg_type(msg: ServerMsg) -> list[str]:
     # extract the top level server msg field
     return [fd.name for fd, _ in msg.ListFields()]
 
+# --- extractor and parser master functions
 def extract_router_keys(
         server_msg: ServerMsg
     ) -> list[RouterKey]:
@@ -44,7 +54,26 @@ def extract_router_keys(
             continue
     return res
 
+def parse_msg(
+        server_msg: ServerMsg
+    ) -> list[Any]:
+    # Dispatch to message specific parsers
+    msg_types = server_msg_type(server_msg)
+    res = []
+    for msg_type in msg_types:
+        parser = master_parsers.get(msg_types)
+        if parser is None:
+            continue
+        try:
+            res.extend(parser(server_msg))
+        except Exception:
+            logger.info('')
+            continue
+    return res
+
+# --- Message treatment utility
 def split_server_msg(msg: ServerMsg, targets: list[str]):
+    # Split message on the 
     res = []
     for target in targets:
         server_msg = ServerMsg()

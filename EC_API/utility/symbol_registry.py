@@ -27,6 +27,10 @@ class SymbolRegistry:
         
     # --- property
     @property
+    def active_symbols(self):
+        return list(self._sym_to_contract_ids.keys())
+    
+    @property
     def metatdata(self):
         return self._metadata
     

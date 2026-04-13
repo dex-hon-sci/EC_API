@@ -161,13 +161,18 @@ class TradeSubscriptionMissingError(TradeSessionError):
     def __init__(self, message: str):
         super().__init__(message)
         
+
 # --- LiveOrder
 class LiveOrderError(EC_APIError): ...
 
 class LiveOrderTimeOutError(LiveOrderError):
     def __init__(self, message: str):
         super().__init__(message)
-
+    
+class MissingOrderIDError(LiveOrderError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        
 class OrderRequestError(LiveOrderError):
     def __init__(self, message: str):
         super().__init__(message)

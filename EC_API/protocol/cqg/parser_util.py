@@ -5,28 +5,58 @@ Created on Thu Nov 27 12:12:27 2025
 
 @author: dexter
 """
-def parse_info_report():...
-    # this parser function is needed to handle mixed sub message type in 
-    # information report
+# this parser function is needed to handle mixed sub message type in 
+# information report, realtimedata and 
 
-# =============================================================================
-# Trade Subscriptions Status
-# STATUS_CODE_SUCCESS = 0;
-# 
-# // Currently subscription is [partially] disconnect because of communication issues.
-# // NOTE: Clients should not resubscribe in this case, the server will restore subscription with
-# // sending SUCCESS status once communication issues are resolved following with all necessary data updates.
-# STATUS_CODE_DISCONNECTED = 1;
-# 
-# // failure codes (100+)
-# STATUS_CODE_FAILURE = 101;
-# 
-# // The limit of the subscriptions has been violated.
-# STATUS_CODE_SUBSCRIPTION_LIMIT_VIOLATION = 102;
-# 
-# // Unknown or ambiguous account, sales series number, or brokerage id in the subscription.
-# STATUS_CODE_INVALID_PUBLICATION_ID = 103;
-# 
-# // The limit of subscribed accounts has been violated.
-# STATUS_CODE_SUBSCRIBED_ACCOUNTS_LIMIT_VIOLATION = 104;
-# =============================================================================
+
+from typing import Callable, Any
+from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+
+def walk_fields(
+        msg: ServerMsg, 
+        selector: Callable[Any, Any],
+        max_depth: int=2
+    ):
+    
+    outs = []
+    def walk(cur, depth):
+        if depth > max_depth:
+            return outs
+        
+        for fd, val in cur.ListField():
+            # do something according to the field
+            outs.extend(selector(fd,val))
+            
+            if fd.message_type is not None:
+                if fd.is_repeated:
+                    for ele in val:
+                        walk(ele, depth+1)
+                else:
+                    walk(ele, depth+1)
+    return walk(msg, 0)
+    
+type Parser_func = Callable[ServerMsg]
+master_parsers: dict[str, Parser_func] = dict()
+
+def register_parser(name):
+    def decorator(func):
+        master_parsers[name] = func
+        return func
+    return decorator
+    
+
+def parse_information_report():...
+
+
+def parse_realtime_market_data():...
+
+@register_parser('order_response')
+def parse_order_repsonse(msg):...
+    #"order_request_rejects": "rpc_reqid",
+    #"order_request_acks": "rpc_reqid",
+    #"trade_subscription_statuses": "sub",
+    #"trade_snapshot_completions": "sub",
+    #"order_statuses": "substream",
+    #"position_statuses": "substream",
+    #"account_summary_statuses": "substream",
+    #"go_flat_statuses": "rpc_reqid",

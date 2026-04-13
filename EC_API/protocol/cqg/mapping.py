@@ -12,6 +12,38 @@ from EC_API.ext.WebAPI.user_session_2_pb2 import LogonResult as LOR
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff
 from EC_API.ext.WebAPI.user_session_2_pb2 import RestoreOrJoinSessionResult as Restore
 
+SERVER_MSG_FAMILY = {
+    # (1) connection/session
+    "logon_result": "session",
+    "restore_or_join_session_result": "session",
+    "concurrent_connection_join_results": "session",
+    "logged_off": "session",
+    "pong": "session",
+    # (2) info report container
+    "information_reports": "info",
+    # (3) order/account RPC & streams
+    "order_request_rejects": "rpc_reqid",
+    "order_request_acks": "rpc_reqid",
+    "trade_subscription_statuses": "sub",
+    "trade_snapshot_completions": "sub",
+    "order_statuses": "substream",
+    "position_statuses": "substream",
+    "account_summary_statuses": "substream",
+    "go_flat_statuses": "rpc_reqid",
+    # (4) realtime
+    "market_data_subscription_statuses":  "sub",
+    "real_time_market_data": "md",
+    # (5) historical
+    "time_and_sales_reports": "rpc_reqid",
+    "time_bar_reports": "rpc_reqid",
+    "volume_profile_reports": "rpc_reqid",
+    "non_timed_bar_reports": "rpc_reqid",
+}
+
+
+
+
+# ---- Old code ----
 LOGON_RESULT_STATUS_ENUMS_BOOL = {
     "Accept": [LOR.ResultCode.RESULT_CODE_SUCCESS] ,
     "Reject": [LOR.ResultCode.RESULT_CODE_FAILURE,
@@ -224,34 +256,6 @@ TRANSACTION_STATUS_ENUMS_BOOL = {}
 # PARTIALLY_MATCHED = OrderStatus.Status.PARTIALLY_MATCHED
 # TRADE_BROKEN = OrderStatus.Status.TRADE_BROKEN
 # =============================================================================
-
-SERVER_MSG_FAMILY = {
-    # (1) connection/session
-    "logon_result": "session",
-    "restore_or_join_session_result": "session",
-    "concurrent_connection_join_results": "session",
-    "logged_off": "session",
-    "pong": "session",
-    # (2) info report container
-    "information_reports": "info",
-    # (3) order/account RPC & streams
-    "order_request_rejects": "rpc_reqid",
-    "order_request_acks": "rpc_reqid",
-    "trade_subscription_statuses": "sub",
-    "trade_snapshot_completions": "sub",
-    "order_statuses": "substream",
-    "position_statuses": "substream",
-    "account_summary_statuses": "substream",
-    "go_flat_statuses": "rpc_reqid",
-    # (4) realtime
-    "market_data_subscription_statuses":  "sub",
-    "real_time_market_data": "md",
-    # (5) historical
-    "time_and_sales_reports": "rpc_reqid",
-    "time_bar_reports": "rpc_reqid",
-    "volume_profile_reports": "rpc_reqid",
-    "non_timed_bar_reports": "rpc_reqid",
-}
 
 # Some msg require a status check and some don't
 # Matching Status Enums with server_msg types
