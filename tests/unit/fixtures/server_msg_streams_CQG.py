@@ -28,7 +28,7 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_at_the_money_strike_report_server_msg,
     # trade session server msg builders
     build_trade_subscription_statuses_server_msg,
-    build_trade_snapshot_completetions_server_msg,
+    build_trade_snapshot_completions_server_msg,
     build_order_statuses_server_msg,
     build_order_request_rejects_server_msg,
     build_order_request_acks_server_msg,
@@ -206,7 +206,7 @@ def dummy_composite_order_statuses_stream(num:int = 10) -> list[ServerMsg]:
         
         server_msg = build_order_request_acks_server_msg(server_msg, composite_ids[0])
         server_msg = build_trade_subscription_statuses_server_msg(server_msg, sub_id = composite_ids[1])
-        server_msg = build_trade_snapshot_completetions_server_msg(server_msg, composite_ids[2])
+        server_msg = build_trade_snapshot_completions_server_msg(server_msg, composite_ids[2])
         server_msg = build_order_statuses_server_msg(server_msg, chain_order_id = str(composite_ids[3]))
 
         return server_msg

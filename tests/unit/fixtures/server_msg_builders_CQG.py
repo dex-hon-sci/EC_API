@@ -258,7 +258,7 @@ def build_trade_subscription_statuses_server_msg(
     trade_subscription_statuses.status_code = res
     return server_msg
 
-def build_trade_snapshot_completetions_server_msg(
+def build_trade_snapshot_completions_server_msg(
         server_msg: ServerMsg,
         sub_id: int = 1
     ) -> ServerMsg:
@@ -279,7 +279,8 @@ def build_order_statuses_server_msg(
         contract_id: int = 0,
         sub_id: int = 1,
         order_id: str = "order_id_1",
-        chain_order_id: str = "chain_order_id_1"
+        chain_order_id: str = "chain_order_id_1",
+        order = None
     ) -> ServerMsg:
     
     order_statuses = server_msg.order_statuses.add()
@@ -313,6 +314,9 @@ def build_order_statuses_server_msg(
     # ----
     order_statuses.entered_by_user = "user_A"
     order_statuses.first_statement_date = int(datetime.now().timestamp())
+   
+    if order is not None: 
+        order_statuses.order.CopyFrom(order)
     # ----
     contract_metadata = order_statuses.contract_metadata.add()
     contract_metadata.contract_id = 0
@@ -562,7 +566,7 @@ def build_all_server_msgs() -> dict[str, ServerMsg]:
     order_request_rejects_server_msg = build_order_request_rejects_server_msg(ServerMsg())
     order_request_acks_server_msg = build_order_request_acks_server_msg(ServerMsg())
     trade_subscription_statuses_server_msg = build_trade_subscription_statuses_server_msg(ServerMsg())
-    trade_snapshot_completetions_server_msg = build_trade_snapshot_completetions_server_msg(ServerMsg())
+    trade_snapshot_completions_server_msg = build_trade_snapshot_completions_server_msg(ServerMsg())
     order_statuses_server_msg = build_order_statuses_server_msg(ServerMsg())
     position_statuses_server_msg = build_position_statuses_server_msg(ServerMsg())
     account_summary_statuses_server_msg = build_account_summary_statuses_server_msg(ServerMsg())
@@ -594,7 +598,7 @@ def build_all_server_msgs() -> dict[str, ServerMsg]:
         "order_request_rejects": order_request_rejects_server_msg,
         "order_request_acks": order_request_acks_server_msg,
         "trade_subscription_statuses": trade_subscription_statuses_server_msg,
-        "trade_snapshot_completions": trade_snapshot_completetions_server_msg,
+        "trade_snapshot_completions": trade_snapshot_completions_server_msg,
         "order_statuses": order_statuses_server_msg,
         "position_statuses": position_statuses_server_msg,
         "account_summary_statuses": account_summary_statuses_server_msg,
