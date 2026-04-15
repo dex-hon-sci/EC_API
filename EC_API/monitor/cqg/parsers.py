@@ -7,28 +7,18 @@ Created on Thu Mar 19 01:06:27 2026
 """
 from typing import Any, Iterable
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
-from EC_API.protocol.cqg.key_extractors import walk_fields
+from EC_API.ext.WebAPI.market_data_2_pb2 import RealTimeMarketData
 from EC_API.protocol.cqg.parser_util import register_parser
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
-from EC_API._typing import MarketValueType, QuotesValueType
+from EC_API._typing import MarketValueType, QuotesValueType, ParsedRTMD
 from EC_API.exceptions import MsgParserError
 
-
-TARGET = {
-    MktDataSubLevel.LEVEL_TRADES: "quotes",
-    MktDataSubLevel.LEVEL_TRADES_BBA: "",
-    MktDataSubLevel.LEVEL_TRADES_BBA_VOLUMES: "market_values",
-    MktDataSubLevel.LEVEL_TRADES_BBA_DOM: "",
-    MktDataSubLevelCQG.LEVEL_SETTLEMENTS: "market_values",
-    MktDataSubLevelCQG.LEVEL_TRADES_BBA_DETAILED_DOM: "",
-    MktDataSubLevelCQG.LEVEL_END_OF_DAY: ""
-    }
 
 @register_parser('market_data_subscription_statuses')
 def parse_market_data_subscription_statuses(
         server_msg: ServerMsg
-        ) -> list[dict[str, str]]:
+    ) -> list[dict[str, str]]:
     try:
         market_data_subscription_statuses = server_msg.market_data_subscription_statuses
         return [{
@@ -39,52 +29,64 @@ def parse_market_data_subscription_statuses(
     except Exception:
         raise MsgParserError("Failed to parse market_data_subscription_statuses")
 
+TARGETS = {
+    MktDataSubLevel.LEVEL_TRADES: ["quotes", "market_values"],
+    MktDataSubLevel.LEVEL_TRADES_BBA: ["quotes", "market_values"],
+    MktDataSubLevel.LEVEL_TRADES_BBA_VOLUMES: ["quotes", "market_values"],
+    MktDataSubLevel.LEVEL_TRADES_BBA_DOM: ["quotes"],
+    MktDataSubLevelCQG.LEVEL_SETTLEMENTS: ["market_values"],
+    MktDataSubLevelCQG.LEVEL_TRADES_BBA_DETAILED_DOM: ["quotes", "market_values", "detailed_dom"],
+    MktDataSubLevelCQG.LEVEL_END_OF_DAY: ["market_values"]
+    }
+
+def _parse_quotes(
+        real_time_market_data: RealTimeMarketData
+    ) -> list[QuotesValueType]:
+    res = []
+    contract_id = real_time_market_data.contract_id
+
+    for ele in real_time_market_data.quotes:
+        res.append((
+            contract_id,
+            ele.type,
+            ele.quote_utc_time,
+            ele.scaled_price,
+            ele.scaled_source_price,
+            ele.volume.significand,
+            ele.volume.exponent,
+            #list(ele.indicators),
+            ele.scaled_currency_rate_price
+            ))
+    return res
+
+def _parse_market_values(
+        real_time_market_data: RealTimeMarketData
+    ) -> list[MarketValueType]:
+    res = []
+    contract_id = real_time_market_data.contract_id
+    correct_price_scale = real_time_market_data.correct_price_scale
+
+    for ele in real_time_market_data.market_values:
+        res.append((
+            contract_id,
+            ele.scaled_open_price,
+            ele.scaled_high_price,
+            ele.scaled_low_price,
+            ele.scaled_close_price,
+            ele.total_volume.significand,
+            ele.total_volume.exponent,
+            correct_price_scale
+            ))
+    return res
+
+def _parse_detailed_DOMs(): return
+
 @register_parser('real_time_market_data')
 def parse_real_time_market_data(
-        server_msg: ServerMsg, 
-        level: MktDataSubLevel | MktDataSubLevelCQG
-        ) -> list[MarketValueType]:
+        real_time_market_data: RealTimeMarketData, 
+    ) -> ParsedRTMD:
     # Master function that handle real time market data by provided levels
-    def selector(fd, val) -> Iterable[Any]:
-        if fd.message_type is not None and fd.name == "real_time_market_data":
-            yield 
-        else:
-            yield
-        
-    outs = walk_fields(server_msg, selector, max_depth=1)
-
-    return outs
-
-##def parse_order_statuses_data(server_msg: ServerMsg)-> dict[str,Any]:
-#    return 
-
-# =============================================================================
-# def parse_real_time_market_data2(server_msg: ServerMsg)-> list[dict[str,Any]]:
-#     # Need to walk through the message
-#     res = []
-#     if server_msg.real_time_market_data:
-#         real_time_market_data = server_msg.real_time_market_data
-#         price_scale = real_time_market_data.price_scale
-#         for data in real_time_market_data:
-#             if real_time_market_data:
-#                 for ele in data.market_values:
-#                     if not ele.total_volume.exponent:
-#                         total_vol_exponent = 0
-#                     else: 
-#                         total_vol_exponent = ele.total_volume.exponent
-#                         
-#                     if not ele.total_volume.significand:
-#                         total_vol_significand = 0
-#                     else: 
-#                         total_vol_significand = ele.total_volume.significand
-#                         
-#                     res.append(
-#                         (ele.scaled_open_price, ele.scaled_high_price, 
-#                          ele.scaled_low_price, ele.scaled_close_price,
-#                          total_vol_exponent, 
-#                          total_vol_significand, price_scale
-#                          )
-#                         )
-#     return res
-# 
-# =============================================================================
+    quotes = _parse_quotes(real_time_market_data) if real_time_market_data.quotes else []
+    mkt_vals = _parse_market_values(real_time_market_data) if real_time_market_data.market_values else []
+    dtl_DOMs = [] # fix later
+    return quotes, mkt_vals, dtl_DOMs

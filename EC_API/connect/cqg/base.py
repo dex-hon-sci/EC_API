@@ -22,8 +22,8 @@ from EC_API.protocol.cqg.router_util import (
     is_realtime_tick, 
     is_order_update_stream, 
     is_trade_history,
-    realtime_tick_contract_id, 
-    order_statuses_order_id,
+    #realtime_tick_contract_id, 
+    #order_statuses_order_id,
     split_server_msg
     )
 from EC_API.connect.cqg.builders import (
@@ -300,49 +300,63 @@ class ConnectCQG(Connect):
     async def _router_loop(self) -> None:
 
         while not self._stop_evt.is_set():
-            msg: ServerMsg = await self._transport.recv()
-                
-            if not msg or not isinstance(msg, ServerMsg):
-                logger.warning("Invalid Message Type, msg: %s", msg)
-                continue
-            
-            # 0) check if it is a composite message
-            top_unique_fields = server_msg_type(msg)
-            
-            if len(top_unique_fields) > 1:
-                msgs = split_server_msg(msg, top_unique_fields)
-            elif len(top_unique_fields) == 0:
-                continue
-            else:
-                msgs = [msg]
-
-            for msg, top_unique_field in zip(msgs, top_unique_fields):
-                # Cheapest check first, 
-                # 1) streaming dispatch
-                if is_realtime_tick(top_unique_field):
-                    contract_id = realtime_tick_contract_id(msg)
-                    await self._mkt_data_stream_router.publish(contract_id, msg)
-                    continue
-    
-                # 2) order update dispatch <--need to handle this better
-                if is_order_update_stream(top_unique_field):
-                    order_id = order_statuses_order_id(msg)
-                    await self._exec_stream_router.publish(order_id, msg)
-                    continue
+            try:
+                msg: ServerMsg = await self._transport.recv()
                     
-                # 3) Expensive RPC type key matching
-                keys = extract_router_keys(msg)
-                if len(keys) >1:
-                    logger.debug("multiple keys: %s", keys)
-                for key in keys:
-                    if key is not None:        
-                        key_type, msg_type, msg_id_type, msg_id = key
-                        # 3) RPC routing (futures), 
-                        if key_type in {"rpc_reqid", "session", "sub", "info"}:
-                            self._msg_router.on_message(key, msg)
-                            #print('router loop', key, msg)
-                            #await self._misc_queue.put(msg)
-                                    
+                if not msg or not isinstance(msg, ServerMsg):
+                    logger.warning("Invalid Message Type, msg: %s", msg)
+                    continue
+                
+                # 0) check if it is a composite message
+                top_unique_fields = server_msg_type(msg)
+                
+                if len(top_unique_fields) > 1:
+                    msgs = split_server_msg(msg, top_unique_fields)
+                elif len(top_unique_fields) == 0:
+                    continue
+                else:
+                    msgs = [msg]
+    
+                for msg, top_unique_field in zip(msgs, top_unique_fields):
+                    # Cheapest check first, 
+                    # 1) streaming dispatch
+                    if is_realtime_tick(top_unique_field):
+                        for rtmd in msg.real_time_market_data:
+                            await self._mkt_data_stream_router.publish(
+                                rtmd.contract_id, rtmd
+                                )
+                        continue
+        
+                    # 2) order update dispatch <--need to handle this better
+                    if is_order_update_stream(top_unique_field):
+                        for ord_sts in msg.order_statuses:
+                            await self._exec_stream_router.publish(
+                                ord_sts.chain_order_id, msg
+                                )
+                        continue
+                        
+                    # 3) Expensive RPC type key matching
+                    keys = extract_router_keys(msg)
+                    if len(keys) >1:
+                        logger.debug("multiple keys: %s", keys)
+                    for key in keys:
+                        if key is not None:        
+                            key_type, msg_type, msg_id_type, msg_id = key
+                            # 3) RPC routing (futures), 
+                            if key_type in {"rpc_reqid", "session", "sub", "info"}:
+                                self._msg_router.on_message(key, msg)
+                                #print('router loop', key, msg)
+                                #await self._misc_queue.put(msg)
+            except asyncio.CancelledError as e:
+                logger.error("")
+                raise
+            except TransportConnectError as e:
+                logger.error("TransportConnectError, reconenction initiated.")
+                #await asyncio.create_task(self._reconnect_loop)
+                #return
+            except Exception as e:
+                logger.error("router_loop error:  %s", e, exc_info=True)
+                                 
     # ---- Failure Mode -------------------
     async def _on_transport_failure(self, exc: Exception) -> None:
         pass

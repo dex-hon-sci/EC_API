@@ -23,7 +23,7 @@ from tests.unit.fixtures.proxy_clients import FakeTransport
 from tests.unit.fixtures.server_msg_builders_CQG import (
     build_pong_server_msg,
     build_trade_subscription_statuses_server_msg,
-    build_trade_snapshot_completetions_server_msg,
+    build_trade_snapshot_completions_server_msg,
     build_order_statuses_server_msg,
     build_market_data_subscription_statuses_server_msg,
     build_real_time_market_data_server_msg
@@ -173,8 +173,9 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
     start = time.perf_counter()
     conn.start()
     try:
+        rtmd_stream = [rtmd for msg in msg_stream for rtmd in msg.real_time_market_data]
         await asyncio.wait_for(_drain_all_stream_data(
-            queues, msg_stream, realtime_tick_contract_id
+            queues, rtmd_stream, lambda rtmd: rtmd.contract_id
             ), 
             timeout = 1)
         elapsed = time.perf_counter() - start
@@ -496,8 +497,9 @@ async def test_router_loop_composite_msg() -> None:
     
     # check market data stream
     try:
+        rtmd_stream = [rtmd for msg in msg_stream_comp_mkt_data_stream for rtmd in msg.real_time_market_data]
         await asyncio.wait_for(_drain_all_stream_data(
-            queues_mkt, msg_stream_comp_mkt_data_stream, realtime_tick_contract_id
+            queues_mkt, rtmd_stream, lambda rtmd: rtmd.contract_id
             ), timeout=1)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start

@@ -26,11 +26,21 @@ PongType = tuple[str, str, int, int] # ('pong', token, ping_time, pong_time)
 ContractMetaDataType = list[dict[str, str]]
 
 # --- Monitor
-# (contract_id, O, H, L, C, volume_significand, volume_exponent, volume_significand, correct_price_scale)
+# (contract_id, O, H, L, C, volume_significand, volume_exponent, 
+# correct_price_scale)
 MarketValueType = tuple[int, int, int, int, int, int, int]
 
-# (contract_id, quote_utc_time, type, scaled_price, scaled_source_price)
-QuotesValueType = tuple[int, int, Any, int, int]
+# (contract_id, type, quote_utc_time, scaled_price, scaled_source_price, 
+# volume_significand, volume_exponent, [indicators], scaled_currency_rate_price)
+QuotesValueType = tuple[int, int, Any, int, int, float]
+
+# DetailedDOMAtPrice (scaled_price, side, is_snapshot)
+# volume, operation
+# detailed_dom_order_id, order_index, contributor_id
+DOMValueType = tuple[int] #scaled_price
+
+# General container for market data
+ParsedRTMD = tuple[list[QuotesValueType], list[MarketValueType], list[Any]]
 
 # --- LiveOrder
 OrderStatusType = dict[str, Any]

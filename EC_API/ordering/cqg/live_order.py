@@ -98,7 +98,30 @@ class LiveOrderCQG(LiveOrder):
             ):
             client_msg = build_new_order_request_msg(**request_details)
             cl_order_id = request_details['cl_order_id']
-    
+# =============================================================================
+#       rid = self.rid()
+#   reject_fut = self._msg_router.register_key(('rpc_reqid', 'order_request_rejects',
+#   'request_id', rid))
+#   ack_fut    = self._msg_router.register_key(('rpc_reqid', 'order_request_acks',
+#   'request_id', rid))
+# 
+#   await self._transport.send(order_msg)
+# 
+#   done, pending = await asyncio.wait(
+#       [reject_fut, ack_fut],
+#       timeout=self._timeout,
+#       return_when=asyncio.FIRST_COMPLETED
+#   )
+# 
+#   for f in pending:
+#       f.cancel()  # _cleanup fires, removes key from pending automatically
+# 
+#   if not done:
+#       raise ConnectTimeOutError(...)
+# 
+#   result_msg = done.pop().result()
+#   # inspect result_msg — is it an ACK or REJECT?
+# =============================================================================
             key = ('substream','order_statuses','cl_order_id', cl_order_id)
             #key = ("order_statuses", request_details['request_id'])
             fut = self.msg_router.register(key)

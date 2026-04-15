@@ -195,7 +195,6 @@ async def test_logoff_timeout() -> None:
 
 
 # --- restore sad paths
-
 @pytest.mark.asyncio
 async def test_restore_request_timeout() -> None:
     conn, ft = make_conn()
