@@ -120,7 +120,7 @@ def test_extract_key_trade_subscription_statuses() -> None:
     assert router_keys[0] == ('sub', 'trade_subscription_statuses', 'id', 1)
  
 def test_extract_key_trade_snapshot_completions() -> None:
-    msg = build_trade_snapshot_completetions_server_msg(ServerMsg())
+    msg = build_trade_snapshot_completions_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('sub', 'trade_snapshot_completions', 'subscription_id', 1)

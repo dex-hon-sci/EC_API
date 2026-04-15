@@ -9,7 +9,7 @@ from EC_API.ordering.enums import SubScope
 from tests.unit.fixtures.proxy_clients import FakeTransport
 from tests.unit.fixtures.server_msg_builders_CQG import (
     build_trade_subscription_statuses_server_msg,
-    build_trade_snapshot_completetions_server_msg,
+    build_trade_snapshot_completions_server_msg,
     build_real_time_market_data_server_msg
     )
 from EC_API.exceptions import (
@@ -46,7 +46,7 @@ async def test_trade_subscription_request_valid()->None:
     conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
 
     response1 = build_trade_subscription_statuses_server_msg(ServerMsg(), sub_id = 2)
-    response2 = build_trade_snapshot_completetions_server_msg(response1, sub_id = 2)
+    response2 = build_trade_snapshot_completions_server_msg(response1, sub_id = 2)
     
     result, _ = await asyncio.gather(
         TS.trade_subscription_request(2, SubScope.ORDERS),
@@ -94,7 +94,7 @@ async def test_unsubscribe_trade_request_valid()->None:
     conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
 
     response1 = build_trade_subscription_statuses_server_msg(ServerMsg(), sub_id = 2)
-    response2 = build_trade_snapshot_completetions_server_msg(response1, sub_id = 2)
+    response2 = build_trade_snapshot_completions_server_msg(response1, sub_id = 2)
     
     result, _ = await asyncio.gather(
         TS.trade_subscription_request(2, SubScope.ORDERS),
