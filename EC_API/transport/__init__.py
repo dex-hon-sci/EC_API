@@ -13,3 +13,4 @@ __all__ =[
     "MessageRouter",
     "StreamRouter"
     ]
+__pdoc__ = {k: False for k in __all__}

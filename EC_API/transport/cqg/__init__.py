@@ -9,3 +9,4 @@ Created on Thu Nov 27 21:54:56 2025
 from .base import TransportCQG
 
 __all__ = ["TransportCQG"]
+__pdoc__ = {k: False for k in __all__}
