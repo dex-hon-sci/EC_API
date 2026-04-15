@@ -8,6 +8,7 @@ Created on Sat Apr 11 03:05:48 2026
 from typing import Any
 from google.protobuf.json_format import MessageToDict
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import PositionStatus
 from EC_API.protocol.cqg.parser_util import register_parser
 from EC_API.exceptions import MsgParserError
 
@@ -63,11 +64,9 @@ def parse_trade_subscription_statuses(
 def parse_trade_snapshot_completions(
         msg:ServerMsg
     ) -> list[dict[str, Any]]:
-
     try:
         res = []
         for ele in msg.trade_snapshot_completions:
-            print('ele', ele)
             res.append({
                 "sub_id": ele.subscription_id,
                 "sub_scopes": list(ele.subscription_scopes)
@@ -78,11 +77,13 @@ def parse_trade_snapshot_completions(
 
 @register_parser('order_statuses')
 def parse_order_statuses(
-        msg:ServerMsg
+        msg: ServerMsg,
+        in_detail: bool = False
     ) -> list[dict[str, Any]]:
     try:
         res = []
         for i, ele in enumerate(msg.order_statuses):
+            # parsing required fields
             D = {
                 "sub_ids": list(ele.subscription_ids),
                 "order_id": ele.order_id,
@@ -92,8 +93,11 @@ def parse_order_statuses(
                 "fill_cnt": ele.fill_cnt,
                 "scaled_avg_fill_price": ele.scaled_avg_fill_price,
                 "avg_fill_price_correct": ele.avg_fill_price_correct,
-                "account_id": ele.account_id
+                "account_id": ele.account_id,
+                'entered_by_user': ele.entered_by_user
                 }
+            
+            # missiion critical optional fields parsing
             if ele.HasField('order'):
                 D['order'] = {
                     'account_id': ele.order.account_id,
@@ -105,6 +109,13 @@ def parse_order_statuses(
                     'qty': {'significand': ele.order.qty.significand,
                             'exponent':ele.order.qty.exponent}
                     }
+                
+            # Parse all the detailed optional field in the message. Slow Method.
+            if in_detail: 
+                # Note: int32/float/double stays numeric, anything int64/uint64
+                # becomes a string.  A flaw in JSON formatting. Fix later.
+                detail = MessageToDict(ele, preserving_proto_field_name=True)
+                D.update({k: v for k, v in detail.items() if k not in D})
             res.append(D)
         return res
     
@@ -113,18 +124,49 @@ def parse_order_statuses(
 
 @register_parser('position_statuses')
 def parse_position_statuses(
-        msg:ServerMsg
+        msg: ServerMsg,
+        in_detail: bool = False
     ) -> list[dict[str, Any]]:
 
     try:
         res = []
         for i, ele in enumerate(msg.position_statuses):
-            ...
+            D = {
+                'sub_ids': list(ele.subscription_ids),
+                'account_id': ele.account_id,
+                'contract_id': ele.contract_id,
+                'is_short_open_position': ele.is_short_open_position,
+                
+                }
+            if ele.open_positions:
+                poss = parse_open_position(ele)
+                D['open_positions'] = poss
+                
+            # Parse all the detailed field in the message. Slow.
+            if in_detail: 
+                # Note: int32/float/double stays numeric, anything int64/uint64
+                # becomes a string. A flaw in JSON formatting. Fix later.
+                detail = MessageToDict(ele, preserving_proto_field_name=True)
+                D.update({k: v for k, v in detail.items() if k not in D})
+                        
+            res.append(D)
         return res
     
     except Exception as e:
         raise MsgParserError(f"Failed to parse position_statuses: {e}") from e
-
+    
+def parse_open_position(msg: PositionStatus): # special helper for fast execution
+    poss = []
+    for pos in msg.open_positions:
+        poss.append({
+            'id': pos.id,
+            'price_correct': pos.price_correct,
+            'trade_date': pos.trade_date,
+            'statement_date': pos.statement_date,
+            'is_aggregated': pos.is_aggregated,
+            'is_short': pos.is_short
+            })
+    return poss
     
 @register_parser('account_summary_statuses')
 def parse_account_summary_statuses(
