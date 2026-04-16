@@ -29,6 +29,7 @@ service providers. On top of that we provide vendor-agnoistic tools to
 help users to formalise and build their trading strategy.
 
 `EC_API` constist of two layers:
+![plot](./images/message_flow.jpg)
 
 (1) The infrastructure layer
 This layer consist of the modules `transport`, `connect`, `ordering`, 
@@ -64,9 +65,6 @@ to send orders to the server. `OpStrategy` contains useful mechanism such
 as cool-down to aid users in developing their custom strategy. One can 
 inherit or unject this class into their strategy objects that runs in live
 session.
-
-From v0.1.0 onward, `EC_API` is designed to be async-native. All RPC-like 
-function calls functions are awaitable.
 
 Currently supported vendors:
 
@@ -167,7 +165,9 @@ ORDER_INFO =  {
     "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
     }
                       
-CLOrder1 = LiveOrderCQG(TS, # LiveOrder belongs to a particular trade session
+# LiveOrder belongs to a particular trade session                      
+CLOrder1 = LiveOrderCQG(TS, 
+                        ORDER_INFO
                        )
 # Specify the request type as you send the order
 CLOrder1.send(request_type = RequestType.NEW_ORDER, 
@@ -405,4 +405,7 @@ a top-to-down perspective, we have:
     type objects), and what format checking policy (via `FormatCheck` type 
     objects) is used to validate our orders.
 
+### Releases
+From v0.1.0 onward, `EC_API` is designed to be async-native. All RPC-like 
+function calls functions are awaitable.
 
