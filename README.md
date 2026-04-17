@@ -74,6 +74,11 @@ Currently supported vendors:
 
 ## Installation Guide
 
+```bash
+pip install git+https://github.com/dex-hon-sci/EC_API
+
+```
+
 ## Module Review
 `EC_API` contains the following modules:
 | Module | Description |
@@ -259,10 +264,6 @@ TE_PL_A = Payload(
 TE_mod_PL_A = Payload(
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.MODIFY_ORDER,
-    start_time = datetime.now(timezone.utc) +\
-                 timedelta(minutes=5),
-    end_time = datetime.now(timezone.utc) +\
-               timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
         "orig_cl_order_id" : "1231314",
@@ -274,10 +275,6 @@ TE_mod_PL_A = Payload(
 TP_PL1_A = Payload(
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.NEW_ORDER,
-    start_time = datetime.now(timezone.utc) +\
-                 timedelta(minutes=5),
-    end_time = datetime.now(timezone.utc) +\
-               timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
@@ -291,10 +288,6 @@ TP_PL1_A = Payload(
 TP_PL2_A = Payload(
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.NEW_ORDER,
-    start_time = datetime.now(timezone.utc) +\
-                 timedelta(minutes=5),
-    end_time = datetime.now(timezone.utc) +\
-               timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
@@ -308,10 +301,6 @@ TP_PL2_A = Payload(
 cancel_PL_A = Payload(
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.CANCEL_ORDER,
-    start_time = datetime.now(timezone.utc) +\
-                 timedelta(minutes=5),
-    end_time = datetime.now(timezone.utc) +\
-               timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
         "orig_cl_order_id": "1231314", 
@@ -322,10 +311,6 @@ cancel_PL_A = Payload(
 overtime_PL_A = Payload(
     status = PayloadStatus.PENDING,
     order_request_type = RequestType.LIQUIDATEALL_ORDER,
-    start_time = datetime.now(timezone.utc) +\
-                 timedelta(minutes=5),
-    end_time = datetime.now(timezone.utc) +\
-               timedelta(days=1),
     order_info = {
         "symbol_name": "Asset_A",
         },
@@ -337,53 +322,63 @@ After that we have to define `ActionNode` and `ActionTree`. The `ActionTree` is
 better built from bottom-up (End Nodes come first, Root node come last):
 ```python
 # Define Action Nodes
-cancel_node = ActionNode("CancelEntry", 
-                         payloads = [cancel_PL_A], 
-                         trigger_cond = cancel_trigger, 
-                         transitions={}) # End Node
-TP_node_1 = ActionNode("TakeProfit1", 
-                       payloads=[TP_PL1_A], 
-                       trigger_cond = TP_trigger_1, 
-                       transitions={}) # End Node
-TP_node_2 = ActionNode("TakeProfit2", 
-                       payloads =[TP_PL2_A], 
-                       trigger_cond = TP_trigger_2, 
-                       transitions={}) # End Node
-TE_node_mod = ActionNode("ModifyTargetEntry", 
-                         payloads=[TE_mod_PL_A], 
-                         trigger_cond = mod_TE_trigger, 
-                         transitions={
-                             "TakeProfit2": (TP_trigger_2, TP_node_2)
-                             }) 
-TE_node = ActionNode("TargetEntry", 
-                     payloads=[TE_PL_A], # Have two assets for testing. Same direction
-                     trigger_cond = TE_trigger, 
-                     transitions = { # Same transition and trigger conditions
-                         "TakeProfit1": (TP_trigger_1, TP_node_1),
-                         "ModifyTargetEntry": (mod_TE_trigger, TE_node_mod),
-                         "CancelEntry": (cancel_trigger, cancel_node)   
-                         }) # root node
-overtime_node = ActionNode("OvertimeExit", 
-                           payloads=[overtime_PL_A], 
-                           trigger_cond=overtime_cond, 
-                           transitions={}) # End_node, overtime condition
-
-# Note that in this example, we do not include Database Configuration
-# 
+cancel_node = ActionNode(
+            "CancelEntry", 
+            payloads = [cancel_PL_A], 
+            trigger_cond = cancel_trigger, 
+            transitions={}
+            ) # End Node
+TP_node_1 = ActionNode(
+            "TakeProfit1", 
+            payloads=[TP_PL1_A], 
+            trigger_cond = TP_trigger_1, 
+            transitions={}
+            ) # End Node
+TP_node_2 = ActionNode(
+            "TakeProfit2", 
+            payloads =[TP_PL2_A], 
+            trigger_cond = TP_trigger_2, 
+            transitions={}
+            ) # End Node
+TE_node_mod = ActionNode(
+            "ModifyTargetEntry", 
+            payloads=[TE_mod_PL_A], 
+            trigger_cond = mod_TE_trigger, 
+            transitions={
+                "TakeProfit2": (TP_trigger_2, TP_node_2)
+            }) 
+TE_node = ActionNode(
+            "TargetEntry", 
+            payloads=[TE_PL_A], # Have two assets for testing. Same direction
+            trigger_cond = TE_trigger, 
+            transitions = { # Same transition and trigger conditions
+                "TakeProfit1": (TP_trigger_1, TP_node_1),
+                "ModifyTargetEntry": (mod_TE_trigger, TE_node_mod),
+                "CancelEntry": (cancel_trigger, cancel_node)   
+            }) # root node
+overtime_node = ActionNode(
+            "OvertimeExit", 
+            payloads=[overtime_PL_A], 
+            trigger_cond=overtime_cond, 
+            transitions={}
+            ) # End_node, overtime condition
 
 # Define Action Tree
 tree = ActionTree(TE_node, overtime_cond, overtime_node)
 
 ```
-Then, we have to define the `OpSignal` (Operation Signal) objects where the `ActionTree` lives:
+Then, we have to define the `OpSignal` (Operation Signal) objects where 
+the `ActionTree` lives:
 ```python
 OPS = OpSignal(...
         )
 
 ```
 
-Finally, we can write the `OpStrategy` type class that produces  `OpSignal`.
+Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 ```python
+
+
 
 ```
 Note that for a fully automated Algo-Trading setup, both the `OpSignal` and 
