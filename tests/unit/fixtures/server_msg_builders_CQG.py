@@ -466,7 +466,7 @@ def build_real_time_market_data_server_msg(
     market_values1.scaled_high_price = 890
     market_values1.scaled_low_price = 611
     market_values1.scaled_close_price = 755
-    market_values.total_volume.significand = 16
+    market_values1.total_volume.significand = 16
 
     return server_msg
 

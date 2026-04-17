@@ -147,7 +147,7 @@ class StreamRouter:
         
         for q in list(queues):
             if not self._drop_if_full:
-                await q.put_nowait(item)
+                await q.put_nowait(item) #<--- use put and mayke it async
                 continue
             
             try:
@@ -156,7 +156,7 @@ class StreamRouter:
                 if self._drop_if_full:
                     if self.drop_policy == "drop_oldest":
                         try:
-                            q.get_nowait()
+                            q.get_nowait() 
                             q.put_nowait(item)
                         except Exception:
                             msg = f"[{__class__.__name__}] Publish unsuccessful at queue full: {item}."
