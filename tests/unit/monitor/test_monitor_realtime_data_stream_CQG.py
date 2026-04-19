@@ -6,6 +6,7 @@ from EC_API.monitor.cqg.realtime_data import MonitorDataCQG
 
 def fake_producer():
     return 
+
 @pytest.mark.asyncio
 async def test_monitor_data_CQG_yield_one_item_valid() -> None:...
 
