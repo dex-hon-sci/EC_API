@@ -403,8 +403,8 @@ def build_trade_historical_orders_request_msg(
     information_requests = client_msg.information_requests.add()
     
     information_requests.id = request_id
-    information_requests.historical_orders_request.from_date= int(from_date_timestamp)
-    information_requests.historical_orders_request.to_date= int(to_date_timestamp)
+    information_requests.historical_orders_request.from_date= int(from_date_timestamp.timestamp())
+    information_requests.historical_orders_request.to_date= int(to_date_timestamp.timestamp())
     information_requests.historical_orders_request.account_ids.append(account_id)
 
     return client_msg

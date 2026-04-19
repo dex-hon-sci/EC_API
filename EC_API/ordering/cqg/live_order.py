@@ -129,8 +129,8 @@ class LiveOrderCQG(LiveOrder):
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
             
             # update trade session trackers for order's initial state 
-            self.trade_session.active_order.add(server_msg.order_statuses[0].chain_order_id)
-            self.trade_session.order_status[server_msg.chain_order_id] = OrderStatus_MAP_INT2CQG[server_msg.result_code]
+            self._trade_session.active_order.add(server_msg.order_statuses[0].chain_order_id)
+            self._trade_session.order_status[server_msg.chain_order_id] = OrderStatus_MAP_INT2CQG[server_msg.result_code]
             return server_msg
     
     async def _modify_order_request(
@@ -209,7 +209,7 @@ class LiveOrderCQG(LiveOrder):
 
             #key = ("order_statuses", request_details['request_id'])
             key = ('substream','order_statuses','chain_order_id','')
-            fut = self._router.register(key)
+            fut = self.msg_router.register(key)
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return server_msg
@@ -249,7 +249,7 @@ class LiveOrderCQG(LiveOrder):
             
             order_id = request_details['order_id']
             
-            if not self.trade_session.active_orders.get(order_id):
+            if not self._trade_session.active_orders.get(order_id):
                 raise MissingOrderIDError(
                     f"Order ID: {order_id} is not in active orders."
                     )

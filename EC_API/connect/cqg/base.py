@@ -6,7 +6,9 @@ Created on Mon Aug 18 11:34:22 2025
 @author: dexter
 """
 import asyncio
-from typing import Optional, Any, Callable
+from typing import (
+    Optional, Any, Callable, cast
+    )
 import warnings
 import logging
 from datetime import datetime, timezone
@@ -21,7 +23,7 @@ from EC_API.protocol.cqg.router_util import (
     server_msg_type,
     is_realtime_tick, 
     is_order_update_stream, 
-    is_trade_history,
+    #is_trade_history,
     #realtime_tick_contract_id, 
     #order_statuses_order_id,
     split_server_msg
@@ -291,10 +293,6 @@ class ConnectCQG(Connect):
                 
         return True
     
-    def sync_teardown() -> None:
-        # teardown service in destructor
-        
-        return
     
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
@@ -362,11 +360,11 @@ class ConnectCQG(Connect):
         pass
         
     async def _reconnect_loop(self, num_attempt: int =10):
-        while not self._stop_evt.set():
+        while not self._stop_evt.is_set():
             ...
     
     async def _update_timeout_loop(self):
-        while not self._stop_evt.set():
+        while not self._stop_evt.is_set():
             ...
              
     # ---- CQG messages function calls ----
@@ -432,10 +430,10 @@ class ConnectCQG(Connect):
 
     async def restore_request(
             self, 
-            session_token: str | None= None, 
-            client_app_id: str | None = None,
-            protocol_version_major: int | None = None,
-            protocol_version_minor: int | None = None,
+            session_token: Optional[str] = None, 
+            client_app_id: Optional[str] = None,
+            protocol_version_major: Optional[int] = None,
+            protocol_version_minor: Optional[int] = None,
             **kwargs
         ) -> dict[str, Any] | None:
         # Restoring session after dropoff   
@@ -447,10 +445,10 @@ class ConnectCQG(Connect):
             self._state_mgr.transition_to(ConnectionState.RECONNECTING)
 
             restore_msg = build_restore_msg(
-                client_app_id          if client_app_id          is not None else self.client_app_id,
-                protocol_version_major if protocol_version_major is not None else self.protocol_version_major,
-                protocol_version_minor if protocol_version_minor is not None else self.protocol_version_minor,
-                session_token          if session_token          is not None else self.session_token,
+                cast(str, client_app_id          or self.client_app_id),
+                cast(int, protocol_version_major or self.protocol_version_major),
+                cast(int, protocol_version_minor or self.protocol_version_minor),
+                cast(str, session_token          or self.session_token),
                 **kwargs)
 
             msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
@@ -490,9 +488,10 @@ class ConnectCQG(Connect):
                 ConnectRequestError, 
                 timeout_error = ConnectTimeOutError
             ):
-            msg = build_resolve_symbol_msg(symbol, self.rid, subscribe=True)
+            rid = self.rid()
+            msg = build_resolve_symbol_msg(symbol, rid, subscribe=True)
 
-            msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", self.rid)
+            msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", rid)
             fut = self._msg_router.register_key(msg_key)
             await self._transport.send(msg)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)

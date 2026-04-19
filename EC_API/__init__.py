@@ -5,8 +5,12 @@ Created on Fri Apr  4 18:40:41 2025
 
 @author: dexter
 """
+from ._version import __version__ as _version
+ 
+__version__ = _version
 
-__pdoc__ = {}
+
+__pdoc__: dict[str, bool] = {}
 
 # =============================================================================
 # # Import version

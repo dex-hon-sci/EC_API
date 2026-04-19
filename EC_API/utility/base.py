@@ -63,6 +63,13 @@ def to_significand_sint64_exponent_sint32(n: int | float):
     d = Decimal(str(n)).normalize()
     sign, digits, exponent = d.as_tuple()
     
+    # Checks
+    if not isinstance(exponent, int):
+        raise ValueError(f"Unexpected special Decimal value: exponent={exponent}")
+
+    if not (-(2**31) <= exponent < 2**31):
+        raise ValueError("Exponent exceeds sint32 range")
+        
     # Reconstruct integer significand from the digits tuple
     significand = int("".join(map(str, digits)))
     if sign: # 1 is negative in Decimal tuple

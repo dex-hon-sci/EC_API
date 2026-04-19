@@ -11,8 +11,8 @@ from EC_API.exceptions import EC_APIError, MsgBuilderError, MsgParserError
 
 @contextmanager
 def msg_io_error_handler(
-        output_error: EC_APIError,
-        timeout_error: EC_APIError = Exception,
+        output_error: type[EC_APIError],
+        timeout_error: type[EC_APIError] = Exception,
         ) -> EC_APIError:
     try:
         yield

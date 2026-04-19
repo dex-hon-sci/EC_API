@@ -30,7 +30,7 @@ class MessageRouter:
         fut = asyncio.get_running_loop().create_future()
         if key in self.pending.keys():
             msg = f"Router register key failed: key '{key}' already exist."
-            logger.error("[%s] %s", __class__.__name__, msg)
+            logger.error("[%s] %s", self.__class__.__name__, msg)
             raise DuplicateRouterKeyError(msg)
 
         self.pending[key] = fut
@@ -84,7 +84,7 @@ class StreamRouter:
     def subscriber_count(self, sub_id: int | str) -> int:
         if not self._subs.get(sub_id):
             msg = f"Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
-            logger.error("[%s] %s", __class__.__name__, msg)
+            logger.error("[%s] %s", self.__class__.__name__, msg)
             raise UnknownSubscriptionError(msg)
         return len(self._subs[sub_id])
     
@@ -96,17 +96,18 @@ class StreamRouter:
         # calls subscribe
         if len(self._subs) >= self._max_num_sym:
             msg = "Maximum number of contract subscribed exceeded."
-            logger.error("[%s] %s", __class__.__name__, msg)
+            logger.error("[%s] %s", self.__class__.__name__, msg)
             raise MaxSymbolsExceededError(msg)
             
         if self._subs.get(sub_id):
             if len(self._subs[sub_id]) >= self._max_subs_size:
                 msg = f"Maximum subscribers has reached for this contract: {sub_id}."
-                logger.error("[%s] %s", __class__.__name__, msg)
+                logger.error("[%s] %s", self.__class__.__name__, msg)
                 raise MaxSubscribersExceededError(msg)
 
-        q = asyncio.Queue(
-            maxsize=self._max_queue_size) if self._max_queue_size else asyncio.Queue()
+        q: asyncio.Queue[Any] = asyncio.Queue(
+            maxsize=self._max_queue_size
+            ) if self._max_queue_size else asyncio.Queue()
 
         self._subs.setdefault(sub_id, []).append(q)
         return q
@@ -120,12 +121,12 @@ class StreamRouter:
         lst = self._subs.get(sub_id, [])
         if not lst:
             msg = f"Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
-            logger.error("[%s] %s", __class__.__name__, msg)
+            logger.error("[%s] %s", self.__class__.__name__, msg)
             raise UnknownSubscriptionError(msg)
             
         if q not in lst:
             msg = f"Unsubscribe failed. Input queue is not in the list of id:{sub_id}."
-            logger.error("[%s] %s", __class__.__name__, msg)
+            logger.error("[%s] %s", self.__class__.__name__, msg)
             raise SubscriptionQueueMismatchError(msg)
 
         lst.remove(q)
@@ -147,7 +148,7 @@ class StreamRouter:
         
         for q in list(queues):
             if not self._drop_if_full:
-                await q.put_nowait(item) #<--- use put and mayke it async
+                await asyncio.wait_for(q.put(item), timeout=0.001) #<--- use put and mayke it async
                 continue
             
             try:
@@ -159,15 +160,16 @@ class StreamRouter:
                             q.get_nowait() 
                             q.put_nowait(item)
                         except Exception:
-                            msg = f"[{__class__.__name__}] Publish unsuccessful at queue full: {item}."
+                            msg = f"[{self.__class__.__name__}] Publish unsuccessful at queue full: {item}."
                             logger.warning(msg)
                             continue
                     elif self.drop_policy == "drop_latest":
-                        try:
-                            q._queue.pop()
-                            q._queue.append(item)
-                        except Exception:
-                            msg =  f"[{__class__.__name__}] Publish unsuccessful at queue full: {item}."
-                            logger.warning(msg)
-                            continue
+                        pass
+                        #try:
+                        #    q.get_nowait()
+                        #    q.put_nowait(item)
+                        #except Exception:
+                        ##    msg =  f"[{self.__class__.__name__}] Publish unsuccessful at queue full: {item}."
+                        #    logger.warning(msg)
+                        #    continue
 

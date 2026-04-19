@@ -14,11 +14,11 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 
 def walk_fields(
         msg: ServerMsg, 
-        selector: Callable[Any, Any],
+        selector: Callable[[Any], Any],
         max_depth: int=2
     ):
     
-    outs = []
+    outs: list[Any] = []
     def walk(cur, depth):
         if depth > max_depth:
             return outs
@@ -35,7 +35,7 @@ def walk_fields(
                     walk(ele, depth+1)
     return walk(msg, 0)
     
-type Parser_func = Callable[ServerMsg]
+type Parser_func = Callable[[ServerMsg], Any]
 master_parsers: dict[str, Parser_func] = dict()
 
 def register_parser(name):
@@ -45,20 +45,18 @@ def register_parser(name):
     return decorator
     
 
-# =============================================================================
-# def parse_information_report():...
-# 
-# 
-# def parse_realtime_market_data():...
-# 
-# @register_parser('order_response')
-# def parse_order_repsonse(msg):...
-#     #"order_request_rejects": "rpc_reqid",
-#     #"order_request_acks": "rpc_reqid",
-#     #"trade_subscription_statuses": "sub",
-#     #"trade_snapshot_completions": "sub",
-#     #"order_statuses": "substream",
-#     #"position_statuses": "substream",
-#     #"account_summary_statuses": "substream",
-#     #"go_flat_statuses": "rpc_reqid",
-# =============================================================================
+def parse_information_report():...
+
+
+def parse_realtime_market_data():...
+
+@register_parser('order_response')
+def parse_order_repsonse(msg):...
+    #"order_request_rejects": "rpc_reqid",
+    #"order_request_acks": "rpc_reqid",
+    #"trade_subscription_statuses": "sub",
+    #"trade_snapshot_completions": "sub",
+    #"order_statuses": "substream",
+    #"position_statuses": "substream",
+    #"account_summary_statuses": "substream",
+    #"go_flat_statuses": "rpc_reqid",

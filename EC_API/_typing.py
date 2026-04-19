@@ -24,13 +24,13 @@ KH_MSG_TYPE = 1
 KH_IS_REPEATED = 2
 KH_IS_FIELD = 3
 
-type Extractor_func = Callable[ServerMsgType]
+type Extractor_func[ServerMsgType] = Callable[[ServerMsgType], Any]
 
 # ------ Builders ------
-type Builder_func = Callable[Any, ClientMsgType]
+type Builder_func[ClientMsgType] = Callable[[Any, ClientMsgType], Any]
 
 # ------ Parsers ------
-type Parser_func = Callable[Any, ServerMsgType]
+type Parser_func[ServerMsgType] = Callable[[Any, ServerMsgType], Any]
 
 # ------ Connect ------
 LogonResultType = dict[str, Any]
@@ -46,7 +46,7 @@ PONG_PINGTIME = 2
 PONG_PONGTIME = 3
 
 # Connect:metadata 
-ContractMetaDataType = list[dict[str, str]]
+ContractMetaDataType = dict[str, Any]
 
 # ------ Monitor (CQG) ------
 # Quote tick tuple layout (CQG) # Top Level

@@ -14,8 +14,8 @@ def validate_required_fields(
     ) -> None:
     # to check if the input in params has all the entries in the required_fields
     for field in required_fields:
-     if field not in list(params.keys()):
-         raise KeyError(f"{field} is required and not found in input.")
+        if field not in list(params.keys()):
+            raise KeyError(f"{field} is required and not found in input.")
         
 def validate_input_para(order_info: dict[str, Any]) -> None:
     if order_info.get('order_type') is not None:

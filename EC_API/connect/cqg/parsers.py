@@ -12,7 +12,7 @@ from EC_API._typing import Parser_func
 from EC_API.exceptions import MsgParserError
 
 @register_parser('logon_result')
-def parse_logon_result(server_msg: ServerMsg | None) -> dict[str, Any]:
+def parse_logon_result(server_msg: ServerMsg) -> dict[str, Any]:
     try: 
         return {
             "result_code": server_msg.logon_result.result_code,
@@ -23,7 +23,7 @@ def parse_logon_result(server_msg: ServerMsg | None) -> dict[str, Any]:
         raise MsgParserError("Failed to parse logon_result.")
 
 @register_parser('restore_or_join_session_result')
-def parse_restore_or_join_session_result(server_msg: ServerMsg | None) -> dict[str, Any]:
+def parse_restore_or_join_session_result(server_msg: ServerMsg) -> dict[str, Any]:
     try:
         return {
             "result_code": server_msg.restore_or_join_session_result.result_code,
@@ -34,7 +34,7 @@ def parse_restore_or_join_session_result(server_msg: ServerMsg | None) -> dict[s
         raise MsgParserError("Failed to parse restore_or_join_session_result.") 
 
 @register_parser('logged_off')
-def parse_logged_off(server_msg: ServerMsg | None) -> dict[str, Any]: 
+def parse_logged_off(server_msg: ServerMsg) -> dict[str, Any]: 
     try:
         return {
             "logoff_reason": server_msg.logged_off.logoff_reason,
@@ -43,7 +43,7 @@ def parse_logged_off(server_msg: ServerMsg | None) -> dict[str, Any]:
         raise MsgParserError("Failed to parse logged_off.")
 
 @register_parser('pong')
-def parse_pong(server_msg: ServerMsg | None) -> tuple[str, str, int, int]:
+def parse_pong(server_msg: ServerMsg) -> tuple[str, str, int, int]:
     try:
         return ("pong", server_msg.pong.token, server_msg.pong.ping_utc_time, 
                 server_msg.pong.pong_utc_time)
@@ -63,7 +63,7 @@ def register_info_report_parsers(msg_name: str):
 
 @register_info_report_parsers('symbol_resoluion_report')
 def parse_symbol_resolution_report(
-        server_msg: ServerMsg | None
+        server_msg: ServerMsg
     ) -> list[dict[str, str]]:
     try:
         res = []

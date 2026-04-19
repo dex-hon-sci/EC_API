@@ -50,7 +50,7 @@ def assert_input_types(
 def apply_optional_fields(
     target: Any, # The Msg
     values: Mapping[str, Any], #
-    spec: Mapping[str, tuple[str, tuple[type, ...] | type, Callable[[Any], Any] | None]],
+    spec: Mapping[str, tuple[str, type | tuple[type, ...], Callable | None]],
     strict: bool = True,
     ) -> None:
     """

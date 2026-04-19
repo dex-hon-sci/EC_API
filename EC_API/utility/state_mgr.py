@@ -6,6 +6,9 @@ Created on Mon Apr  6 19:40:48 2026
 @author: dexter
 """
 from enum import Enum
+from typing import TypeVar, Generic, Sequence
+T = TypeVar('T', bound=Enum)
+
 import logging
 from EC_API.exceptions import (
     InvalidCurrentStateError,
@@ -15,17 +18,17 @@ from EC_API.exceptions import (
 
 logger = logging.getLogger(__name__)
 
-class StateMgr:
+class StateMgr(Generic[T]):
     def __init__(
             self, 
-            trans_map: dict[Enum, Enum],
-            start: Enum,
-            cur: Enum | None = None,
-            allowed_starts: list[Enum|None] = []
+            trans_map: dict[T, list[T]],
+            start: T,
+            cur: T | None = None,
+            allowed_starts: Sequence[T|None] = []
             ):
-        self.trans_map: dict[Enum, Enum] = trans_map
+        self.trans_map: dict[T, list[T]] = trans_map
         # Allowed start pts. If empty, all nodes are allowed
-        self._allowed_starts: list[Enum|None] = allowed_starts
+        self._allowed_starts: list[T|None] = allowed_starts
         self.finalised: bool = False
         self.start: Enum = start
 
@@ -44,7 +47,7 @@ class StateMgr:
 
     def transition_to(
             self, 
-            next_state: Enum
+            next_state: T
         ) -> bool:
         if self.finalised:
             return False

@@ -62,7 +62,7 @@ def parse_server_msg(
     msg_types = server_msg_type(server_msg)
     res = []
     for msg_type in msg_types:
-        parser = master_parsers.get(msg_types)
+        parser = master_parsers.get(msg_type)
         if parser is None:
             continue
         try:

@@ -66,7 +66,7 @@ class ExecutePayload:
             payload: Payload,
             #request_id: int,
             #account_id: int,
-            live_order: LiveOrder = LiveOrder
+            live_order: type[LiveOrder] = LiveOrder
         ):
         #self._connect = connect 
         self._trade_session = trade_session
@@ -84,7 +84,7 @@ class ExecutePayload:
 
         """
         # Only send payload that is pending.
-        if self._payload.status == PayloadStatus.PENDING:
+        if self.payload.status == PayloadStatus.PENDING:
             CLOrder = self.live_order(
                 self._connect, 
                 symbol_name = self.payload.order_info['symbol_name'], 
