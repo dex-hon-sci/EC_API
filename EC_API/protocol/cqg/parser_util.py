@@ -45,18 +45,20 @@ def register_parser(name):
     return decorator
     
 
-def parse_information_report():...
-
-
-def parse_realtime_market_data():...
-
-@register_parser('order_response')
-def parse_order_repsonse(msg):...
-    #"order_request_rejects": "rpc_reqid",
-    #"order_request_acks": "rpc_reqid",
-    #"trade_subscription_statuses": "sub",
-    #"trade_snapshot_completions": "sub",
-    #"order_statuses": "substream",
-    #"position_statuses": "substream",
-    #"account_summary_statuses": "substream",
-    #"go_flat_statuses": "rpc_reqid",
+# =============================================================================
+# def parse_information_report():...
+# 
+# 
+# def parse_realtime_market_data():...
+# 
+# @register_parser('order_response')
+# def parse_order_repsonse(msg):...
+#     #"order_request_rejects": "rpc_reqid",
+#     #"order_request_acks": "rpc_reqid",
+#     #"trade_subscription_statuses": "sub",
+#     #"trade_snapshot_completions": "sub",
+#     #"order_statuses": "substream",
+#     #"position_statuses": "substream",
+#     #"account_summary_statuses": "substream",
+#     #"go_flat_statuses": "rpc_reqid",
+# =============================================================================
