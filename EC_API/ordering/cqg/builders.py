@@ -396,8 +396,8 @@ def build_suspend_order_request_msg() -> ClientMsg:
 def build_trade_historical_orders_request_msg(
     account_id: int,
     request_id: int,
-    from_date_timestamp: datetime,
-    to_date_timestamp: datetime,
+    from_date_timestamp: float, #datetime,
+    to_date_timestamp: float, #datetime,
     ) -> ClientMsg:
     client_msg = ClientMsg()
     information_requests = client_msg.information_requests.add()

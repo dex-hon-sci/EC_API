@@ -445,11 +445,14 @@ class ConnectCQG(Connect):
             self._state_mgr.transition_to(ConnectionState.RECONNECTING)
 
             restore_msg = build_restore_msg(
-                cast(str, client_app_id          or self.client_app_id),
-                cast(int, protocol_version_major or self.protocol_version_major),
-                cast(int, protocol_version_minor or self.protocol_version_minor),
-                cast(str, session_token          or self.session_token),
-                **kwargs)
+                    cast(str, client_app_id if client_app_id is not None else self.client_app_id),
+                    cast(int, protocol_version_major if protocol_version_major is not None else
+                         self.protocol_version_major),
+                    cast(int, protocol_version_minor if protocol_version_minor is not None else
+                         self.protocol_version_minor),
+                    cast(str, session_token if session_token is not None else self.session_token),
+                    **kwargs
+                    )
 
             msg_key = ('session', 'restore_or_join_session_result', 'single', 0)
             fut = self._msg_router.register_key(msg_key)
