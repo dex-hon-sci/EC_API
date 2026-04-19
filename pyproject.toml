@@ -44,8 +44,12 @@ exclude = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests/unit"]
-addopts = "--cov=EC_API --cov-report=term-missing --cov-omit=EC_API/ext/WebAPI/* --ignore=tests/unit/action/test_action.py"
+addopts = "--cov=EC_API --cov-report=term-missing --ignore=tests/unit/action/test_action.py"
 #addopts = "--cov=EC_API --cov-fail-under=80 --cov-report=term-missing --ignore=tests/unit/action/test_action.py"
+
+[tool.coverage.run]
+omit = ["EC_API/ext/WebAPI/*"]
+
 
 [tool.ruff]
 line-length = 100
