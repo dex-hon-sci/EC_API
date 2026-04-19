@@ -11,9 +11,8 @@ from EC_API.ext.WebAPI.market_data_2_pb2 import RealTimeMarketData, MarketState
 from EC_API.protocol.cqg.parser_util import register_parser
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
-from EC_API._typing import MarketValueTypeCQG, QuotesValueTypeCQG, ParsedRTMDCQG
+from EC_API._typing import (MarketValueTypeCQG, QuotesValueTypeCQG, ParsedRTMDCQG)
 from EC_API.exceptions import MsgParserError
-
 
 @register_parser('market_data_subscription_statuses')
 def parse_market_data_subscription_statuses(

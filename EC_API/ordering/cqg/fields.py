@@ -7,7 +7,6 @@ Created on Mon Dec 22 00:33:52 2025
 """
 from datetime import datetime
 from typing import Union
-
 from pydantic import BaseModel, Field
 # EC_API imports
 from EC_API.ext.common.shared_1_pb2 import NamedValue # Throw this away later

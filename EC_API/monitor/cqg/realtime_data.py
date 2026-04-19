@@ -37,7 +37,9 @@ from EC_API.exceptions import (
     MonitorDataRequestError,
     MonitorTimeOutError
     )
-from EC_API._typing import MarketValueType
+from EC_API._typing import (
+    MarketValueTypeCQG, ParsedRTMDCQG
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,7 @@ class MonitorDataCQG(Monitor):
             self, 
             symbol_name: str, 
             level: MktDataSubLevel
-        ) -> AsyncIterator[MarketValueType] | None:
+        ) -> AsyncIterator[ParsedRTMDCQG] | None:
         
         if self.state != ConnectionState.CONNECTED_LOGON:
             logger.warning(f"stream for Symbol: {symbol_name} failed. Account not logon.")
@@ -107,7 +109,7 @@ class MonitorDataCQG(Monitor):
                     msg = await asyncio.wait_for(q.get(), timeout = self._conn._timeout)
                 except asyncio.TimeoutError:
                     continue
-                yield parse_real_time_market_data(msg, level)
+                yield parse_real_time_market_data(msg)
             
         finally:
             try:

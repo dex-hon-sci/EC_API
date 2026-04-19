@@ -5,6 +5,7 @@ Created on Tue Jul 29 13:20:02 2025
 
 @author: dexter
 """
+from .trade_session import TradeSession
 from .base import LiveOrder
 from .enums import (
     RequestType,

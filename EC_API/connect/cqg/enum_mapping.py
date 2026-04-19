@@ -37,5 +37,3 @@ CONN_LOGOFF_RESCODE_CQG2INT = { # Move these two parsers
     LOff.LogoffReason.LOGOFF_REASON_FORCED: ConnectionState.CONNECTED_LOGOFF,
     LOff.LogoffReason.LOGOFF_REASON_REASSIGNED: ConnectionState.CONNECTED_LOGOFF,    
     }
-
-

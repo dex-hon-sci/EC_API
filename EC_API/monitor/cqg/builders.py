@@ -62,4 +62,3 @@ def build_reset_tracker_request_msg(
     subscription.request_id = request_id
     subscription.level = MKTDATASUBLEVEL_MAP_INT2CQG.get(MktDataSubLevel.LEVEL_NONE)
     return client_msg
-

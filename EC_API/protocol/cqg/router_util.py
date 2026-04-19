@@ -54,7 +54,8 @@ def extract_router_keys(
             continue
     return res
 
-def parse_msg(
+# --- Parsers
+def parse_server_msg(
         server_msg: ServerMsg
     ) -> list[Any]:
     # Dispatch to message specific parsers
@@ -108,4 +109,3 @@ def realtime_tick_contract_id(msg: ServerMsg) -> int:
 
 def order_statuses_order_id(msg: ServerMsg) -> str:
     return msg.order_statuses[0].chain_order_id
-
