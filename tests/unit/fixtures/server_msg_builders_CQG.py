@@ -19,7 +19,7 @@ from EC_API.ext.WebAPI.order_2_pb2 import Order as Ord
 from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus as GFltStatus
 from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscriptionStatus as MktDSubStatus
 from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as MktDSub
-from EC_API.ext.WebAPI.market_data_2_pb2 import Quote
+from EC_API.ext.WebAPI.market_data_2_pb2 import Quote, TradingState
 from EC_API.ext.WebAPI.historical_2_pb2 import TimeAndSalesReport as TSrRep
 from EC_API.ext.WebAPI.historical_2_pb2 import BarReportStatusCode as BarRpStatusCode
 from EC_API.ext.WebAPI.historical_2_pb2 import VolumeProfileReport as VolPrfRep
@@ -430,16 +430,37 @@ def build_real_time_market_data_server_msg(
     
     real_time_market_data.contract_id = contract_id
     
+    ts = real_time_market_data.market_state.trading_state 
+    ts.exchange_state = TradingState.ExchangeState.EXCHANGE_STATE_PRE_OPEN    # MS_EXCHANGE_STATE
+    ts.allow_place_order = False  # MS_ALLOW_PLACE
+    ts.allow_cancel_order = True  # MS_ALLOW_CANCEL
+    ts.allow_modify_order = False  # MS_ALLOW_MODIFY
+    ts.matching_enabled = True    # MS_MATCHING_ENABLED
+    
+    real_time_market_data.market_state.is_snapshot = True
+    real_time_market_data.correct_price_scale = 10.123
+    real_time_market_data.is_snapshot = False
     # ----
     quotes = real_time_market_data.quotes.add()
     quotes.quote_utc_time = int(datetime.now().timestamp())
     quotes.type = Quote.Type.TYPE_TRADE
     quotes.scaled_price = 19201
     quotes.scaled_source_price = 10029
+    quotes.price_yield = 100
+    quotes.volume.significand = 0
     quotes.volume.exponent = 2
     quotes.indicators.append(Quote.Indicator.INDICATOR_OPEN)
     quotes.sales_condition = Quote.SalesCondition.SALES_CONDITION_HIT
     
+    quotes.trade_attributes.buyer = 12
+    quotes.trade_attributes.seller = 11
+    quotes.trade_attributes.trade_type ="trade_type_1"
+    quotes.trade_attributes.match_id = "match_id_1"
+    quotes.trade_attributes.agreement_time_utc.seconds = int(1001)
+    quotes.trade_attributes.agreement_time_utc.nanos = 5
+
+    quotes.scaled_currency_rate_price = 32
+    quotes.scaled_premium = 11
     # ----
     market_values = real_time_market_data.market_values.add()
     
@@ -447,17 +468,59 @@ def build_real_time_market_data_server_msg(
     market_values.scaled_high_price = 20331
     market_values.scaled_low_price = 18890
     market_values.scaled_close_price = 19202
+    market_values.scaled_last_price_no_settlement = 266
+    market_values.scaled_exchange_close_price = 277
+    market_values.scaled_yesterday_settlement = 288
     market_values.total_volume.significand = 12
+    market_values.total_volume.exponent = 0
+    market_values.scaled_indicative_open = 8
+    market_values.indicative_open_volume.significand = 1
+    market_values.indicative_open_volume.exponent = 0
+    market_values.day_index = -1
+    market_values.open_interest.significand = 121
+    market_values.open_interest.exponent = 2
+    market_values.tick_volume = 100
+    market_values.scaled_settlement = 12411
+    market_values.scaled_marker_price = 129
+    market_values.scaled_last_trade_price = 18221
+    market_values.last_trade_volume.significand = 21
+    market_values.last_trade_volume.exponent = 5
+    market_values.last_trade_utc_timestamp.seconds = 102
+    market_values.last_trade_utc_timestamp.nanos = 11
+    market_values.cleared_fields.append(1)
+    market_values.trade_date = 20160616
+    market_values.session_index = 4
     
+    market_values.market_yields.yield_of_open_price = 1
+    market_values.market_yields.yield_of_high_price = 2 
+    market_values.market_yields.yield_of_low_price = 3
+    market_values.market_yields.yield_of_close_price = 4
+    market_values.market_yields.yield_of_yesterday_settlement = 5
+    market_values.market_yields.yield_of_indicative_open = 6
+    market_values.market_yields.yield_of_settlement = 7
+    
+    market_values.scaled_currency_rate_price = 10
     # ----
     quotes1 = real_time_market_data.quotes.add()
     quotes1.quote_utc_time = int(datetime.now().timestamp())
     quotes1.type = Quote.Type.TYPE_TRADE
     quotes1.scaled_price = 1400
     quotes1.scaled_source_price = 129
+    quotes1.price_yield = 100
+    quotes1.volume.significand = 0
     quotes1.volume.exponent = 1
     quotes1.indicators.append(Quote.Indicator.INDICATOR_OPEN)
     quotes1.sales_condition = Quote.SalesCondition.SALES_CONDITION_HIT
+        
+    quotes1.trade_attributes.buyer = 12
+    quotes1.trade_attributes.seller = 11
+    quotes1.trade_attributes.trade_type ="trade_type_2"
+    quotes1.trade_attributes.match_id = "match_id_2"
+    quotes1.trade_attributes.agreement_time_utc.seconds = int(1001)
+    quotes1.trade_attributes.agreement_time_utc.nanos = 5
+
+    quotes1.scaled_currency_rate_price = 32
+    quotes1.scaled_premium = 11
     
     # ----
     market_values1 = real_time_market_data.market_values.add()
@@ -466,8 +529,39 @@ def build_real_time_market_data_server_msg(
     market_values1.scaled_high_price = 890
     market_values1.scaled_low_price = 611
     market_values1.scaled_close_price = 755
-    market_values1.total_volume.significand = 16
-
+    market_values1.scaled_last_price_no_settlement = 266
+    market_values1.scaled_exchange_close_price = 277
+    market_values1.scaled_yesterday_settlement = 288
+    market_values1.total_volume.significand = 4
+    market_values1.total_volume.exponent = 0
+    market_values1.scaled_indicative_open = 2
+    market_values1.indicative_open_volume.significand = 5
+    market_values1.indicative_open_volume.exponent = 0
+    market_values1.day_index = 1
+    market_values1.open_interest.significand = 1234
+    market_values1.open_interest.exponent = 6
+    market_values1.tick_volume = 118
+    market_values1.scaled_settlement = 246
+    market_values1.scaled_marker_price = 803
+    market_values1.scaled_last_trade_price = 266
+    market_values1.last_trade_volume.significand = 21
+    market_values1.last_trade_volume.exponent = 5
+    market_values1.last_trade_utc_timestamp.seconds = 102
+    market_values1.last_trade_utc_timestamp.nanos = 11
+    market_values1.cleared_fields.append(7)
+    market_values1.trade_date = 20170717
+    market_values1.session_index = 4
+    
+    market_values1.market_yields.yield_of_open_price = 8
+    market_values1.market_yields.yield_of_high_price = 9 
+    market_values1.market_yields.yield_of_low_price = 10
+    market_values1.market_yields.yield_of_close_price = 11
+    market_values1.market_yields.yield_of_yesterday_settlement = 12
+    market_values1.market_yields.yield_of_indicative_open = 13
+    market_values1.market_yields.yield_of_settlement = 14
+    
+    market_values1.scaled_currency_rate_price = 26
+    
     return server_msg
 
 

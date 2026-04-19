@@ -41,7 +41,7 @@ TARGETS = {
 
 def _parse_market_state(     
         market_state: MarketState
-    ) -> tuple[int,int,int,int]:
+    ) -> tuple[int,int,int,int, bool, bool]:
     if market_state is None:
         return (None, None, None, None, None)
     ts = market_state.trading_state
@@ -122,7 +122,7 @@ def _parse_quotes(
 def _parse_market_values(
         real_time_market_data: RealTimeMarketData
     ) -> list[MarketValueTypeCQG]:
-      # MarketValueTypeCQG layout:
+      ### MarketValueTypeCQG layout:
       # [0]  contract_id                      int
       # [1]  scaled_open_price                int
       # [2]  scaled_high_price                int
