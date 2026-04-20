@@ -26,6 +26,11 @@ def is_correct_type(reference_dict: dict[str, Any],
         if type(target_dict[key]) != reference_dict[key]:
             raise TypeError(f"Type Error, {key} must be: {reference_dict[key].__name__}.")
             
+class RiskCheck:
+    def __init__(self): pass
+    
+    def validate(self): pass
+            
 class PayloadFormatCheck(Protocol):
     """
     Protocol class for checking Payload formats.

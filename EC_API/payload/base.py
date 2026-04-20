@@ -9,12 +9,11 @@ Created on Mon Jul 14 19:37:54 2025
 from datetime import timezone, datetime, timedelta
 from dataclasses import dataclass, field
 # EC_API imports
-from EC_API.connect.base import Connect
 from EC_API.ordering.base import LiveOrder
 from EC_API.ordering.enums import SubScope, OrderStatus
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
-from EC_API.payload.safety import PayloadFormatCheck
+from EC_API.payload.safety import PayloadFormatCheck, RiskCheck
 from EC_API.ordering.trade_session import TradeSession
 
 @dataclass(slots=True)
@@ -42,7 +41,8 @@ class Payload:
                                     + timedelta(days=2) # In long text format
     check_method: PayloadFormatCheck = PayloadFormatCheck
     asset_safty_range: dict = field(default_factory=dict)
-
+    risk_check: RiskCheck |None = None
+    
     def __post_init__(self) -> None:
         # Check the order instructions based on the order type
         # import checking classes and func specific for CQG type orders
@@ -64,8 +64,6 @@ class ExecutePayload:
             self, 
             trade_session: TradeSession, 
             payload: Payload,
-            #request_id: int,
-            #account_id: int,
             live_order: type[LiveOrder] = LiveOrder
         ):
         #self._connect = connect 
@@ -86,7 +84,7 @@ class ExecutePayload:
         # Only send payload that is pending.
         if self.payload.status == PayloadStatus.PENDING:
             CLOrder = self.live_order(
-                self._connect, 
+                self._trade_session, 
                 symbol_name = self.payload.order_info['symbol_name'], 
                 request_id = self.payload.request_id, 
                 account_id = self.account_id,

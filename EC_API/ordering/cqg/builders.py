@@ -66,7 +66,7 @@ def build_trade_subscription_msg(
     
     try:
         assert_input_types(params, TRADE_SUBSCRIPTION_REQUIRED_FIELD)
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_trade_subscription_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg) 
@@ -124,7 +124,7 @@ def build_new_order_request_msg(
         assert_input_types(params, NEW_ORDER_REQUIRED_FIELDS, strict = True)
         assert_input_types(kwargs, NEW_ORDER_OPTIONAL_FIELDS, strict = False)
         validate_input_para(full)
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_new_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg) 
@@ -191,7 +191,7 @@ def build_modify_order_request_msg(
         assert_input_types(params, MODIFY_ORDER_REQUIRED_FIELDS, strict = True)
         assert_input_types(kwargs, MODIFY_ORDER_OPTIONAL_FIELDS, strict = False)
         validate_input_para(full)
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_modify_order_request_msg invalid parameters: {str(e)}."
         logger.error(msg)
         raise MsgBuilderError(msg) 
@@ -243,7 +243,7 @@ def build_cancel_order_request_msg(
     try:
         validate_required_fields(params, CANCEL_ORDER_REQUIRED_FIELDS)
         assert_input_types(params, CANCEL_ORDER_REQUIRED_FIELDS, strict = True)
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_cancel_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg) 
@@ -264,16 +264,16 @@ def build_cancelall_order_request_msg(
     cl_order_id: str,
     **kwargs
     )-> ClientMsg | None:
-    default_kwargs = {
+    defaults = {
         'when_utc_timestamp': datetime.now(timezone.utc),
         }
-    kwargs = dict(default_kwargs, **kwargs)
+    kwargs = dict(defaults, **kwargs)
     params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
     try:
         validate_required_fields(params, CANCELALL_ORDER_REQUIRED_FIELDS)
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_cancelall_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg) 
@@ -300,7 +300,7 @@ def build_activate_order_request_msg(
     try:
         validate_required_fields(params, ACTIVATE_ORDER_REQUIRED_FIELDS)
         assert_input_types(params, ACTIVATE_ORDER_REQUIRED_FIELDS, strict = True)
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_activate_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg) 
@@ -339,7 +339,7 @@ def build_goflat_order_request_msg(
         assert_input_types(params, GOFLAT_ORDER_REQUIRED_FIELDS, strict = True)
         assert_input_types(kwargs, GOFLAT_ORDER_OPTIONAL_FIELDS, strict = False)
         validate_input_para(full)
-    except (TypeError, ValueError, KeyError) as e:
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_goflat_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg)  
@@ -365,12 +365,12 @@ def build_liquidateall_order_request_msg(
     cl_order_id: str = "",
     **kwargs
     ) -> ClientMsg:
-    default_kwargs = {
+    defaults = {
         'when_utc_timestamp': datetime.now(timezone.utc),
         'is_short': None,
         'current_day_only': None
         }
-    kwargs = dict(default_kwargs, **kwargs)
+    kwargs = dict(defaults, **kwargs)
     
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()

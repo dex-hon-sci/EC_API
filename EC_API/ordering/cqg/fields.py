@@ -6,8 +6,9 @@ Created on Mon Dec 22 00:33:52 2025
 @author: dexter
 """
 from datetime import datetime
-from typing import Union
+from typing import Union, Callable
 # EC_API imports
+from typing import Any
 from EC_API.ext.common.shared_1_pb2 import NamedValue # Throw this away later
 from EC_API.ordering.enums import (
     Side, SubScope,
@@ -19,7 +20,7 @@ from EC_API.ordering.cqg.enums import (
     DurationCQG,
     ExecInstructionCQG
     )
-
+from EC_API._typing import _FieldSpec
 # =============================================================================
 # class ClientMsgInputsCQG:
 #     pass
@@ -28,14 +29,14 @@ from EC_API.ordering.cqg.enums import (
 #     ...
 # =============================================================================
 
-TRADE_SUBSCRIPTION_REQUIRED_FIELD = {
+TRADE_SUBSCRIPTION_REQUIRED_FIELD: _FieldSpec = {
     'trade_subscription_id': ('trade_subscription_id', int, int),
     'sub_scope': ('sub_scope', Union[SubScope, SubScopeCQG], None), 
     'subscribe': ('subscribe', bool, None),
     'skip_orders_snapshot': ('skip_orders_snapshot', bool, None),
     }
 
-NEW_ORDER_REQUIRED_FIELDS = {
+NEW_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'account_id': ('account_id', int, int),
     'request_id': ('request_id', int, int),
     'contract_id': ('contract_id', int, int),
@@ -48,7 +49,7 @@ NEW_ORDER_REQUIRED_FIELDS = {
     'is_manual': ('is_manual', bool, None)
     }
 
-NEW_ORDER_OPTIONAL_FIELDS = { #(key, type, transform_func)
+NEW_ORDER_OPTIONAL_FIELDS: _FieldSpec = { #(key, type, transform_func)
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
     'good_thru_date': ('good_thru_date', int, None),
     'scaled_limit_price': ('scaled_limit_price', int, None),
@@ -60,7 +61,7 @@ NEW_ORDER_OPTIONAL_FIELDS = { #(key, type, transform_func)
     "algo_strategy": ("algo_strategy", str, str)
     }
 
-MODIFY_ORDER_REQUIRED_FIELDS = {
+MODIFY_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'account_id': ('account_id', int, int),
     'request_id': ('request_id', int, int),
     'order_id': ('order_id', str, None),
@@ -69,7 +70,7 @@ MODIFY_ORDER_REQUIRED_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
     }
     
-MODIFY_ORDER_OPTIONAL_FIELDS = {
+MODIFY_ORDER_OPTIONAL_FIELDS: _FieldSpec = {
     'scaled_limit_price': ('scaled_limit_price', int, None), 
     'scaled_stop_price': ('scaled_stop_price', int, None),
     'qty': ('qty', int, None), # Sensitive fields only take exact types and no transform func
@@ -83,7 +84,7 @@ MODIFY_ORDER_OPTIONAL_FIELDS = {
     }
 
 
-CANCEL_ORDER_REQUIRED_FIELDS = {
+CANCEL_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'account_id': ('account_id', int, int),
     'request_id': ('request_id', int, int),
     'order_id': ('order_id', str, None),
@@ -92,9 +93,9 @@ CANCEL_ORDER_REQUIRED_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None)
     }
 
-CANCEL_ORDER_OPTIONAL_FIELDS = {}
+CANCEL_ORDER_OPTIONAL_FIELDS: _FieldSpec = {}
 
-ACTIVATE_ORDER_REQUIRED_FIELDS = {
+ACTIVATE_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'account_id': ('account_id', int, int),
     'request_id': ('request_id', int, int),
     'order_id': ('order_id', str, None),
@@ -103,25 +104,28 @@ ACTIVATE_ORDER_REQUIRED_FIELDS = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None)
     }
 
-ACTIVATE_ORDER_OPTIONAL_FIELDS = {}
+ACTIVATE_ORDER_OPTIONAL_FIELDS: _FieldSpec = {}
 
-GOFLAT_ORDER_REQUIRED_FIELDS = {
+GOFLAT_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'account_id': ('account_id', int, int),
     'request_id': ('request_id', int, int),
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
     }
 
-GOFLAT_ORDER_OPTIONAL_FIELDS = {
+GOFLAT_ORDER_OPTIONAL_FIELDS: _FieldSpec = {
     'execution_source_code': ('execution_source_code', str, str), 
     'speculation_type': ('speculation_type', int, int)    
     }
 ###########
 
-CANCELALL_ORDER_REQUIRED_FIELDS = {
-    
+CANCELALL_ORDER_REQUIRED_FIELDS: _FieldSpec = {
+    'account_id': ('account_id', int, int),
+    'request_id': ('request_id', int, int),
+    'cl_order_id': ('cl_order_id', str, str), 
+    'when_utc_timestamp': ('when_utc_timestamp', datetime, None)
     }
 
-CANCELALL_ORDER_OPTIONAL_FIELDS = {
+CANCELALL_ORDER_OPTIONAL_FIELDS: _FieldSpec = {
     }
 
 
