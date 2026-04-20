@@ -82,14 +82,14 @@ class LiveOrderCQG(LiveOrder):
     def rid(self):
         return self._conn.rid()
     
-    def check_state():
+    def check_state(self):
         return 
     
     # --- CQG function calls
     async def _new_order_request(
             self, 
             request_details: dict[str, Any]
-        ) -> None:
+        ) -> ServerMsg:
         para = locals().copy()
         
         with msg_io_error_handler(
@@ -124,18 +124,17 @@ class LiveOrderCQG(LiveOrder):
 # =============================================================================
             key = ('substream','order_statuses','cl_order_id', cl_order_id)
             #key = ("order_statuses", request_details['request_id'])
-            fut = self.msg_router.register(key)
+            fut = self.msg_router.register_key(key)
             await self._transport.send(client_msg)
-            server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+            server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             
             # update trade session trackers for order's initial state 
-            self._trade_session.active_order.add(server_msg.order_statuses[0].chain_order_id)
-            self._trade_session.order_status[server_msg.chain_order_id] = OrderStatus_MAP_INT2CQG[server_msg.result_code]
+            self._trade_session.active_orders.add(server_msg.order_statuses[0].chain_order_id)
+            self._trade_session.order_statuses[server_msg.chain_order_id] = OrderStatus_MAP_INT2CQG[server_msg.result_code]
             return server_msg
     
     async def _modify_order_request(
         self, 
-        request_id: int,
         request_details: dict[str, Any],
         ) -> ServerMsg:
         # check if there is a chain_order_id in the chamber
@@ -148,7 +147,7 @@ class LiveOrderCQG(LiveOrder):
 
             key = ('substream','order_statuses','chain_order_id','')
             #key = ("order_statuses", request_details['request_id'])
-            fut = self.msg_router.register(key)
+            fut = self.msg_router.register_key(key)
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
     
@@ -167,7 +166,7 @@ class LiveOrderCQG(LiveOrder):
         
             key = ('substream','order_statuses','chain_order_id','')
             #key = ("order_statuses", request_details['request_id'])
-            fut = self._router.register(key)
+            fut = self.msg_router.register_key(key)
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return server_msg
@@ -184,20 +183,20 @@ class LiveOrderCQG(LiveOrder):
 
             #key = ("order_statuses", request_details['request_id'])
             key = ('substream','order_statuses','chain_order_id','')
-            fut = self._router.register(key)
+            fut = self.msg_router.register_key(key)
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return server_msg
  
-    async def _cancel_all_oreder_request(self) -> None:
+    async def _cancel_all_oreder_request(self) -> ServerMsg:
         ...
-        return 
+        return ServerMsg()
     
-    async def liquidateall_order_request(self) -> None:
+    async def _liquidateall_order_request(self) -> ServerMsg:
         ...
-        return 
+        return ServerMsg()
     
-    async def goflat_order_request(
+    async def _goflat_order_request(
         self, 
         request_details: dict[str, Any],
         ) -> ServerMsg:
@@ -209,7 +208,7 @@ class LiveOrderCQG(LiveOrder):
 
             #key = ("order_statuses", request_details['request_id'])
             key = ('substream','order_statuses','chain_order_id','')
-            fut = self.msg_router.register(key)
+            fut = self.msg_router.register_key(key)
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return server_msg
@@ -225,7 +224,7 @@ class LiveOrderCQG(LiveOrder):
         # Get the Inputs
         symbol = request_details['symbol']
         account_id = self._trade_session._conn._account_id
-        contract_id = self._trade_session.sub_mgr.get_contract_id_by_name(symbol)
+        contract_id = self._trade_session.symbol_registry.get_contract_ids(symbol)
         rid = self._conn.rid()
         # Check State
         
@@ -249,7 +248,7 @@ class LiveOrderCQG(LiveOrder):
             
             order_id = request_details['order_id']
             
-            if not self._trade_session.active_orders.get(order_id):
+            if order_id not in self._trade_session.active_orders:
                 raise MissingOrderIDError(
                     f"Order ID: {order_id} is not in active orders."
                     )
@@ -274,11 +273,11 @@ class LiveOrderCQG(LiveOrder):
                 case RequestType.CANCEL_ORDER:
                     server_msg = await self._cancel_order_request(details)
                 
-                case RequestType.ACRIVATE_ORDER:
+                case RequestType.ACTIVATE_ORDER:
                     server_msg = await self._activate_order_request(details)
                 
                 case RequestType.CANCELALL_ORDER:
-                    server_msg = await self._cancelall_order_request(details)
+                    server_msg = await self._cancel_all_order_request(details)
                     
                 case RequestType.LIQUIDATEALL_ORDER:
                     server_msg = await self._liquidateall_order_request(details)
@@ -286,7 +285,7 @@ class LiveOrderCQG(LiveOrder):
                 case RequestType.GOFLAT_ORDER:
                     server_msg = await self._goflat_order_request(details)
                     
-            chain_order_id = server_msg.order_status.chain_order_id
+            chain_order_id = server_msg.order_statuses.chain_order_id
             q = self.stream_router.subscribe(chain_order_id)
 
             return server_msg, q

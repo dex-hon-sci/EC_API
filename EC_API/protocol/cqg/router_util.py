@@ -36,7 +36,7 @@ def extract_router_keys(
         server_msg: ServerMsg
     ) -> list[RouterKey]:
     msg_types = server_msg_type(server_msg)
-    res = []
+    res: list[RouterKey] = []
     for msg_type in msg_types:
         family = SERVER_MSG_FAMILY.get(msg_type)
         if family is None:
@@ -60,7 +60,7 @@ def parse_server_msg(
     ) -> list[Any]:
     # Dispatch to message specific parsers
     msg_types = server_msg_type(server_msg)
-    res = []
+    res: list[RouterKey] = []
     for msg_type in msg_types:
         parser = master_parsers.get(msg_type)
         if parser is None:
@@ -75,7 +75,7 @@ def parse_server_msg(
 # --- Message treatment utility
 def split_server_msg(msg: ServerMsg, targets: list[str]):
     # Split message on the 
-    res = []
+    res: list[ServerMsg] = []
     for target in targets:
         server_msg = ServerMsg()
         field_desc = msg.DESCRIPTOR.fields_by_name.get(target)

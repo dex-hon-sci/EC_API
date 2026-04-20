@@ -8,6 +8,7 @@ Created on Tue Mar 31 05:01:41 2026
 import asyncio
 import logging
 from datetime import datetime
+from EC_API.transport.cqg.base import TransportCQG
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.ordering.enums import OrderStatus
 from EC_API.ordering.cqg.enums import SubScopeCQG
@@ -34,11 +35,11 @@ class TradeSessionCQG:
         ):
         # Connect
         self._conn = conn
-        self._transport = self._conn.transport
+        self._transport: TransportCQG = self._conn.transport
         
         # Event Loop
-        self._tracker_task: asyncio.Task = None
-        self._stop_evt = self._conn._stop_evt
+        self._tracker_task: asyncio.Task | None = None
+        self._stop_evt: asyncio.Event = self._conn._stop_evt
         
         # Routers
         self._stream_router = self._conn._exec_stream_router
@@ -102,14 +103,16 @@ class TradeSessionCQG:
                    for scopes in self._active_subs.values())
     # --- Getters
     def get_order_status(self, order_id: str) -> dict:
-        return self._order_state.get(order_id)
+        return self.order_statuses.get(order_id)
     
     # --- function calls
-    async def wait_for_ack(self) -> None: ...
+    async def wait_for_ack(self) -> None: 
+        return 
     
     async def wait_for_terminal(self, order_id: str) -> dict:
         # blocks until filled/cancelled/rejected
         ...
+        return dict()
     # --- status tracker 
     async def _tracker_loop(self):
         TERMINAL_STATES = {
@@ -120,7 +123,7 @@ class TradeSessionCQG:
         while not self._stop_evt.is_set():
             
             
-            for chain_order_id in self._active_orders:
+            for chain_order_id in self.active_orders:
                 queues = self._stream_router._subs.get(chain_order_id, [])
 
              # Look at the order status stream (By Level) using the chain_order_id
@@ -209,13 +212,13 @@ class TradeSessionCQG:
                 timeout_error = TradeSessionTimeOutError
             ):
             client_msg = build_trade_historical_orders_request_msg( 
-                self._conn.account_id, 
+                self._conn._account_id, 
                 rid,
                 from_date,
                 to_date
                 )
             key = ('info', 'information_reports:historical_orders_report', 'id', rid)
-            fut = self._msg_router.register(key)
+            fut = self._msg_router.register_key(key)
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
         

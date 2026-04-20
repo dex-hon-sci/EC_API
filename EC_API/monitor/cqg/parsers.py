@@ -40,7 +40,7 @@ TARGETS = {
 
 def _parse_market_state(     
         market_state: MarketState
-    ) -> tuple[int,int,int,int, bool, bool]:
+    ) -> tuple[int, int, int, int, bool, bool] | tuple[None, None, None, None, None, None]:
     if market_state is None:
         return (None, None, None, None, None)
     ts = market_state.trading_state

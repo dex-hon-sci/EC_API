@@ -5,15 +5,20 @@ Created on Fri Apr 10 22:13:49 2026
 
 @author: dexter
 """
+from typing import Iterator
 import asyncio
 from contextlib import contextmanager
-from EC_API.exceptions import EC_APIError, MsgBuilderError, MsgParserError
+from EC_API.exceptions import (
+    EC_APIError, 
+    MsgBuilderError, 
+    MsgParserError
+    )
 
 @contextmanager
 def msg_io_error_handler(
         output_error: type[EC_APIError],
-        timeout_error: type[EC_APIError] = Exception,
-        ) -> EC_APIError:
+        timeout_error: type[EC_APIError] = EC_APIError,
+        ) -> Iterator[None]:
     try:
         yield
     except (MsgBuilderError, MsgParserError) as e:

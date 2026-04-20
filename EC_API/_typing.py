@@ -17,17 +17,19 @@ RK_ID_FIELD_NAME = 2
 RK_ID = 3
 
 # Key Hit (Universal)
-KeyHit = tuple[str, int, bool, bool] 
+KeyHit = tuple[str, int | None, bool, bool] 
 
 KH_MSG_FAMILY = 0
 KH_MSG_TYPE = 1
 KH_IS_REPEATED = 2
 KH_IS_FIELD = 3
 
-type Extractor_func[ServerMsgType] = Callable[[ServerMsgType], Any]
+type Extractor_func = Callable[[ServerMsgType, str], Any]
 
 # ------ Builders ------
 type Builder_func[ClientMsgType] = Callable[[Any, ClientMsgType], Any]
+
+_FieldSpec = dict[str, tuple[str, type | tuple[type, ...], Callable[..., Any] | None]]
 
 # ------ Parsers ------
 type Parser_func[ServerMsgType] = Callable[[Any, ServerMsgType], Any]

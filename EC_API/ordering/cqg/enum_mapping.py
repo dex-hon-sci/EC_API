@@ -91,21 +91,23 @@ OrderStatus_MAP_INT2CQG = {
     }
 
 # --- State Transition Map ---
-ORDER_STATES_LIFECYCLE = {
-    OrderStatus.PENDING: [
-        ],
-    OrderStatus.OPEN: [
-        ],
-    OrderStatus.REJECTED: [
-        ],
-    OrderStatus.EXPIRED: [
-        ],
-    OrderStatus.CANCELLED: [
-        ],
-    OrderStatus.ERROR: [
-        ]
-    }
-
+# =============================================================================
+# ORDER_STATES_LIFECYCLE = {
+#     OrderStatus.PENDING: [
+#         ],
+#     OrderStatus.OPEN: [
+#         ],
+#     OrderStatus.REJECTED: [
+#         ],
+#     OrderStatus.EXPIRED: [
+#         ],
+#     OrderStatus.CANCELLED: [
+#         ],
+#     OrderStatus.ERROR: [
+#         ]
+#     }
+# 
+# =============================================================================
 # =============================================================================
 #     PENDING = auto()
 #     OPEN = auto()

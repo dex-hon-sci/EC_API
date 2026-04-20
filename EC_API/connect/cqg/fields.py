@@ -5,7 +5,7 @@ Created on Sun Dec 28 22:38:58 2025
 
 @author: dexter
 """
-from typing import Union
+from typing import Union, Any
 
 LOGON_REQUEST_REQUIRED_FIELDS = {
     'user_name': ('user_name', str, str),
@@ -18,13 +18,13 @@ LOGON_REQUEST_REQUIRED_FIELDS = {
     'private_label': ('private_label', str, str),
     }
 
-LOGON_REQUEST_OPTIONAL_FIELDS = {}
+LOGON_REQUEST_OPTIONAL_FIELDS: dict[str, tuple[str,Any,Any]] = {}
 
 LOGOFF_REQUEST_REQUIRED_FIELDS = {
     'txt_msg': ('txt_msg', str, str)
     }
 
-LOGOFF_REQUEST_OPTIONAL_FIELDS = {
+LOGOFF_REQUEST_OPTIONAL_FIELDS: dict[str, tuple[str,Any,Any]] = {
     }
 
 RESTORE_REQUEST_REQUIRED_FIELDS = {

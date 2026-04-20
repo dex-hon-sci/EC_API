@@ -28,7 +28,7 @@ class StateMgr(Generic[T]):
             ):
         self.trans_map: dict[T, list[T]] = trans_map
         # Allowed start pts. If empty, all nodes are allowed
-        self._allowed_starts: list[T|None] = allowed_starts
+        self._allowed_starts: Sequence[T|None] = allowed_starts
         self.finalised: bool = False
         self.start: Enum = start
 

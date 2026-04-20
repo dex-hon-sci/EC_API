@@ -50,14 +50,15 @@ addopts = "--cov=EC_API --cov-report=term-missing --ignore=tests/unit/action/tes
 [tool.coverage.run]
 omit = ["EC_API/ext/WebAPI/*"]
 
-
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+exclude = ["EC_API/ext/"]
 
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
-exclude = ["EC_API/ext/"]
+exclude = ["EC_API/ext/", "tests/"]
+check_untyped_defs = true
 
 

@@ -6,16 +6,16 @@ Created on Fri Feb 13 20:03:25 2026
 @author: dexter
 """
 from typing import Callable, Any, Iterable
-from dataclasses import dataclass
 from google.protobuf.message import Message
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
+from EC_API._typing import (
+    RouterKey, 
+    Extractor_func,
+    KeyHit
+    )
 
-RouterKey = tuple[str, str, str, int|str] # (msg_family, msg_type, id_field_name, id)
-type Extractor_func = Callable[ServerMsg]
 extractors: dict[str, Extractor_func] = {}
-
-KeyHit = tuple[str, int, bool, bool]
 
 def register_extractor(msg_name: str):
     # decorator for registering extractors functions
@@ -179,7 +179,7 @@ def extract_sub_router_keys(
             request_id_name = hit[0] 
             request_id_val = hit[1]
 
-    if report_type is None or request_id_name is None:
+    if report_type is None or request_id_name is None or request_id_val is None:
         return []
     
     return [('sub', report_type, request_id_name, request_id_val)]
@@ -188,7 +188,7 @@ def extract_sub_router_keys(
 def extract_substream_router_keys(
         msg: ServerMsg, 
         msg_type: str                      
-    )->list[RouterKey]: 
+    ) -> list[RouterKey]: 
     TARGET = {
         "order_statuses",
         "position_statuses", 
@@ -218,7 +218,7 @@ def extract_substream_router_keys(
                 keys.append(('substream', report_type, 'single', 0))
             continue
         
-        expected_id = IDs.get(report_type)
+        expected_id = IDs.get(report_type) if report_type is not None else None
         if request_id_name is None and expected_id is not None and hit[0] == expected_id:
             request_id_name = hit[0]
             request_id_val = hit[1]
