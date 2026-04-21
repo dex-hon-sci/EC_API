@@ -59,3 +59,4 @@ class OrderStatus(Enum):
     EXPIRED = auto()
     PARTIAL = auto()
     ERROR = auto()
+    

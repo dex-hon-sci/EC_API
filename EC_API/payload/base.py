@@ -62,18 +62,14 @@ class ExecutePayload:
     # Execution object for CQG trade rounting connection
     def __init__(
             self, 
-            trade_session: TradeSession, 
-            payload: Payload,
+            trade_session: type[TradeSession], 
+            payload: type[Payload],
             live_order: type[LiveOrder] = LiveOrder
         ):
-        #self._connect = connect 
         self._trade_session = trade_session
         self.payload = payload
         self.live_order = live_order # LiveOrder class, vendor-specific.
-        #self.ordering_enums: OrderStatus = OrderStatus
 
-        #self.account_id = account_id
-        #self.sub_scope: SubScope = SubScope.SUBSCRIPTION_SCOPE_ORDERS
         # Choose what enums are used for match cases in change payload status
         
     def unload(self) -> None:
@@ -88,7 +84,7 @@ class ExecutePayload:
                 symbol_name = self.payload.order_info['symbol_name'], 
                 request_id = self.payload.request_id, 
                 account_id = self.account_id,
-                sub_scope = self.sub_scope
+                #sub_scope = self.sub_scope
                 )
             CLOrder.send(request_type = self.payload.order_request_type, 
                         request_details = self.payload.order_info)
