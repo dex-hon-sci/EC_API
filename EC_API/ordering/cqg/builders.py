@@ -43,8 +43,8 @@ from EC_API.ordering.cqg.fields import (
     ACTIVATE_ORDER_REQUIRED_FIELDS,
     CANCELALL_ORDER_REQUIRED_FIELDS,
     CANCELALL_ORDER_OPTIONAL_FIELDS,
-    LIQIDATEALL_ORDER_REQUIRED_FIELDS,
-    LIQIDATEALL_ORDER_OPTIONL_FIELDS,
+    LIQUIDATEALL_ORDER_REQUIRED_FIELDS,
+    LIQUIDATEALL_ORDER_OPTIONAL_FIELDS,
     GOFLAT_ORDER_REQUIRED_FIELDS,
     GOFLAT_ORDER_OPTIONAL_FIELDS
     )
@@ -144,12 +144,12 @@ def build_new_order_request_msg(
     order_requests.new_order.order.qty.significand = qty_significant
     order_requests.new_order.order.qty.exponent = qty_exponent
 
-    if kwargs['exec_instructions'] is not None:
+    if kwargs.get('exec_instructions') is not None:
         order_requests.new_order.order.exec_instructions.append(
             ExecInstruction_MAP_INT2CQG[kwargs['exec_instructions']]
             )
         kwargs.pop('exec_instructions')
-    if kwargs['suspend'] is not None:
+    if kwargs.get('suspend') is not None:
         order_requests.new_order.suspend = kwargs['suspend']
         kwargs.pop('suspend')
         
@@ -205,7 +205,7 @@ def build_modify_order_request_msg(
     order_requests.modify_order.cl_order_id = cl_order_id
     order_requests.modify_order.when_utc_timestamp = when_utc_timestamp
     
-    if kwargs['qty'] is not None:
+    if kwargs.get('qty') is not None:
         if kwargs['qty'] == 0:
             order_requests.modify_order.qty.significand = 0
             order_requests.modify_order.qty.exponent = 0
@@ -216,7 +216,7 @@ def build_modify_order_request_msg(
         order_requests.modify_order.qty.exponent = int(exponent)
         kwargs.pop('qty')
         
-    if kwargs['duration'] is not None:
+    if kwargs.get('duration') is not None:
         order_requests.modify_order.duration = Duration_MAP_INT2CQG[kwargs['duration']]
         kwargs.pop('duration')
 
@@ -262,29 +262,23 @@ def build_cancelall_order_request_msg(
     account_id: int,
     request_id: int,
     cl_order_id: str,
-    **kwargs
+    when_utc_timestamp: datetime = datetime.now(timezone.utc)
     )-> ClientMsg | None:
-    defaults = {
-        'when_utc_timestamp': datetime.now(timezone.utc),
-        }
-    kwargs = dict(defaults, **kwargs)
+    
     params = locals().copy()
-    params.pop('kwargs')
-    params.pop('defaults')
     try:
         validate_required_fields(params, CANCELALL_ORDER_REQUIRED_FIELDS)
+        assert_input_types(params, CANCELALL_ORDER_REQUIRED_FIELDS, strict = True)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_cancelall_order_request_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg) 
-
-    # ... to be worked on
     
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
     order_request.request_id = request_id
     order_request.cancel_all_orders.cl_order_id = cl_order_id
-    order_request.cancel_all_orders.when_utc_timestamp = kwargs['when_utc_timestamp']
+    order_request.cancel_all_orders.when_utc_timestamp = when_utc_timestamp
     return client_msg
  
 def build_activate_order_request_msg(
@@ -324,7 +318,6 @@ def build_goflat_order_request_msg(
     ) -> ClientMsg | None:    
     
     defaults = {
-    #'when_utc_timestamp': None,
     'execution_source_code': None, 
     'speculation_type': None
     }
@@ -362,7 +355,6 @@ def build_liquidateall_order_request_msg(
     account_id: int,
     request_id: int,
     contract_id: int = 0,
-    cl_order_id: str = "",
     **kwargs
     ) -> ClientMsg:
     defaults = {
@@ -371,6 +363,20 @@ def build_liquidateall_order_request_msg(
         'current_day_only': None
         }
     kwargs = dict(defaults, **kwargs)
+    params = locals().copy()
+    params.pop('kwargs')
+    params.pop('defaults')
+    full = {**params, **kwargs}
+    try:
+        validate_required_fields(params, LIQUIDATEALL_ORDER_REQUIRED_FIELDS)
+        assert_input_types(params, LIQUIDATEALL_ORDER_REQUIRED_FIELDS, strict = True)
+        assert_input_types(kwargs, LIQUIDATEALL_ORDER_OPTIONAL_FIELDS, strict = False)
+        validate_input_para(full)
+    except (TypeError, ValueError, KeyError, AttributeError) as e:
+        msg = f"build_goflat_order_request_msg invalid parameters: {str(e)}"
+        logger.error(msg)
+        raise MsgBuilderError(msg)  
+
     
     client_msg = ClientMsg()
     order_request = client_msg.order_requests.add()
@@ -380,12 +386,11 @@ def build_liquidateall_order_request_msg(
     account_position_filters.account_id = account_id
     account_position_filters.contract_id = contract_id
     
-    if kwargs['account_position_filters'] is not None:
+    if kwargs.get('is_short') is not None:
         account_position_filters.is_short = kwargs['is_short']
-    if kwargs['current_day_only'] is not None:
+    if kwargs.get('current_day_only') is not None:
         account_position_filters.current_day_only = kwargs['current_day_only']
     
-    order_request.liquidate_all.cl_order_id = cl_order_id
     order_request.liquidate_all.when_utc_timestamp = kwargs['when_utc_timestamp']
     
     return client_msg

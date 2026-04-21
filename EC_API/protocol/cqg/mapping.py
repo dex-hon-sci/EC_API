@@ -41,8 +41,6 @@ SERVER_MSG_FAMILY = {
 }
 
 
-
-
 # ---- Old code ----
 LOGON_RESULT_STATUS_ENUMS_BOOL = {
     "Accept": [LOR.ResultCode.RESULT_CODE_SUCCESS] ,

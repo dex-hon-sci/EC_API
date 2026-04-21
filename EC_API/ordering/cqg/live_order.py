@@ -26,7 +26,7 @@ from EC_API.ordering.base import LiveOrder
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
-from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_INT2CQG
+from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_CQG2INT
 from EC_API.ordering.cqg.builders import (
     build_new_order_request_msg, 
     build_modify_order_request_msg,
@@ -130,7 +130,7 @@ class LiveOrderCQG(LiveOrder):
             
             # update trade session trackers for order's initial state 
             self._trade_session.active_orders.add(server_msg.order_statuses[0].chain_order_id)
-            self._trade_session.order_statuses[server_msg.chain_order_id] = OrderStatus_MAP_INT2CQG[server_msg.result_code]
+            self._trade_session.order_statuses[server_msg.chain_order_id] = OrderStatus_MAP_CQG2INT[server_msg.result_code]
             return server_msg
     
     async def _modify_order_request(

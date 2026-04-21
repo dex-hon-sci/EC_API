@@ -107,18 +107,16 @@ def save_csv(savefilename: str, save_or_not: bool = True) -> Callable:
     return decorator
          
 def pickle_save(savefilename: str, save_or_not: bool = True) -> Callable:
-    file = open(savefilename, 'wb')
     def decorator(func):
         def wrapper(*args, **kwargs):
             data = func(*args, **kwargs)
             if save_or_not:
-                pickle.dump(data, file)
-                return data
-            elif not save_or_not:
-                return data
+                with open(savefilename, 'wb') as file:
+                    pickle.dump(data, file)
+            return data
         return wrapper
     return decorator
-         
+
 def load_pkl(filename: str): # test function
     output = open(filename, 'rb')
     my_pkl = pickle.load(output)

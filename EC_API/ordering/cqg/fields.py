@@ -6,9 +6,8 @@ Created on Mon Dec 22 00:33:52 2025
 @author: dexter
 """
 from datetime import datetime
-from typing import Union, Callable
+from typing import Union
 # EC_API imports
-from typing import Any
 from EC_API.ext.common.shared_1_pb2 import NamedValue # Throw this away later
 from EC_API.ordering.enums import (
     Side, SubScope,
@@ -21,13 +20,6 @@ from EC_API.ordering.cqg.enums import (
     ExecInstructionCQG
     )
 from EC_API._typing import _FieldSpec
-# =============================================================================
-# class ClientMsgInputsCQG:
-#     pass
-# 
-# class NewOrderRequestDetails(BaseModel): # Work on this later
-#     ...
-# =============================================================================
 
 TRADE_SUBSCRIPTION_REQUIRED_FIELD: _FieldSpec = {
     'trade_subscription_id': ('trade_subscription_id', int, int),
@@ -126,17 +118,18 @@ CANCELALL_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     }
 
 CANCELALL_ORDER_OPTIONAL_FIELDS: _FieldSpec = {
+    'is_short': ('is_short', bool, None),
+    'current_day_only': ('current_day_only', bool, None)
     }
 
 
-LIQIDATEALL_ORDER_REQUIRED_FIELDS = {
+LIQUIDATEALL_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'account_id': ('account_id', int, int),
     'request_id': ('request_id', int, int),
     'contract_id': ('contract_id', int, int),
-    'cl_order_id': ('cl_order_id', str, str), 
     }
 
-LIQIDATEALL_ORDER_OPTIONL_FIELDS = {
+LIQUIDATEALL_ORDER_OPTIONAL_FIELDS: _FieldSpec = {
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
     'is_short': ('is_short', bool, None),
     'current_day_only': ('current_day_only', bool, None)

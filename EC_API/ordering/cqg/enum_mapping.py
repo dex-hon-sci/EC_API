@@ -7,7 +7,7 @@ Created on Sat Dec 20 06:52:02 2025
 """
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as CQG_TS
 from EC_API.ext.WebAPI.order_2_pb2 import Order as CQG_Ord
-from EC_API.ext.common.shared_1_pb2 import OrderStatus as CQG_OrdStatus
+from EC_API.ext.common.shared_1_pb2 import OrderStatus as OrdStatusCQG
 from EC_API.ordering.enums import (
     SubScope, Side, OrderType,
     Duration, ExecInstruction,
@@ -70,26 +70,49 @@ ExecInstruction_MAP_INT2CQG = {
     ExecInstructionCQG.ICO: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICO
     }
 
-OrderStatus_MAP_INT2CQG = {
-    CQG_OrdStatus.Status.IN_TRANSIT: OrderStatus.PENDING,
-    CQG_OrdStatus.Status.REJECTED: OrderStatus.REJECTED,
-    CQG_OrdStatus.Status.WORKING: OrderStatus.OPEN,
-    CQG_OrdStatus.Status.EXPIRED: OrderStatus.EXPIRED,
-    CQG_OrdStatus.Status.IN_CANCEL: OrderStatus.PENDING,
-    CQG_OrdStatus.Status.IN_MODIFY: OrderStatus.PENDING,
-    CQG_OrdStatus.Status.CANCELLED: OrderStatus.CANCELLED,
-    CQG_OrdStatus.Status.FILLED: OrderStatus.FILLED,
-    CQG_OrdStatus.Status.SUSPENDED: OrderStatus.OPEN,
-    CQG_OrdStatus.Status.DISCONNECTED: OrderStatus.ERROR,
-    CQG_OrdStatus.Status.ACTIVEAT: OrderStatus.PENDING,
-    CQG_OrdStatus.Status.APPROVE_REQUIRED: OrderStatus.PENDING, #OrderStatus.APPROVE_REQUIRED,
-    CQG_OrdStatus.Status.APPROVED_BY_EXCHANGE: OrderStatus.OPEN, #OrderStatus.APPROVED_BY_EXCHANGE,
-    CQG_OrdStatus.Status.APPROVE_REJECTED: OrderStatus.REJECTED,
-    CQG_OrdStatus.Status.MATCHED: OrderStatus.FILLED,#OrderStatus.MATCHED,
-    CQG_OrdStatus.Status.PARTIALLY_MATCHED: OrderStatus.PARTIAL,#OrderStatus.PARTIALLY_MATCHED,
-    CQG_OrdStatus.Status.TRADE_BROKEN: OrderStatus.ERROR,
+OrderStatus_MAP_CQG2INT = {
+    OrdStatusCQG.Status.IN_TRANSIT: OrderStatus.PENDING,
+    OrdStatusCQG.Status.REJECTED: OrderStatus.REJECTED,
+    OrdStatusCQG.Status.WORKING: OrderStatus.OPEN,
+    OrdStatusCQG.Status.EXPIRED: OrderStatus.EXPIRED,
+    OrdStatusCQG.Status.IN_CANCEL: OrderStatus.PENDING,
+    OrdStatusCQG.Status.IN_MODIFY: OrderStatus.PENDING,
+    OrdStatusCQG.Status.CANCELLED: OrderStatus.CANCELLED,
+    OrdStatusCQG.Status.FILLED: OrderStatus.FILLED,
+    OrdStatusCQG.Status.SUSPENDED: OrderStatus.OPEN,
+    OrdStatusCQG.Status.DISCONNECTED: OrderStatus.ERROR,
+    OrdStatusCQG.Status.ACTIVEAT: OrderStatus.PENDING,
+    OrdStatusCQG.Status.APPROVE_REQUIRED: OrderStatus.PENDING, #OrderStatus.APPROVE_REQUIRED,
+    OrdStatusCQG.Status.APPROVED_BY_EXCHANGE: OrderStatus.OPEN, #OrderStatus.APPROVED_BY_EXCHANGE,
+    OrdStatusCQG.Status.APPROVE_REJECTED: OrderStatus.REJECTED,
+    OrdStatusCQG.Status.MATCHED: OrderStatus.FILLED,#OrderStatus.MATCHED,
+    OrdStatusCQG.Status.PARTIALLY_MATCHED: OrderStatus.PARTIAL,#OrderStatus.PARTIALLY_MATCHED,
+    OrdStatusCQG.Status.TRADE_BROKEN: OrderStatus.ERROR,
     }
 
+# =============================================================================
+# # CQG → Internal (in ordering/cqg/mapping.py or similar)
+# CQG2INTERNAL_STATUS_MAP = {
+#     OrderStatusCQG.IN_TRANSIT:          OrderStatus.PENDING,
+#     OrderStatusCQG.REJECTED:            OrderStatus.REJECTED,
+#     OrderStatusCQG.WORKING:             OrderStatus.OPEN,
+#     OrderStatusCQG.EXPIRED:             OrderStatus.EXPIRED,
+#     OrderStatusCQG.IN_CANCEL:           OrderStatus.PENDING,
+#     OrderStatusCQG.IN_MODIFY:           OrderStatus.PENDING,
+#     OrderStatusCQG.CANCELLED:           OrderStatus.CANCELLED,
+#     OrderStatusCQG.FILLED:              OrderStatus.FILLED,
+#     OrderStatusCQG.SUSPENDED:           OrderStatus.OPEN,
+#     OrderStatusCQG.DISCONNECTED:        OrderStatus.ERROR,
+#     OrderStatusCQG.ACTIVEAT:            OrderStatus.PENDING,
+#     OrderStatusCQG.APPROVE_REQUIRED:    OrderStatus.PENDING,
+#     OrderStatusCQG.APPROVED_BY_EXCHANGE:OrderStatus.OPEN,
+#     OrderStatusCQG.APPROVE_REJECTED:    OrderStatus.REJECTED,
+#     OrderStatusCQG.MATCHED:             OrderStatus.FILLED,
+#     OrderStatusCQG.PARTIALLY_MATCHED:   OrderStatus.PARTIAL,
+#     OrderStatusCQG.TRADE_BROKEN:        OrderStatus.ERROR,
+# }
+# 
+# =============================================================================
 # --- State Transition Map ---
 # =============================================================================
 # ORDER_STATES_LIFECYCLE = {
