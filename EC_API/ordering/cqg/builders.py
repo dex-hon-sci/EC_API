@@ -205,12 +205,7 @@ def build_modify_order_request_msg(
     order_requests.modify_order.cl_order_id = cl_order_id
     order_requests.modify_order.when_utc_timestamp = when_utc_timestamp
     
-    if kwargs.get('qty') is not None:
-        if kwargs['qty'] == 0:
-            order_requests.modify_order.qty.significand = 0
-            order_requests.modify_order.qty.exponent = 0
-
-        
+    if kwargs.get('qty') is not None:        
         significand, exponent = to_significand_sint64_exponent_sint32(kwargs['qty'])
         order_requests.modify_order.qty.significand = int(significand)
         order_requests.modify_order.qty.exponent = int(exponent)

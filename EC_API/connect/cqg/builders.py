@@ -13,6 +13,7 @@ from EC_API.protocol.cqg.builder_util import (
     )
 from EC_API.connect.cqg.fields import (
     LOGON_REQUEST_REQUIRED_FIELDS,
+    LOGON_REQUEST_OPTIONAL_FIELDS,
     LOGOFF_REQUEST_REQUIRED_FIELDS,
     RESTORE_REQUEST_REQUIRED_FIELDS,
     PING_REQUEST_REQUIRED_FIELDS,
@@ -40,14 +41,14 @@ def build_logon_msg(
     params = locals().copy()
     params.pop('kwargs')
     try:
-        assert_input_types(params, LOGON_REQUEST_REQUIRED_FIELDS)
+        assert_input_types(params, LOGON_REQUEST_REQUIRED_FIELDS, strict=True)
+        assert_input_types(kwargs, LOGON_REQUEST_OPTIONAL_FIELDS, strict = False)
+
     except (KeyError, TypeError, ValueError) as e:
         msg = f"build_logon_msg invalid parameters: {str(e)}"
         logger.error(msg)
         raise MsgBuilderError(msg)
-
-    #assert_input_types(kwargs, LOGON_OPTIONAL_FIELDS)
-    
+        
     # create a client_msg based on the protocol.
     client_msg = ClientMsg()
     
@@ -63,7 +64,8 @@ def build_logon_msg(
     logon.private_label = private_label
 
     if 'session_settings' in kwargs:
-        logon.session_settings.add(kwargs['session_settings'])
+        session_settings = logon.session_settings
+        session_settings.append(kwargs['session_settings'])
     return client_msg
 
 def build_logoff_msg(txt_msg: str="logoff") -> ClientMsg:

@@ -18,7 +18,9 @@ LOGON_REQUEST_REQUIRED_FIELDS = {
     'private_label': ('private_label', str, str),
     }
 
-LOGON_REQUEST_OPTIONAL_FIELDS: dict[str, tuple[str,Any,Any]] = {}
+LOGON_REQUEST_OPTIONAL_FIELDS: dict[str, tuple[str,Any,Any]] = {
+    "session_settings": ('session_settings', int, int)
+    }
 
 LOGOFF_REQUEST_REQUIRED_FIELDS = {
     'txt_msg': ('txt_msg', str, str)

@@ -37,19 +37,33 @@ def test_build_reset_tracker_request_msg_valid() -> None:
     assert msg.market_data_subscriptions[0].level == CQG_MDS.Level.LEVEL_NONE
 
 
-def test_build_realtime_data_request_msg_invalid_inputs() -> None:
+def test_build_realtime_data_request_msg_invalid_input_contract_id() -> None:
     with pytest.raises(MsgBuilderError):
         build_realtime_data_request_msg(
             contract_id= "101", # <--wrong inputs
-            request_id = "111", #
+            request_id = 11, #
             level = MktDataSubLevelCQG.LEVEL_END_OF_DAY
             )
         
-def test_build_reset_tracker_request_msg_invalid_inputs() -> None:
+def test_build_realtime_data_request_msg_invalid_input_request_id() -> None:
+    with pytest.raises(MsgBuilderError):
+        build_realtime_data_request_msg(
+            contract_id= 101,
+            request_id = "11", # <--wrong inputs
+            level = MktDataSubLevelCQG.LEVEL_END_OF_DAY
+            )
+def test_build_reset_tracker_request_msg_invalid_input_contract_id() -> None:
     with pytest.raises(MsgBuilderError):
         build_reset_tracker_request_msg(
-            contract_id = '102',
-            request_id = '222',
+            contract_id = '102', # <--wrong inputs
+            request_id = 22,
+            )        
+        
+def test_build_reset_tracker_request_msg_invalid_input_request_id() -> None:
+    with pytest.raises(MsgBuilderError):
+        build_reset_tracker_request_msg(
+            contract_id = 0,
+            request_id = '222', # <--wrong inputs
             )
         
 #_instrument_gp_request

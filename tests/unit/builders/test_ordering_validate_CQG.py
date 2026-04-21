@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
 from EC_API.ordering.enums import (
     Side, 
@@ -30,7 +30,7 @@ def test_new_order_injection_success() -> None:
         "is_manual": False,
         "scaled_limit_price": 1000,
         "good_thru_date": int(datetime(2025,9,9).timestamp()),
-        "exec_instructions": ExecInstruction.AON
+        "exec_instructions": ExecInstruction.AON,
         }
     client_msg = build_new_order_request_msg(
         account_id = 0, 
@@ -92,6 +92,8 @@ def test_cancelall_order_injection_success() -> None:
 
 def test_liquidateall_order_injection_success() -> None:
     ORDER_INFO = {
+        "is_short": True,
+        "current_day_only": True
         }
     client_msg = build_liquidateall_order_request_msg(
         account_id=0, 
@@ -147,51 +149,6 @@ def test_modify_order_unknown_field_raises() -> None:
             contract_id=0, 
             **info)
         
-# =============================================================================
-# def test_cancel_order_unknown_field_raises() -> None:
-#     info = {
-#         'order_id': '0',
-#         'orig_cl_order_id': "111", 
-#         'cl_order_id': "222",
-#         'when_utc_timestamp': datetime.now(timezone.utc),
-#         "unknown_field": 123 # <---- Unkown Field
-#         }
-#     with pytest.raises(MsgBuilderError):
-#         build_cancel_order_request_msg(
-#             account_id=0, 
-#             request_id=0,
-#             **info)
-# =============================================================================
-        
-# =============================================================================
-# def test_activate_order_unknown_field_raises() -> None:
-#     info = {
-#         'order_id': '0',
-#         'orig_cl_order_id': "111", 
-#         'cl_order_id': "222",
-#         'when_utc_timestamp': datetime.now(timezone.utc), 
-#         "unknown_field": 123 # <---- Unkown Field
-#         }
-#     with pytest.raises(MsgBuilderError):
-#         build_activate_order_request_msg(
-#             account_id=0, 
-#             request_id=0,
-#             **info)
-#         
-# def test_cancelall_order_unknown_field_raises() -> None:
-#     info = {
-#         'contract_id': 1,
-#         'cl_order_id': '1',
-#         'when_utc_timestamp': datetime.now(timezone.utc),
-#         "unknown_field": 123 # <---- Unkown Field
-#         }
-#     with pytest.raises(MsgBuilderError):
-#         build_cancelall_order_request_msg(
-#             account_id=0, 
-#             request_id=0,
-#             **info)
-# =============================================================================
-        
 def test_liquidateall_order_unknown_field_raises() -> None:
     info = {
         'contract_id': 1,
@@ -237,9 +194,6 @@ def test_check_crendential_fail_null() -> None:
             contract_id = None, # wrong contract ID type
             **null_input
             )
-    
-#test_CQGFormatCheck_check_crendential_fail_null()
-
         
 # - check_request_specific_fields (NEW_ORDER, MODIFY_ORDER, CANCEL_ORDER, 
 # ACRIVATE_ORDER, CANCELALL_ORDER, LIQUIDATEALL_ORDER, GOFLAT_ORDER)
@@ -265,100 +219,6 @@ def test_check_request_specific_fields_NEW_ORDER_fail_null() -> None:
             contract_id = 0, 
             **null_input
             )
-
-# =============================================================================
-# def test_check_request_specific_fields_MODIFY_ORDER_fail_null() -> None:
-#     null_input = {
-#         ##"symbol_name": "CLEV25",
-#         #"cl_order_id": "1231314",#<== missing parameter
-#         "scaled_limit_price": 1000.0, 
-#         }
-#     
-#     with pytest.raises(MsgBuilderError):
-#         build_modify_order_request_msg(
-#             account_id=0, 
-#             request_id = 0, 
-#             order_id= '0', 
-#             orig_cl_order_id = '00',
-#             **null_input
-#             )
-# =============================================================================
-# =============================================================================
-# def test_check_request_specific_fields_CANCEL_ORDER_fail_null() -> None:
-#     null_input = {
-#         "orig_cl_order_id": "1231315"
-#         #"cl_order_id": "1231314",#<== missing parameter
-#         }
-#     
-#     with pytest.raises(MsgBuilderError):
-#         build_cancel_order_request_msg(
-#             account_id = 0, 
-#             request_id = 0, 
-#             order_id = '0', 
-#             **null_input
-#             )
-# =============================================================================
-# =============================================================================
-# def test_check_request_specific_fields_ACTIVATE_ORDER_fail_null() -> None:
-#     null_input = {
-#         ##"symbol_name": "CLEV25",
-#         "orig_cl_order_id": "1231315"
-#         #"cl_order_id": "1231314",#<== missing parameter
-#         }
-#     
-#     with pytest.raises(MsgBuilderError):
-#         build_activate_order_request_msg(
-#             account_id = 0,
-#             request_id = 0,
-#             order_id = '0',
-#             **null_input
-#             )
-#         
-# =============================================================================
-# =============================================================================
-# def test_check_request_specific_fields_CANCELALL_ORDER_fail_null() -> None:
-#     null_input = {
-#         #"symbol_name": "CLEV25",
-#         #"cl_order_id": "1231314",#<== missing parameter
-#         }
-#     
-#     with pytest.raises(MsgBuilderError):
-#         build_cancelall_order_request_msg(
-#             account_id = 0,
-#             request_id = 0,
-#             order_id = '0',
-#             **null_input
-#             )
-# =============================================================================
-# =============================================================================
-# def test_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_notaccept() -> None:
-#     notaccept_input = {
-#         #"symbol_name": "CLEV25",
-#         "islong": "1231315",#<== not accepteable parameter
-#         }
-#     
-#     with pytest.raises(MsgBuilderError):
-#         build_liquidateall_order_request_msg(
-#             account_id = 0,
-#             request_id = 0,
-#             order_id = '0',
-#             **notaccept_input
-#             )
-# 
-# def test_check_request_specific_fields_LIQUIDATEALL_ORDER_fail_TypeError() -> None:
-#     wrong_type = {
-#         #"symbol_name": "CLEV25",
-#         'when_utc_timestamp': 0000, #<-- wrong type, should be datetime
-#         }
-#     
-#     with pytest.raises(MsgBuilderError):
-#         build_liquidateall_order_request_msg(
-#             account_id = 0,
-#             request_id = 0,
-#             order_id = '0',
-#             **wrong_type
-#             )
-# =============================================================================
 
 def test_check_request_specific_fields_GOFLAT_ORDER_fail_notaccept() -> None:
     notaccept_input = {

@@ -56,7 +56,8 @@ from EC_API.exceptions import (
     ConnectCancelledError,
     ConnectTimeOutError,
     MsgBuilderError,
-    MsgParserError
+    MsgParserError,
+    KeyExtractorError
     )
 from EC_API._typing import (
     PongType,
@@ -317,7 +318,7 @@ class ConnectCQG(Connect):
     
                 for msg, top_unique_field in zip(msgs, top_unique_fields):
                     # Cheapest check first, 
-                    # 1) streaming dispatch
+                    # --- (1) streaming dispatch ---
                     if is_realtime_tick(top_unique_field):
                         for rtmd in msg.real_time_market_data:
                             await self._mkt_data_stream_router.publish(
@@ -325,7 +326,7 @@ class ConnectCQG(Connect):
                                 )
                         continue
         
-                    # 2) order update dispatch <--need to handle this better
+                    # --- (2) order update dispatch ---
                     if is_order_update_stream(top_unique_field):
                         for ord_sts in msg.order_statuses:
                             await self._exec_stream_router.publish(
@@ -333,18 +334,22 @@ class ConnectCQG(Connect):
                                 )
                         continue
                         
-                    # 3) Expensive RPC type key matching
-                    keys = extract_router_keys(msg)
-                    if len(keys) >1:
-                        logger.debug("multiple keys: %s", keys)
-                    for key in keys:
-                        if key is not None:        
-                            key_type, msg_type, msg_id_type, msg_id = key
-                            # 3) RPC routing (futures), 
-                            if key_type in {"rpc_reqid", "session", "sub", "info"}:
-                                self._msg_router.on_message(key, msg)
-                                #print('router loop', key, msg)
-                                #await self._misc_queue.put(msg)
+                    # --- (3) Expensive RPC type key matching ---
+                    try:
+                        keys = extract_router_keys(msg)
+                    except KeyExtractorError as e:
+                        logger.warning("Key Extraction Failed: %s.", str(e))
+                    else:
+                        if len(keys) >1:
+                            logger.debug("multiple keys: %s", keys)
+                        for key in keys:
+                            if key is not None:        
+                                key_type, msg_type, msg_id_type, msg_id = key
+                                # 3) RPC routing (futures), 
+                                if key_type in {"rpc_reqid", "session", "sub", "info"}:
+                                    self._msg_router.on_message(key, msg)
+                                    #await self._misc_queue.put(msg)
+                         
             except asyncio.CancelledError as e:
                 logger.error("")
                 raise
@@ -353,7 +358,7 @@ class ConnectCQG(Connect):
                 #await asyncio.create_task(self._reconnect_loop)
                 #return
             except Exception as e:
-                logger.error("router_loop error:  %s", e, exc_info=True)
+                logger.error("Router Loop Error:  %s", e, exc_info=True)
                                  
     # ---- Failure Mode -------------------
     async def _on_transport_failure(self, exc: Exception) -> None:
