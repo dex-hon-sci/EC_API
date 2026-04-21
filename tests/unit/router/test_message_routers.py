@@ -32,7 +32,7 @@ async def test_register_key_duplicate_router_key_invalid() -> None:
     key1 = ("msg_family_1", "msg_type_A", "request_id", 12)
 
     MR = MessageRouter()
-    fut1 = MR.register_key(key1)
+    MR.register_key(key1)
     with pytest.raises(DuplicateRouterKeyError):
         MR.register_key(key1)
 

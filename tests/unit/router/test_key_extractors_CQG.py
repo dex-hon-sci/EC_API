@@ -5,11 +5,13 @@ Created on Fri Feb 13 21:26:23 2026
 
 @author: dexter
 """
+import pytest
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.key_extractors import extractors
 from EC_API.protocol.cqg.router_util import (
     server_msg_type, extract_router_keys, split_server_msg
     )
+from EC_API.exceptions import KeyExtractorError
 from tests.unit.fixtures.server_msg_builders_CQG import *
 
 def test_sever_msg_type() -> None:
@@ -190,8 +192,22 @@ def test_extract_key_non_timed_bar_reports() -> None:
     assert router_keys[0] == ('rpc_reqid', 'non_timed_bar_reports', 'request_id', 1)
 
 
+# ---- Sad Path
+def test_extract_router_keys_null_input_invalid() -> None:
+    with pytest.raises(KeyExtractorError):
+        extract_router_keys(ServerMsg())
+
+
+def test_extract_router_keys_msg_type_not_in_family() -> None:
+    # unsupported valid sub msg for server msg
+    s = ServerMsg()
+    rr = s.rule_results.add()
+    rr.request_id = "1"
+    with pytest.raises(KeyExtractorError):
+        extract_router_keys(s)
+
 # ---- Test composite messages and splitter
-def test_splitter_valid() -> None:
+def test_split_server_msg_valid() -> None:
     mkt_msg = build_market_data_subscription_statuses_server_msg(ServerMsg())
     mkt_msg = build_real_time_market_data_server_msg(mkt_msg)
 
@@ -205,3 +221,12 @@ def test_splitter_valid() -> None:
     assert server_msg_type(res[0]) == ['market_data_subscription_statuses']    
     assert server_msg_type(res[1]) == ['real_time_market_data']
     
+def test_split_server_msg_valid_singular_input() -> None:
+    mkt_msg = build_market_data_subscription_statuses_server_msg(ServerMsg())
+
+    res = split_server_msg(
+        mkt_msg, ['market_data_subscription_statuses'])
+    
+    assert len(res) == 1
+    assert res[0].market_data_subscription_statuses is not None    
+    assert server_msg_type(res[0]) == ['market_data_subscription_statuses']    

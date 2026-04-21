@@ -35,6 +35,11 @@ class TransportDisconnectError(TransportError):
     def __init__(self, message: str):
         super().__init__(message)
         
+# --- Key Extractors ---
+class KeyExtractorError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 # --- Builders ---
 class MsgBuilderError(EC_APIError):
     def __init__(self, message: str):
