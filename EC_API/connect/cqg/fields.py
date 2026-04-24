@@ -46,3 +46,10 @@ RESOLVE_SYM_REQUEST_REQUIRED_FIELDS = {
     'request_id': ('request_id', int, int), 
     'subscribe': ('subscribe', Union[bool, None], None), 
     }
+
+RESOLVE_SYM_REQUEST_OPTIONAL_FIELDS = {
+    'preferred_types': ('preferred_types', str, str),
+    'preferred_countries': ('preferred_countries',str, str),
+    'instrument_group_request': ('instrument_group_request', str, str)
+    
+    }

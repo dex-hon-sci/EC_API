@@ -17,7 +17,8 @@ from EC_API.connect.cqg.fields import (
     LOGOFF_REQUEST_REQUIRED_FIELDS,
     RESTORE_REQUEST_REQUIRED_FIELDS,
     PING_REQUEST_REQUIRED_FIELDS,
-    RESOLVE_SYM_REQUEST_REQUIRED_FIELDS
+    RESOLVE_SYM_REQUEST_REQUIRED_FIELDS,
+    RESOLVE_SYM_REQUEST_OPTIONAL_FIELDS
     )
 from EC_API.exceptions import (
     MsgBuilderError
@@ -132,10 +133,13 @@ def build_resolve_symbol_msg(
     subscribe: bool | None = None, 
     **kwargs
     ) -> ClientMsg:
+    
+    kwargs = dict({}, **kwargs)    
     params = locals().copy()
     params.pop('kwargs')
     try:
-        assert_input_types(params, RESOLVE_SYM_REQUEST_REQUIRED_FIELDS)
+        assert_input_types(params, RESOLVE_SYM_REQUEST_REQUIRED_FIELDS, strict = True)
+        assert_input_types(kwargs, RESOLVE_SYM_REQUEST_OPTIONAL_FIELDS, strict = False)
     except (TypeError, KeyError, ValueError) as e:
         msg = f"build_resolve_symbol_msg invalid parameters: {str(e)}"
         logger.error(msg)
@@ -152,6 +156,7 @@ def build_resolve_symbol_msg(
     information_request.symbol_resolution_request.symbol = symbol_name
     
     if 'instrument_group_request' in kwargs:
-        information_request.instrument_group_request.instrument_group_id = kwargs['instrument_group_request']
+        information_request.instrument_group_request.instrument_group_id: str = \
+            kwargs['instrument_group_request']
          
     return client_msg
