@@ -33,18 +33,18 @@ from EC_API.connect.cqg.builders import (
     build_ping_msg, build_resolve_symbol_msg,
     build_restore_msg
     )
+from EC_API.connect.enums import CONNECT_STATES_LIFECYCLE
+from EC_API.connect.cqg.enum_mapping import (
+    CONN_LOGON_RESCODE_CQG2INT,
+    CONN_RESTORE_RESCODE_CQG2INT, 
+    CONN_LOGOFF_RESCODE_CQG2INT,
+    )
 from EC_API.connect.cqg.parsers import (
     parse_logon_result,
     parse_restore_or_join_session_result,
     parse_logged_off,
     parse_pong,
     parse_symbol_resolution_report
-    )
-from EC_API.connect.enums import CONNECT_STATES_LIFECYCLE
-from EC_API.connect.cqg.enum_mapping import (
-    CONN_LOGON_RESCODE_CQG2INT,
-    CONN_RESTORE_RESCODE_CQG2INT, 
-    CONN_LOGOFF_RESCODE_CQG2INT,
     )
 from EC_API.utility.state_mgr import StateMgr
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
@@ -53,11 +53,12 @@ from EC_API.exceptions import (
     TransportConnectError,
     TransportDisconnectError,
     ConnectRequestError,
-    ConnectCancelledError,
+    #ConnectCancelledError,
     ConnectTimeOutError,
-    MsgBuilderError,
-    MsgParserError,
-    KeyExtractorError
+    #MsgBuilderError,
+    #MsgParserError,
+    KeyExtractorError,
+    SymbolResolutionError
     )
 from EC_API._typing import (
     PongType,
@@ -493,13 +494,13 @@ class ConnectCQG(Connect):
         ) -> ContractMetaDataType | None:
         # symbol Resolution
         with msg_io_error_handler(
-                ConnectRequestError, 
+                SymbolResolutionError, 
                 timeout_error = ConnectTimeOutError
             ):
             rid = self.rid()
             msg = build_resolve_symbol_msg(symbol, rid, subscribe=True)
 
-            msg_key = ("rpc", "information_report:symbol_resolution_report", "request_id", rid)
+            msg_key = ("info", "information_reports:symbol_resolution_report", "request_id", rid)
             fut = self._msg_router.register_key(msg_key)
             await self._transport.send(msg)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
