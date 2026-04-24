@@ -7,23 +7,25 @@ Created on Thu Nov 27 12:12:27 2025
 """
 # this parser function is needed to handle mixed sub message type in 
 # information report, realtimedata and 
-
-
-from typing import Callable, Any
+from typing import Callable, Any, Optional, Iterable
+from google.protobuf.json_format import MessageToDict
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+from EC_API.protocol.cqg.router_util import server_msg_type
+from EC_API.exceptions import MsgParserError
+from EC_API._typing import Parser_func
 
 def walk_fields(
         msg: ServerMsg, 
         selector: Callable[[Any], Any],
         max_depth: int=2
-    ):
+    ) -> list[Any]:
     
     outs: list[Any] = []
     def walk(cur, depth):
         if depth > max_depth:
             return outs
         
-        for fd, val in cur.ListField():
+        for fd, val in cur.ListFields():
             # do something according to the field
             outs.extend(selector(fd,val))
             
@@ -32,31 +34,42 @@ def walk_fields(
                     for ele in val:
                         walk(ele, depth+1)
                 else:
-                    walk(ele, depth+1)
-    return walk(msg, 0)
+                    walk(val, depth+1)
+    walk(msg, 0)
+    return outs
     
-type Parser_func = Callable[[ServerMsg], Any]
-master_parsers: dict[str, Parser_func] = dict()
-
-def register_parser(name):
-    def decorator(func):
-        master_parsers[name] = func
-        return func
-    return decorator
+# ---- Parsers ----
+def parse_server_msg(
+        server_msg: ServerMsg,
+        parsers: dict[str, Parser_func]
+    ) -> list[dict[str, Any]]:
+    # Dispatch to message specific parsers
+    msg_types = server_msg_type(server_msg)
+    print('msg_types', msg_types)
+    if not msg_types:
+        raise MsgParserError("Cannot resolve server message type.")
     
-
-def parse_information_report():...
-
-
-def parse_realtime_market_data():...
-
-@register_parser('order_response')
-def parse_order_repsonse(msg):...
-    #"order_request_rejects": "rpc_reqid",
-    #"order_request_acks": "rpc_reqid",
-    #"trade_subscription_statuses": "sub",
-    #"trade_snapshot_completions": "sub",
-    #"order_statuses": "substream",
-    #"position_statuses": "substream",
-    #"account_summary_statuses": "substream",
-    #"go_flat_statuses": "rpc_reqid",
+    # --- parsing
+    res: list[Optional[dict[str, Any]]] = []
+    errors: list[str] = []
+    for msg_type in msg_types:
+        parser = parsers.get(msg_type)
+        print("master", parsers)
+        if parser is None:
+            errors.append(
+                f"Parser of message type: {msg_type} does not exist."
+                )
+            continue
+        try:
+            res.extend(parser(server_msg))
+        except Exception as e:
+            errors.append(
+                f"Failed to parse server message: {e}."
+                )
+            #continue
+    print(res)
+    print(errors)
+    if not res and errors:
+        raise MsgParserError("; ".join(errors))
+        
+    return res

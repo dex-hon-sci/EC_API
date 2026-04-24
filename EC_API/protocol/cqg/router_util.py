@@ -6,7 +6,7 @@ Created on Mon Jan 12 06:21:10 2026
 @author: dexter
 """
 import logging
-from typing import Any
+from typing import Any, Optional
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.protocol.cqg.mapping import (
     SERVER_MSG_FAMILY
@@ -14,10 +14,10 @@ from EC_API.protocol.cqg.mapping import (
 from EC_API.protocol.cqg.key_extractors import (
     extractors, RouterKey
     )
-from EC_API.protocol.cqg.parser_util import (
-    master_parsers
+from EC_API.exceptions import (
+    KeyExtractorError, 
+    MsgParserError
     )
-from EC_API.exceptions import KeyExtractorError
 
 logger = logging.getLogger(__name__)
 
@@ -35,44 +35,52 @@ def extract_router_keys(
         raise KeyExtractorError("No Fields were found.")
         
     res: list[RouterKey] = []
+    errors: list[str] = []
     for msg_type in msg_types:
         family = SERVER_MSG_FAMILY.get(msg_type)
         if family is None:
-            raise KeyExtractorError(
+            errors.append(
                 f"{msg_type} not found in the avaliable message types."
                 )
         
         extractor = extractors.get(family)
         if extractor is None:
-            raise KeyExtractorError(
+            errors.append(
                 f"Corresponding extractor for {msg_type} not found."
                 )
         try:
             res.extend(extractor(server_msg, msg_type))
-        except Exception as e:
-            raise KeyExtractorError(
+        except Exception:
+            errors.append(
                 f"Extractor failed (family={family}, mt={msg_type})"
-                ) from e
+                )
+            
+    if not res and errors:
+        raise KeyExtractorError("; ".join(errors))
+
     return res
 
 # --- Parsers
-def parse_server_msg(
-        server_msg: ServerMsg
-    ) -> list[Any]:
-    # Dispatch to message specific parsers
-    msg_types = server_msg_type(server_msg)
-    res: list[RouterKey] = []
-    for msg_type in msg_types:
-        parser = master_parsers.get(msg_type)
-        if parser is None:
-            continue
-        try:
-            res.extend(parser(server_msg))
-        except Exception:
-            logger.info('')
-            continue
-    return res
-
+# =============================================================================
+# def parse_server_msg(
+#         server_msg: ServerMsg
+#     ) -> list[Any]:
+#     # Dispatch to message specific parsers
+#     msg_types = server_msg_type(server_msg)
+#     res: list[Optional[RouterKey]] = []
+#     for msg_type in msg_types:
+#         parser = master_parsers.get(msg_type)
+#         if parser is None:
+#             continue
+#         try:
+#             res.extend(parser(server_msg))
+#         except Exception as e:
+#             raise MsgParserError("Failed to parse server message.") from e
+#             #logger.info('')
+#             #continue
+#     return res
+# 
+# =============================================================================
 # --- Message treatment utility
 def split_server_msg(msg: ServerMsg, targets: list[str]):
     # Split message on the 
@@ -84,7 +92,7 @@ def split_server_msg(msg: ServerMsg, targets: list[str]):
         if field_desc.is_repeated:
             getattr(server_msg, target).MergeFrom(getattr(msg, target))
         else:# singular field
-            setattr(server_msg, target, getattr(server_msg, target))
+            getattr(server_msg, target).CopyFrom(getattr(msg, target))
         res.append(server_msg)
         
     return res

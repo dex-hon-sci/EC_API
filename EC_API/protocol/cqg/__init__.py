@@ -3,13 +3,11 @@ from .builder_util import (
     apply_optional_fields
     )
 from .parser_util import (
-    master_parsers,
-    register_parser
+    parse_server_msg,
     )
 from .router_util import (
     server_msg_type,
     extract_router_keys,
-    parse_server_msg,
     split_server_msg,
     is_realtime_tick,
     is_order_update_stream,
@@ -31,8 +29,7 @@ __all__ = [
     "assert_input_types",
     "apply_optional_fields",
     # --- parsers
-    "master_parsers",
-    "register_parser",
+    "parse_server_msg",
     # --- routers
     "server_msg_type",
     "extract_router_keys",

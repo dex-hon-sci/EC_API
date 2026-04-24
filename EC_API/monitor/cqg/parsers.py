@@ -5,14 +5,27 @@ Created on Thu Mar 19 01:06:27 2026
 
 @author: dexter
 """
-from typing import Any, Iterable
+from typing import Any, Iterable, Callable
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.WebAPI.market_data_2_pb2 import RealTimeMarketData, MarketState
-from EC_API.protocol.cqg.parser_util import register_parser
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import MktDataSubLevelCQG
-from EC_API._typing import (MarketValueTypeCQG, QuotesValueTypeCQG, ParsedRTMDCQG)
+from EC_API._typing import (
+    MarketValueTypeCQG, 
+    QuotesValueTypeCQG, 
+    DOMValueTypeCQG,
+    ParsedRTMDCQG)
 from EC_API.exceptions import MsgParserError
+from EC_API._typing import Parser_func
+
+monitor_parsers: dict[str, Parser_func] = dict()
+
+def register_parser(name: str):
+    def decorator(func: Callable):
+        monitor_parsers[name] = func
+        return func
+    return decorator
+        
 
 @register_parser('market_data_subscription_statuses')
 def parse_market_data_subscription_statuses(
@@ -214,10 +227,13 @@ def parse_real_time_market_data(
     ) -> ParsedRTMDCQG:
     try:
         # Master function that handle real time market data by provided levels
-        quotes = _parse_quotes(real_time_market_data) if real_time_market_data.quotes else []
-        mkt_vals = _parse_market_values(real_time_market_data) if real_time_market_data.market_values else []
-        dtl_DOMs = [] # fix later
-        corrections = _parse_quotes(real_time_market_data) if real_time_market_data.corrections else []
+        quotes: list[QuotesValueTypeCQG] = _parse_quotes(real_time_market_data) \
+            if real_time_market_data.quotes else []
+        mkt_vals: list[MarketValueTypeCQG] = _parse_market_values(real_time_market_data) \
+            if real_time_market_data.market_values else []
+        dtl_DOMs: list[DOMValueTypeCQG] = [] # fix later
+        corrections: list[QuotesValueTypeCQG] = _parse_quotes(real_time_market_data) \
+            if real_time_market_data.corrections else []
         return quotes, mkt_vals, dtl_DOMs, corrections
     except  Exception:
         raise MsgParserError("Failed to parse real_time_market_data")

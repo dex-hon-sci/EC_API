@@ -96,21 +96,18 @@ def extract_info_keys(
 
     outs = walk_fields(msg, selector, max_depth=1)
     
-    report_type, request_id = None, None  
-    sub_report_type = ""
+    res = []
+    request_id = None  
     for hit in outs:
-        if report_type is None and hit[0] == "information_reports":
-            report_type = hit[0]
-        if sub_report_type == "" and hit[0] in TARGET:
-            sub_report_type = ":"+hit[0]
+        if hit[0] == 'information_reports':
+            continue
+
         if request_id is None and hit[0] == 'id':
             request_id = hit[1]
+        elif hit[0] in TARGET:
+            res.append(("info", "information_reports:"+hit[0], "id", request_id))
+    return res
 
-    if report_type is None or request_id is None:
-        return []
-
-    return [("info", report_type+sub_report_type, 
-             "id", request_id)]
 
 @register_extractor("rpc_reqid")
 def extract_rpc_reqid_router_keys(

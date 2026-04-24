@@ -21,6 +21,12 @@ SERVER_MSG_FAMILY = {
     "pong": "session",
     # (2) info report container
     "information_reports": "info",
+    "information_reports:symbol_resolution_report": "info",
+    "information_reports:session_information_report": "info",
+    "information_reports:historical_orders_report": "info",
+    "information_reports:option_maturity_list_report": "info",
+    "information_reports:instrument_group_report": "info",
+    "information_reports:at_the_money_strike_report": "info",
     # (3) order/account RPC & streams
     "order_request_rejects": "rpc_reqid",
     "order_request_acks": "rpc_reqid",

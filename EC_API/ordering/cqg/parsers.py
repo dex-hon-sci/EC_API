@@ -5,13 +5,21 @@ Created on Sat Apr 11 03:05:48 2026
 
 @author: dexter
 """
-from typing import Any
+from typing import Any, Callable
 from google.protobuf.json_format import MessageToDict
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import PositionStatus
-from EC_API.protocol.cqg.parser_util import register_parser
 from EC_API.exceptions import MsgParserError
+from EC_API._typing import Parser_func
 
+ordering_parsers: dict[str, Parser_func] = dict()
+
+def register_parser(name: str):
+    def decorator(func: Callable):
+        ordering_parsers[name] = func
+        return func
+    return decorator
+        
 @register_parser('order_request_rejects')
 def parse_order_request_rejects(
         msg:ServerMsg

@@ -86,7 +86,6 @@ def test_extract_key_info_historical_orders_report() -> None:
 def test_extract_key_info_option_maturity_list_report() -> None:
     msg = build_option_maturity_list_report_server_msg(ServerMsg())
     router_keys = extract_router_keys(msg)
-    print(router_keys)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:option_maturity_list_report', 'id', 1)
 
@@ -101,6 +100,17 @@ def test_extract_key_info_at_the_money_strike_report() -> None:
     router_keys = extract_router_keys(msg)
     assert len(router_keys) == 1
     assert router_keys[0] == ('info', 'information_reports:at_the_money_strike_report', 'id', 1)
+
+def test_extract_key_info_composite_report() -> None:
+    s = ServerMsg()
+    msg = build_at_the_money_strike_report_server_msg(s)
+    msg = build_symbol_resolution_report_server_msg(msg)
+    router_keys = extract_router_keys(msg)
+    assert len(router_keys) == 2
+    # Preseve the order of fields instead of order of building.
+    assert router_keys[0] == ('info', 'information_reports:symbol_resolution_report', 'id', 1)
+    assert router_keys[1] == ('info', 'information_reports:at_the_money_strike_report', 'id', 1)
+
 # ----
 # Test extraction for order updates
 def test_extract_key_order_request_rejects() -> None:
@@ -141,9 +151,7 @@ def test_extract_key_position_statuses() -> None:
     
 def test_extract_key_account_summary_statuses() -> None:
     msg = build_account_summary_statuses_server_msg(ServerMsg())
-    print(msg)
     router_keys = extract_router_keys(msg)
-    print(router_keys)
     assert len(router_keys) == 1
     assert router_keys[0] == ('substream','account_summary_statuses','single', 0)
     
@@ -230,3 +238,11 @@ def test_split_server_msg_valid_singular_input() -> None:
     assert len(res) == 1
     assert res[0].market_data_subscription_statuses is not None    
     assert server_msg_type(res[0]) == ['market_data_subscription_statuses']    
+    
+
+def test_split_server_msg_singular_field() -> None:
+    msg = build_logon_result_server_msg(ServerMsg())
+    res = split_server_msg(msg, ['logon_result'])
+    assert len(res) == 1
+    assert server_msg_type(res[0]) == ['logon_result']
+

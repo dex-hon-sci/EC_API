@@ -35,7 +35,8 @@ from EC_API.exceptions import (
     SymbolResolutionError,
     UnsupportedLevelError,
     MonitorDataRequestError,
-    MonitorTimeOutError
+    MonitorTimeOutError,
+    SymbolNotInRegistryError
     )
 from EC_API._typing import (
     MarketValueTypeCQG, ParsedRTMDCQG
@@ -84,17 +85,23 @@ class MonitorDataCQG(Monitor):
         
         if self.state != ConnectionState.CONNECTED_LOGON:
             logger.warning(f"stream for Symbol: {symbol_name} failed. Account not logon.")
+            # exit stream if not logged on
             return 
 
-        if not symbol_name in self._symbol_registry.sym_to_contract_ids.keys():
-            metadata = await self.conn.resolve_symbol(symbol_name)
-            if not metadata:
-                raise SymbolResolutionError(f"Failed to resolve symbol:{symbol_name}.")
+        if symbol_name not in self._symbol_registry.sym_to_contract_ids.keys():
+            try:
+                metadata = await self.conn.resolve_symbol(symbol_name)
+            except SymbolResolutionError:
+                logger.warning("")
+                return
+            else:   
+                self._symbol_registry.register(symbol_name, metadata)
                 
-            self._symbol_registry.register(symbol_name, metadata)
-                
-        contract_id = self._symbol_registry.get_contract_ids(symbol_name)
-
+        try:
+            contract_id = self._symbol_registry.get_contract_ids(symbol_name)
+        except SymbolNotInRegistryError:
+            logger.warning("")
+            
         try:
             await self._realtime_data_request(contract_id, level)
         except MonitorDataRequestError:

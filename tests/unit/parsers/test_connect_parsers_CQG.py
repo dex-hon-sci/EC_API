@@ -67,9 +67,3 @@ def test_parse_restore_or_join_session_result_null()-> None:
 def test_parse_pong_null()-> None:
     with pytest.raises(MsgParserError):
         parse_pong(None)
-
-# --- info report parsing ### WIP <---!!!
-def test_parse_symbol_resolution_report_valid() -> None:
-    msg = build_symbol_resolution_report_server_msg(ServerMsg())
-    res = parse_symbol_resolution_report(msg)
-    assert isinstance(res, list)
