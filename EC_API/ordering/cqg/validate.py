@@ -18,6 +18,7 @@ def validate_required_fields(
             raise KeyError(f"{field} is required and not found in input.")
         
 def validate_input_para(order_info: dict[str, Any]) -> None:
+    # Specific requirement for parameters. It checks intra-dependent inputs.
     if order_info.get('order_type') is not None:
         # Specific requirements check
         match order_info['order_type']:
