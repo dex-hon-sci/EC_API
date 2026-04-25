@@ -1,6 +1,6 @@
 # *EC_API*: A wrapper package utilising WebSocket for Algo Trading 
 
-## Overview
+## **Overview**
 `EC_API` provides easy-to-use functions for algorithmic trading. 
 It is a wrapper package that utilises Websocket messaging to facilitate 
 trades, real-time data monitoring, open positions tracking, etc.
@@ -8,7 +8,7 @@ trades, real-time data monitoring, open positions tracking, etc.
 This repo is for review and education purpose-only. It does not represent 
 the production version of the codes in its entirety.
 
-## Table of contents
+## **Table of contents**
 - [Project Description](#project-description)
 - [Installation Guide](#installation-guide)
 - [Modules Review](#module-reviews)
@@ -18,10 +18,11 @@ the production version of the codes in its entirety.
   - [Sending Orders](#sending-orders)
   - [Monitoring and Data Feed](#monitoring-and-data-feed)
   - [Payload and Safety Parameters](#risk-and-safety)
-  - [Strategy Building](#strategy-building)
+- [Strategy Building](#strategy-building)
+  - [Action Tree](#action-tree)
 - [Releases](#releases)
   
-## Project Description
+## **Project Description**
 `EC_API` is a trading API that handles message relays 
 between client and servers in an asynchronous way. The package provide 
 necessarily RPC-like function calls to communicate with differennt
@@ -31,9 +32,10 @@ help users to formalise and build their trading strategy.
 `EC_API` constist of two layers:
 ![plot](./images/message_flow.jpg)
 
-(1) The infrastructure layer
+1. **The Infrastructure layer**
+
 This layer consist of the modules `transport`, `connect`, `ordering`, 
-and `monitor`. Within them lives vendor-spceific codes that routes 
+and `monitor`. Within them lives vendor-specific codes that routes 
 messages through their respective channel and follow the rules of 
 vendor-specific data format. The general architecture, however, is the
 same across service providers. 
@@ -41,16 +43,17 @@ same across service providers.
 In short, the `transport` layer handles synchronous operations of 
 sending/receiving messages; the `connect` layer establish connection,
 manage service state, as well as routing server response messages from 
-the `transport` layer to their respective callers asychronously. The 
+the `transport` layer to their respective callers asynchronously. The 
 `MonitorData` (from the `monitor` module) class in the example sit on 
-top of the `connect` layer and handle realtime data function calls and
+top of the `connect` layer and handle real-time data function calls and
 streaming. `TradeSession` (from the `ordering` module) establish trading
 route to a service provider and allow users to send order requests via 
 the `LiveOrder` objects.
 
-(2) The Strategy/User layer 
+2. **The Strategy/User layer **
+
 The user layer consist of the two module: `op_strategy` and `payload` and 
-they are completely vendor-agnoistic. 
+they are completely vendor-agnostic. 
 
 `Payload` objects (from the `payload` module) is a simple data class 
 wrapper that owns the risk-checks for the parameters of an pending order. 
@@ -63,23 +66,25 @@ live-objects during a trade session and both consumes real-time market data.
 a given market condition is met, it releases `Payload` to the execution system
 to send orders to the server. `OpStrategy` contains useful mechanism such 
 as cool-down to aid users in developing their custom strategy. One can 
-inherit or unject this class into their strategy objects that runs in live
+inherit or inject this class into their strategy objects that runs in live
 session.
 
 Currently supported vendors:
 
-| Name | Protocol |
-|-----------|-------------|
-| CQG WebAPI | WebSocket TSL+protobuf message |
+|    | Name | Protocol |
+|----|-----------|-------------|
+| 1. | CQG WebAPI | WebSocket TSL+protobuf message |
 
-## Installation Guide
+## **Installation Guide**
+Make sure your Python version is at least 3.12.
 
+To install via `pip`, run this in your terminal:
 ```bash
 pip install git+https://github.com/dex-hon-sci/EC_API
 
 ```
 
-## Module Review
+## **Module Review**
 `EC_API` contains the following modules:
 | Module | Description |
 |-----------|-------------|
@@ -95,11 +100,11 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 | `utility` | It contains utility functions for the package. |
 
 
-## Usage
+## **Usage**
 Here are some usage examples. 
 We use the CQG connection as an example in this demonstration.
 
-### Establish Connection
+### **Establish Connection**
 To establish a connection and start running:
 ```python
 from EC_API.connect.cqg.connect import ConnectCQG
@@ -117,22 +122,21 @@ The `Connect` objects are central to any trading
 operations. The recommended way to start/stop the service is through 
 `conn.start()` and `conn.stop()` function calls, respectively.
 
-### Monitoring and Data Feed
+### **Monitoring and Data Feed**
 To monitor Real-time Data:
 ```python
 from EC_API.monitor.cqg.realtime import MonitorDataCQG
 
-MD = MonitorDataCQG(conn)
-conn.start()
-async for data in MD.stream('EQ'):
-    print(data)
+with ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID) as conn:
+    MD = MonitorDataCQG(conn)
+    async for data in MD.stream('EQ'):
+        print(data)
  
 # ... DO somethibg else
-conn.stop()
 
 ```
 
-### Trade Sesssion
+### **Trade Sesssion**
 To monitor trade information or send orders to the exchanges, you need to
 establish a `trade_session` first. 
 
@@ -145,7 +149,7 @@ conn.start()
 conn.stop()
 ```
 
-### Sending Orders
+### **Sending Orders**
 To send a new order request directly via `EC_API`'s native functions 
 (not recommended) from the `ordering` module.
 
@@ -178,9 +182,9 @@ CLOrder1 = LiveOrderCQG(TS,
 CLOrder1.send(request_type = RequestType.NEW_ORDER, 
               request_details = new_order_details)  
 ```
-### Payload and Safety Parameters
+### **Payload and Safety Parameters**
 However, it is recommended to send order requests via a `Payload` object. 
-It is a vendor-agnoistic dataclass that conduct safety checks upon creation.
+It is a vendor-agnostic dataclass that conduct safety checks upon creation.
 
 To send orders with `Payload`, you can do the following:
 ```python 
@@ -205,10 +209,29 @@ try: # Specify the type of live order we are using here.
 
 ```
 
-### Strategy Building(WIP)
+## **Strategy Building (WIP)**
 `EC_API` provide useful templates: `OpStrategy` and `OpSignal` 
 classes to aid writing your custom strategy logics by standardising common 
 utilities such as cool-down mechanism and data ingestion.
+
+Note that for a fully automated Algo-Trading setup, both the `OpSignal` and 
+`OpStrategy` live in the "Data Loop" where the raw market data from the 
+websocket is ingested. The raw ticks have to be stored in `TickBuffer` objects 
+via the  built-in method of the `DataFeed` class. `OpSignal` and `OpStrategy` interact 
+with `DataFeed` and decide when to send out the corresponding orders or what 
+signal to generate, respectively.
+
+As a short summary, each class are in control of a separate function, from
+a top-to-down perspective, we have:
+1. `OpStrategy` reads the `DataFeed`, controls the production `OpSignal` and 
+    the cool-down mechanism that limits the frequency of signal production;
+2. `OpSignal` reads the `DataFeed` and controls xxx;
+3. `ActionTree` controls the traversal along the `ActionNode` chain and the
+    sequence of execution of the `ActionNode` objects;
+4. `ActionNode` controls when the `Payload` insertion is triggered;
+5. `Payload` controls how the desired orders are sent to an Exchange (`LiveOrder`
+    type objects), and what format checking policy (via `FormatCheck` type 
+    objects) is used to validate our orders.
 
 To illustrate the workflow, we can look at the following example that shows
 the schema of our operational strategy format.
@@ -381,24 +404,7 @@ Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 
 
 ```
-Note that for a fully automated Algo-Trading setup, both the `OpSignal` and 
-`OpStrategy` live in the "Data Loop" where the raw market data from the 
-websocket is ingested. The raw ticks have to be stored in `TickBuffer` objects 
-via the  built-in method of the `DataFeed` class. `OpSignal` and `OpStrategy` interact 
-with `DataFeed` and decide when to send out the corresponding orders or what 
-signal to generate, respectively.
 
-As a short summary, each class are in control of a separate function, from
-a top-to-down perspective, we have:
-1. `OpStrategy` reads the `DataFeed`, controls the production `OpSignal` and 
-    the cool-down mechanism that limits the frequency of signal production;
-2. `OpSignal` reads the `DataFeed` and controls xxx;
-3. `ActionTree` controls the traversal along the `ActionNode` chain and the
-    sequence of execution of the `ActionNode` objects;
-4. `ActionNode` controls when the `Payload` insertion is triggered;
-5. `Payload` controls how the desired orders are sent to an Exchange (`LiveOrder`
-    type objects), and what format checking policy (via `FormatCheck` type 
-    objects) is used to validate our orders.
 
 ### Releases
 From v0.1.0 onward, `EC_API` is designed to be async-native. All RPC-like 
