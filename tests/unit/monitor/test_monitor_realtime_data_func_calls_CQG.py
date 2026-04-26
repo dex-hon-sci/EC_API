@@ -13,7 +13,10 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_market_data_subscription_statuses_server_msg,
     build_real_time_market_data_server_msg
     )
-from EC_API.exceptions import (MonitorDataRequestError)
+from EC_API.exceptions import (
+    UnsupportedLevelError,
+    MonitorDataRequestError
+    )
 
 async def _inject_after_send(
         fake_transport: FakeTransport,
@@ -98,7 +101,7 @@ async def test_realtime_data_request_invalid_wrong_level() -> None:
     conn.start()
     MD = MonitorDataCQG(conn)
     with pytest.raises(
-            MonitorDataRequestError, 
+            UnsupportedLevelError, 
             match="Level: WRONG_LEVEL unsupported."
         ):
         await MD._realtime_data_request(19, WRONG_LEVEL)

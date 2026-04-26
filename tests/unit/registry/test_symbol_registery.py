@@ -4,6 +4,7 @@ from EC_API.exceptions import (
     SymbolNotInRegistryError,
     MetaDataMissingError,
     DuplicateSymbolError,
+    
 )
 
 SYMBOL   = "ES"
@@ -104,7 +105,8 @@ def test_register_populates_metadata(reg):
     assert reg.metatdata[SYMBOL] == METADATA
 
 def test_register_duplicate_returns_false(reg_registered):
-    assert reg_registered.register(SYMBOL, METADATA) is False
+    with pytest.raises(DuplicateSymbolError):
+        reg_registered.register(SYMBOL, METADATA)
 
 def test_register_multiple_symbols(reg):
     reg.register(SYMBOL, METADATA)
@@ -126,7 +128,8 @@ def test_deregister_removes_metadata(reg_registered):
     assert SYMBOL not in reg_registered.metatdata
 
 def test_deregister_missing_returns_false(reg):
-    assert reg.deregister(SYMBOL) is False
+    with pytest.raises(SymbolNotInRegistryError):
+        reg.deregister(SYMBOL)
 
 
 # ---- get_contract_ids -------------------------------------------------------
