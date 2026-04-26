@@ -169,3 +169,14 @@ def test_parse_at_the_money_strike_report_status_code_failure() -> None:
     )
     res = parse_server_msg(msg, connect_parsers)
     assert res[0]['status_code'] == InformationReport.StatusCode.STATUS_CODE_FAILURE
+    
+def test_parse_information_report_no_subtype_returns_empty_list() -> None:
+    # A failure report with no sub-report type set: walk_fields finds no
+    # registered sub-type, parse_information_report returns [], parse_server_msg
+    # returns [] without raising (no errors accumulated either).
+    msg = ServerMsg()
+    report = msg.information_reports.add()
+    report.id = 99
+    report.status_code = InformationReport.StatusCode.STATUS_CODE_NOT_FOUND
+    res = parse_server_msg(msg, connect_parsers)
+    assert res == []

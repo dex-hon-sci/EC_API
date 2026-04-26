@@ -82,8 +82,12 @@ class InvalidDroppingPolicy(RoutingError):
         super().__init__(message)
         
 # --- Symbol Registry ---
-class SymbolRegistryError(EC_APIError):...
+class SymbolRegistryError(EC_APIError): ...
 
+class FailRegisterError(SymbolRegistryError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        
 class SymbolNotInRegistryError(SymbolRegistryError):
     def __init__(self, message: str):
         super().__init__(message)
