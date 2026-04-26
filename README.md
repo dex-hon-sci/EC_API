@@ -50,7 +50,7 @@ streaming. `TradeSession` (from the `ordering` module) establish trading
 route to a service provider and allow users to send order requests via 
 the `LiveOrder` objects.
 
-2. **The Strategy/User layer **
+2. **The Strategy/User layer**
 
 The user layer consist of the two module: `op_strategy` and `payload` and 
 they are completely vendor-agnostic. 
@@ -406,7 +406,7 @@ Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 ```
 
 
-### Releases
+## Releases
 From v0.1.0 onward, `EC_API` is designed to be async-native. All RPC-like 
 function calls functions are awaitable.
 

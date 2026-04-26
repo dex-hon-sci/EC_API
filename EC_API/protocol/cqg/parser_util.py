@@ -45,7 +45,7 @@ def parse_server_msg(
     ) -> list[dict[str, Any]]:
     # Dispatch to message specific parsers
     msg_types = server_msg_type(server_msg)
-    print('msg_types', msg_types)
+
     if not msg_types:
         raise MsgParserError("Cannot resolve server message type.")
     
@@ -54,7 +54,7 @@ def parse_server_msg(
     errors: list[str] = []
     for msg_type in msg_types:
         parser = parsers.get(msg_type)
-        print("master", parsers)
+
         if parser is None:
             errors.append(
                 f"Parser of message type: {msg_type} does not exist."
@@ -67,8 +67,6 @@ def parse_server_msg(
                 f"Failed to parse server message: {e}."
                 )
             #continue
-    print(res)
-    print(errors)
     if not res and errors:
         raise MsgParserError("; ".join(errors))
         
