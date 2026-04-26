@@ -14,7 +14,7 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.transport.routers import StreamRouter, MessageRouter
 from EC_API.protocol.cqg.router_util import (
-    extract_router_keys, server_msg_type,
+    extract_router_keys,
     realtime_tick_contract_id,
     order_statuses_order_id,
     split_server_msg
