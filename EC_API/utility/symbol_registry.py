@@ -5,15 +5,13 @@ Created on Tue Apr  7 16:28:45 2026
 
 @author: dexter
 """
-import logging
 from EC_API._typing import ContractMetaDataType
 from EC_API.exceptions import (
+    FailRegisterError,
     SymbolNotInRegistryError,
     MetaDataMissingError,
     DuplicateSymbolError
     )
-
-logger = logging.getLogger(__name__)
         
 class SymbolRegistry:
     """ 
@@ -83,7 +81,7 @@ class SymbolRegistry:
         ) -> bool:
         if symbol_name not in self._metadata.keys():
             raise MetaDataMissingError(
-                "MetaData of Symbol: {symbol_name} is not in the registry."
+                f"MetaData of Symbol: {symbol_name} is not in the registry."
                 )
         self._metadata.pop(symbol_name)
         return True
@@ -94,39 +92,30 @@ class SymbolRegistry:
             symbol_name: str, 
             metadata:ContractMetaDataType
             ) -> bool:
-        try:
-            self.add_symbol(symbol_name, metadata['contract_id'])
-        except DuplicateSymbolError as e :
-            logger.warning(str(e))
-            return False
         
+        self.add_symbol(symbol_name, metadata['contract_id'])
         try:
             self.add_metadata(symbol_name, metadata)
+            return True
+
         except DuplicateSymbolError as e :
-            logger.warning(str(e))
-            return False
-        return True
+            self.remove_symbol(symbol_name)
+            raise FailRegisterError(
+              f"Failed to register symbol: {symbol_name}."
+          ) from e
 
     def deregister(
             self,
             symbol_name: str
             ) -> bool:
-        try:
-            self.remove_symbol(symbol_name)
-        except SymbolNotInRegistryError as e:
-            logger.warning(str(e))
-            return False
-        
-        try:
-            self.remove_metadata(symbol_name)
-        except MetaDataMissingError as e:
-            logger.warning(str(e))
-            return False
+        self.remove_symbol(symbol_name)
+        self.remove_metadata(symbol_name)
+
         return True
         
     # --- getter methods
     def get_contract_ids(self, symbol_name: str) -> int:
-        if not self._sym_to_contract_ids.get(symbol_name):
+        if self._sym_to_contract_ids.get(symbol_name) is None:
             raise SymbolNotInRegistryError(
                 f"Symbol: {symbol_name} is not in the registry.", 
                 )

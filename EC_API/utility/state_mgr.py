@@ -9,14 +9,12 @@ from enum import Enum
 from typing import TypeVar, Generic, Sequence
 T = TypeVar('T', bound=Enum)
 
-import logging
 from EC_API.exceptions import (
     InvalidCurrentStateError,
     InvalidNextStateError,
     StartStateError, 
     )
 
-logger = logging.getLogger(__name__)
 
 class StateMgr(Generic[T]):
     def __init__(

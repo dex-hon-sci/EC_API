@@ -6,7 +6,6 @@ Created on Wed Nov 26 16:40:57 2025
 @author: dexter
 """
 import asyncio
-import logging
 from typing import Any  # Hashable, Optional
 from EC_API._typing import RouterKey
 from EC_API.exceptions import (
@@ -16,7 +15,6 @@ from EC_API.exceptions import (
     InvalidDroppingPolicy
     )
 
-logger = logging.getLogger(__name__)
 
 class MessageRouter:
     def __init__(self):
@@ -29,8 +27,7 @@ class MessageRouter:
     def register_key(self, key: RouterKey) -> asyncio.Future:
         fut = asyncio.get_running_loop().create_future()
         if key in self.pending.keys():
-            msg = f"Router register key failed: key '{key}' already exist."
-            logger.error("[%s] %s", self.__class__.__name__, msg)
+            msg = f"[{self.__class__.__name__}] Router register key failed: key '{key}' already exist."
             raise DuplicateRouterKeyError(msg)
 
         self.pending[key] = fut
@@ -83,8 +80,7 @@ class StreamRouter:
     
     def subscriber_count(self, sub_id: int | str) -> int:
         if not self._subs.get(sub_id):
-            msg = f"Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
-            logger.error("[%s] %s", self.__class__.__name__, msg)
+            msg = f"[{self.__class__.__name__}] Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
             raise UnknownSubscriptionError(msg)
         return len(self._subs[sub_id])
     
@@ -95,14 +91,12 @@ class StreamRouter:
         # Add a new Queue to the list in case there is a new subscriber who
         # calls subscribe
         if len(self._subs) >= self._max_num_sym:
-            msg = "Maximum number of contract subscribed exceeded."
-            logger.error("[%s] %s", self.__class__.__name__, msg)
+            msg = f"[{self.__class__.__name__}] Maximum number of contract subscribed exceeded."
             raise MaxSymbolsExceededError(msg)
             
         if self._subs.get(sub_id):
             if len(self._subs[sub_id]) >= self._max_subs_size:
-                msg = f"Maximum subscribers has reached for this contract: {sub_id}."
-                logger.error("[%s] %s", self.__class__.__name__, msg)
+                msg = f"[{self.__class__.__name__}] Maximum subscribers has reached for this contract: {sub_id}."
                 raise MaxSubscribersExceededError(msg)
 
         q: asyncio.Queue[Any] = asyncio.Queue(
@@ -120,13 +114,11 @@ class StreamRouter:
 
         lst = self._subs.get(sub_id, [])
         if not lst:
-            msg = f"Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
-            logger.error("[%s] %s", self.__class__.__name__, msg)
+            msg = f"[{self.__class__.__name__}] Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
             raise UnknownSubscriptionError(msg)
             
         if q not in lst:
-            msg = f"Unsubscribe failed. Input queue is not in the list of id:{sub_id}."
-            logger.error("[%s] %s", self.__class__.__name__, msg)
+            msg = f"[self.__class__.__name__] Unsubscribe failed. Input queue is not in the list of id:{sub_id}."
             raise SubscriptionQueueMismatchError(msg)
 
         lst.remove(q)
@@ -155,14 +147,9 @@ class StreamRouter:
                 q.put_nowait(item)
             except asyncio.QueueFull:
                 if self._drop_if_full:
-                    if self.drop_policy == "drop_oldest":
-                        try:
-                            q.get_nowait() 
-                            q.put_nowait(item)
-                        except Exception:
-                            msg = f"[{self.__class__.__name__}] Publish unsuccessful at queue full: {item}."
-                            logger.warning(msg)
-                            continue
+                    if self.drop_policy == "drop_oldest": 
+                        q.get_nowait() 
+                        q.put_nowait(item)
                     elif self.drop_policy == "drop_latest":
                         pass
                         #try:
