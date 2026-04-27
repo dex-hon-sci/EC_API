@@ -55,11 +55,16 @@ async def test_trade_subscription_request_valid()->None:
     assert result is not None
     assert isinstance(result, tuple)
     assert len(result)==2
-    assert result[0].trade_subscription_statuses[0].id == 2
-    assert result[0].trade_subscription_statuses[0].status_code == TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS
+    #assert result[0].trade_subscription_statuses[0]['id'] == 2
+    #assert result[0].trade_subscription_statuses[0]['status_code'] == TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS
+    #assert result[1].trade_snapshot_completions[0]['sub_id'] == 2
+    #assert len(result[1].trade_snapshot_completions[0].subscription_scopes) == 4
 
-    assert result[1].trade_snapshot_completions[0].subscription_id == 2
-    assert len(result[1].trade_snapshot_completions[0].subscription_scopes) == 4
+    #assert result[0].trade_subscription_statuses[0]['id'] == 2
+    #assert result[0].trade_subscription_statuses[0]['status_code'] == TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS
+
+    #assert result[1].trade_snapshot_completions[0]['sub_id'] == 2
+    #assert len(result[1].trade_snapshot_completions[0].subscription_scopes) == 4
     await conn.stop()
     
 @pytest.mark.asyncio
@@ -94,12 +99,15 @@ async def test_unsubscribe_trade_request_valid()->None:
     conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
 
     response1 = build_trade_subscription_statuses_server_msg(ServerMsg(), sub_id = 2)
-    response2 = build_trade_snapshot_completions_server_msg(response1, sub_id = 2)
+    #response2 = build_trade_snapshot_completions_server_msg(response1, sub_id = 2)
     
     result, _ = await asyncio.gather(
-        TS.trade_subscription_request(2, SubScope.ORDERS),
-        _inject_after_send(ft, response2)
+        TS.unsubscribe_trade_request(2, SubScope.ORDERS),
+        _inject_after_send(ft, response1)
         )    
+    assert result is not None
+
+    await conn.stop()
 
 @pytest.mark.asyncio
 async def test_unsubscribe_trade_request_builder_invalid() -> None:

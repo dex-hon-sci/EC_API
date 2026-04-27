@@ -8,6 +8,7 @@ Created on Tue Mar 31 05:01:41 2026
 import asyncio
 import logging
 from datetime import datetime
+from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.ordering.enums import OrderStatus
@@ -16,6 +17,10 @@ from EC_API.ordering.enums import SubScope
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg,
     build_trade_historical_orders_request_msg
+    )
+from EC_API.ordering.cqg.parsers import (
+    parse_trade_subscription_statuses,
+    parse_trade_snapshot_completions
     )
 from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.utility.error_handlers import msg_io_error_handler
@@ -44,20 +49,24 @@ class TradeSessionCQG:
         # Routers
         self._stream_router = self._conn._exec_stream_router
         self._msg_router = self._conn._msg_router
-        
+                
         # Containers - Subs
         self._active_subs: dict[int, set[SubScope]] = {}
+        
         # Containers - orders
         self.active_orders: set[str] = set()
         self.order_statuses: dict[str, OrderStatusType] = dict() # order_id to status
         self.order_details: dict[str, dict] = dict()
-        
+
         self._account_summaries: dict[str, None] = dict()
         #self._order_futures: dict[str, asyncio.Future] = {}  # for awaiting terminal state
 
         # symbol registry 
         self.symbol_registry: SymbolRegistry = SymbolRegistry()
 
+        # Settings
+        self.order_statuses_TTL: int = 10
+        
     # --- Property --- 
     @property
     def conn(self):
@@ -75,23 +84,25 @@ class TradeSessionCQG:
         return self.conn.rid()
     
     # ---- Dunder meothos ---
-    async def __aenter__(self):
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        for sub_id, scopes in list(self._active_subs.items()):
-            for scope in scopes:
-                try:
-                    await self.unsubscribe_trade_request(sub_id, scope)
-                except Exception: # <-- fix this later
-                    pass
-        if self._tracker_task and not self._tracker_task.done():
-            self._tracker_task.cancel()
-            try:
-                await self._tracker_task
-            except asyncio.CancelledError:
-                pass
-        return False        
+# =============================================================================
+#     async def __aenter__(self):
+#         return self
+#     
+#     async def __aexit__(self, exc_type, exc_val, exc_tb):
+#         for sub_id, scopes in list(self._active_subs.items()):
+#             for scope in scopes:
+#                 try:
+#                     await self.unsubscribe_trade_request(sub_id, scope)
+#                 except Exception: # <-- fix this later
+#                     pass
+#         if self._tracker_task and not self._tracker_task.done():
+#             self._tracker_task.cancel()
+#             try:
+#                 await self._tracker_task
+#             except asyncio.CancelledError:
+#                 pass
+#         return False        
+# =============================================================================
 
     # --- Checks
     def has_orders_scope(self) -> bool:
@@ -113,6 +124,7 @@ class TradeSessionCQG:
         # blocks until filled/cancelled/rejected
         ...
         return dict()
+    
     # --- status tracker 
     async def _tracker_loop(self):
         TERMINAL_STATES = {
@@ -122,16 +134,17 @@ class TradeSessionCQG:
         # subscribes to exec_stream_router, updates _order_state
         while not self._stop_evt.is_set():
             
-            
+            # If There are new order_id added
             for chain_order_id in self.active_orders:
                 queues = self._stream_router._subs.get(chain_order_id, [])
 
              # Look at the order status stream (By Level) using the chain_order_id
              #self._active_subs.get()
-             
+                          
+             # Check the status and see if there is any changes
              # update the trackers
           
-            # check if the it is at the end state, if so, pop
+            # check if the it is at the end state, if so, log then pop
           
           
             
@@ -140,9 +153,11 @@ class TradeSessionCQG:
             self,
             sub_id: int,
             sub_scope: SubScope | SubScopeCQG                           
-        ) -> None:
+        ) -> ServerMsg | None:
         
-        # check symbol resolution, Check if sub_id is already there
+        if sub_id in self._active_subs.keys():
+            logger.warning("Sub_id: {sub_id} is already in-use.")
+            return
         
         with msg_io_error_handler(
                 TradeSessionRequestError, 
@@ -165,8 +180,11 @@ class TradeSessionCQG:
 
             sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self.timeout)
             snapshot_msg = await asyncio.wait_for(fut_snapshot, timeout=self.timeout)
-            
             return sub_status_msg, snapshot_msg
+                   
+        # Fix this later. Need to refactor the parsers to parse JSON
+            #return parse_trade_subscription_statuses(sub_status_msg),\
+            #       parse_trade_snapshot_completions(snapshot_msg)
     
     async def unsubscribe_trade_request(
             self, 

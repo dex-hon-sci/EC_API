@@ -7,7 +7,6 @@ Created on Wed Jul 30 10:01:16 2025
 """
 import asyncio
 from typing import Any
-from datetime import timezone
 import logging
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
@@ -50,17 +49,16 @@ logger = logging.getLogger(__name__)
 class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange
     # This object is specific for CQG type request
-    def __init__(self, 
-                 trade_session: TradeSessionCQG,
-                 symbol_name: str, 
-                 request_id: int, 
-                 account_id: int,
-                 #sub_scope: int = SubScope.ORDERS,
-                 #msg_id: int = int(random_string(length=6)), # For symbol resolutions
-                 auto_unsub: bool = True,
-                 timeout: int | float = 1,
-                 ):
-        
+    def __init__(
+            self, 
+            trade_session: TradeSessionCQG,
+            symbol_name: str, 
+            request_id: int, 
+            account_id: int,
+            timeout: int | float = 1,
+        ):                 #sub_scope: int = SubScope.ORDERS,
+                 #auto_unsub: bool = True,
+
         # Message Routing
         self._trade_session: TradeSessionCQG = trade_session
         self._conn: ConnectCQG = self._trade_session._conn
@@ -90,7 +88,6 @@ class LiveOrderCQG(LiveOrder):
             self, 
             request_details: dict[str, Any]
         ) -> ServerMsg:
-        para = locals().copy()
         
         with msg_io_error_handler(
                 OrderRequestError,
@@ -98,30 +95,6 @@ class LiveOrderCQG(LiveOrder):
             ):
             client_msg = build_new_order_request_msg(**request_details)
             cl_order_id = request_details['cl_order_id']
-# =============================================================================
-#       rid = self.rid()
-#   reject_fut = self._msg_router.register_key(('rpc_reqid', 'order_request_rejects',
-#   'request_id', rid))
-#   ack_fut    = self._msg_router.register_key(('rpc_reqid', 'order_request_acks',
-#   'request_id', rid))
-# 
-#   await self._transport.send(order_msg)
-# 
-#   done, pending = await asyncio.wait(
-#       [reject_fut, ack_fut],
-#       timeout=self._timeout,
-#       return_when=asyncio.FIRST_COMPLETED
-#   )
-# 
-#   for f in pending:
-#       f.cancel()  # _cleanup fires, removes key from pending automatically
-# 
-#   if not done:
-#       raise ConnectTimeOutError(...)
-# 
-#   result_msg = done.pop().result()
-#   # inspect result_msg — is it an ACK or REJECT?
-# =============================================================================
             key = ('substream','order_statuses','cl_order_id', cl_order_id)
             #key = ("order_statuses", request_details['request_id'])
             fut = self.msg_router.register_key(key)
@@ -285,7 +258,7 @@ class LiveOrderCQG(LiveOrder):
                 case RequestType.GOFLAT_ORDER:
                     server_msg = await self._goflat_order_request(details)
                     
-            chain_order_id = server_msg.order_statuses.chain_order_id
+            chain_order_id = server_msg.order_statuses[0].chain_order_id
             q = self.stream_router.subscribe(chain_order_id)
 
             return server_msg, q
@@ -295,3 +268,27 @@ class LiveOrderCQG(LiveOrder):
             return 
 
 
+# =============================================================================
+#       rid = self.rid()
+#   reject_fut = self._msg_router.register_key(('rpc_reqid', 'order_request_rejects',
+#   'request_id', rid))
+#   ack_fut    = self._msg_router.register_key(('rpc_reqid', 'order_request_acks',
+#   'request_id', rid))
+# 
+#   await self._transport.send(order_msg)
+# 
+#   done, pending = await asyncio.wait(
+#       [reject_fut, ack_fut],
+#       timeout=self._timeout,
+#       return_when=asyncio.FIRST_COMPLETED
+#   )
+# 
+#   for f in pending:
+#       f.cancel()  # _cleanup fires, removes key from pending automatically
+# 
+#   if not done:
+#       raise ConnectTimeOutError(...)
+# 
+#   result_msg = done.pop().result()
+#   # inspect result_msg — is it an ACK or REJECT?
+# =============================================================================
