@@ -140,7 +140,7 @@ class StreamRouter:
         
         for q in list(queues):
             if not self._drop_if_full:
-                await asyncio.wait_for(q.put(item), timeout=0.001) #<--- use put and mayke it async
+                await asyncio.wait_for(q.put(item), timeout=0.001)
                 continue
             
             try:

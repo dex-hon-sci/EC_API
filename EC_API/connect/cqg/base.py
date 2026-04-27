@@ -28,6 +28,7 @@ from EC_API.protocol.cqg.router_util import (
     #order_statuses_order_id,
     split_server_msg
     )
+from EC_API.protocol.cqg.parser_util import parse_server_msg
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
     build_ping_msg, build_resolve_symbol_msg,
@@ -44,7 +45,7 @@ from EC_API.connect.cqg.parsers import (
     parse_restore_or_join_session_result,
     parse_logged_off,
     parse_pong,
-    parse_symbol_resolution_report
+    parse_symbol_resolution_report, connect_parsers
     )
 from EC_API.utility.state_mgr import StateMgr
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
@@ -148,45 +149,57 @@ class ConnectCQG(Connect):
             
     # ---- Dunder methods override
     async def __aenter__(self): 
-        self.start()
-        return self
+        start_is_success = self.start()
+        if start_is_success:
+            return self
+        else:
+            raise
     
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:        
         if self.state not in (                
                 ConnectionState.UNKNOWN, 
                 ConnectionState.CLOSING,
                 ConnectionState.CLOSED
                 ): # Move to Logoff(if needed) and then Disconnect 
-            logger.warning("Connect object not properly stopped.\
-                        Procced to automatic connection shutdown.")
-            await self.stop()
-            return True
+            logger.warning(
+                "Connect object not properly stopped.\
+                Procced to automatic connection shutdown."
+                )
+            try:
+                stop_is_success = await self.stop()
+            except (Exception, AssertionError):
+                logger.warning("")
+                return False
+            else:
+                return stop_is_success
         
         return False
         
     def __del__(self):
         # Guard against partial init
-        state = getattr(self, '_state_mgr', None)
-        if state is None:
-            return  # __init__ never completed
+        state_mgr = getattr(self, '_state_mgr', None)
+        if state_mgr is None: # __init__ never completed
+            return  
     
-        if self.state not in (                
-                ConnectionState.UNKNOWN, 
-                ConnectionState.CLOSING,
-                ConnectionState.CLOSED
-                ): # Move to Logoff(if needed) and then Disconnect 
-            return 
+# =============================================================================
+#         if self.state not in (                
+#                 ConnectionState.UNKNOWN, 
+#                 ConnectionState.CLOSING,
+#                 ConnectionState.CLOSED
+#                 ): # Move to Logoff(if needed) and then Disconnect 
+#             return 
+# =============================================================================
         
         warnings.warn(
             f"Unclosed {self}. Call await stop() or use async with caluse.", 
             ResourceWarning, source=self)
         
-        if self.state == ConnectionState.CONNECTED_LOGOFF:
+        if self.state == ConnectionState.CONNECTED_LOGON:
             try: # Emergency Sync logoff
                 logoff_msg = build_logoff_msg("logoff")
                 self._client.send_client_message(logoff_msg)
             except Exception:
-                pass
+                logger.warning("Fail to logoff cleanly.")
         
         try:
             self._transport.disconnect()
@@ -220,6 +233,8 @@ class ConnectCQG(Connect):
 
     # ---- Live cycle --------
     def start(self) -> bool:
+        # (1) unknown -> connecting -> connected_default, or 
+        # (2) Disconnected -> reconnecting -> connected_default
         if self.state not in (
                 ConnectionState.UNKNOWN, 
                 ConnectionState.DISCONNECTED
@@ -245,12 +260,13 @@ class ConnectCQG(Connect):
         return True
 
     async def stop(self) -> bool: 
-        # Prerequisites
+        # Logon -> Logoff -> Disconnected -> closing -> closed, or
+        # connected_default -> disconnected -> closing -> closed
         if self.state in (
                 ConnectionState.UNKNOWN, 
                 ConnectionState.CLOSING,
                 ConnectionState.CLOSED
-                ):
+                ): # These are terminal states
             logger.warning(f"Current State:{self.state} cannot initiate disconnection.")
             return False
         
@@ -283,6 +299,7 @@ class ConnectCQG(Connect):
             self._transport.stop()
         except TransportDisconnectError as e:
             logger.warning("Transport Dosconnect Failed: %s.", str(e))
+            return False
         finally:
              if self._router_task:
                 self._router_task.cancel()
@@ -302,6 +319,7 @@ class ConnectCQG(Connect):
         while not self._stop_evt.is_set():
             try:
                 msg: ServerMsg = await self._transport.recv()
+                print("[router_loop] msg", msg)
                     
                 if not msg or not isinstance(msg, ServerMsg):
                     logger.warning("Invalid Message Type, msg: %s", msg)
@@ -338,6 +356,7 @@ class ConnectCQG(Connect):
                     # --- (3) Expensive RPC type key matching ---
                     try:
                         keys = extract_router_keys(msg)
+                        print('[router_loop] keys', keys)
                     except KeyExtractorError as e:
                         logger.warning("Key Extraction Failed: %s.", str(e))
                     else:
@@ -413,7 +432,7 @@ class ConnectCQG(Connect):
             return int_msg
     
     async def logoff(self) -> dict[str, Any] | None:
-        # Logoff. Invoke this everytime when a connection is dropped
+
         with msg_io_error_handler(
                 ConnectRequestError, 
                 timeout_error = ConnectTimeOutError
@@ -442,7 +461,6 @@ class ConnectCQG(Connect):
             protocol_version_minor: Optional[int] = None,
             **kwargs
         ) -> dict[str, Any] | None:
-        # Restoring session after dropoff   
 
         with msg_io_error_handler(
                 ConnectRequestError, 
@@ -498,13 +516,18 @@ class ConnectCQG(Connect):
                 timeout_error = ConnectTimeOutError
             ):
             rid = self.rid()
+            print('[resolve_symbol] rid', rid)
             msg = build_resolve_symbol_msg(symbol, rid, subscribe=True)
+            print('[resolve_symbol] client_msg', msg)
 
-            msg_key = ("info", "information_reports:symbol_resolution_report", "request_id", rid)
+            msg_key = ("info", "information_reports:symbol_resolution_report", "id", rid)
+            print("[resolve_symbol] msg_key", msg_key)
             fut = self._msg_router.register_key(msg_key)
             await self._transport.send(msg)
+            print('[resolve_symbol] fut', fut)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+            print('[resolve_symbol] server_msg', server_msg)
             
             # walk through the second layer of the message, Find all info report,        
             # parse a list of info
-            return parse_symbol_resolution_report(server_msg)
+            return parse_server_msg(server_msg, connect_parsers)

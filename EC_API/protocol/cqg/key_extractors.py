@@ -84,7 +84,7 @@ def extract_info_keys(
         "at_the_money_strike_report"
     }
     
-    MAP_RESPONSES_TYPES_STR.get("information_requests")
+    #MAP_RESPONSES_TYPES_STR.get("information_requests")
     
     def selector(fd, val) -> Iterable[KeyHit]:
         if fd.message_type is not None and (fd.name in TARGET or fd.name == "information_reports"):

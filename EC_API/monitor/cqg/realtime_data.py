@@ -32,6 +32,7 @@ from EC_API.monitor.cqg.parsers import (
 from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
+    ConnectTimeOutError,
     SymbolResolutionError,
     UnsupportedLevelError,
     MonitorDataRequestError,
@@ -95,28 +96,45 @@ class MonitorDataCQG(Monitor):
         # ---- Symbol resolution and registration ----
         if symbol_name not in self._symbol_registry.sym_to_contract_ids.keys():
             try:
-                metadata = await self.conn.resolve_symbol(symbol_name)
-                self._symbol_registry.register(symbol_name, metadata)
+                metadatas = await self.conn.resolve_symbol(symbol_name)
+                print("[stream()] metadata", metadatas)
+                for metadata in metadatas:
+                    print('entry', symbol_name, metadata['contract_metadata'],
+                          type(metadata['contract_metadata']))
+                    self._symbol_registry.register(
+                        symbol_name, 
+                        metadata['contract_metadata']
+                        )
+                    print("[stream()] symbol registry", 
+                          self._symbol_registry.active_symbols,
+                          self._symbol_registry.metatdata)
             except SymbolResolutionError:
                 logger.warning(f"Cannot resolve the symbol: {symbol_name}.")
                 return
             except (FailRegisterError, SymbolNotInRegistryError) as e:
                 logger.warning(str(e))
                 return
-            
-        contract_id = self._symbol_registry.get_contract_ids(symbol_name)
+            except ConnectTimeOutError as e:
+                logger.warning(str(e))
+                return
 
+        contract_id = self._symbol_registry.get_contract_ids(symbol_name)
+        print("[stream()] getting contract_id", contract_id)
         # ---- Requesting Real-Time Data
+        q = self._stream_router.subscribe(contract_id)
+
         try:
-            await self._realtime_data_request(contract_id, level)
-            q = self._stream_router.subscribe(contract_id)
+            rtd_server_msg = await self._realtime_data_request(contract_id, level)
+            print("[stream()] rtd_server_msg", rtd_server_msg)
         except MonitorDataRequestError:
             logger.warning(f"sub to market data of contract_id: {contract_id} failed.")
+            self._stream_router.unsubscribe(contract_id, q)
             return 
         except (UnsupportedLevelError, 
                 MaxSymbolsExceededError, 
                 MaxSubscribersExceededError
                 ) as e:
+            self._stream_router.unsubscribe(contract_id, q)
             logger.warning(str(e))
             return 
             
@@ -158,12 +176,17 @@ class MonitorDataCQG(Monitor):
                 timeout_error = MonitorTimeOutError
             ):
             msg = build_realtime_data_request_msg(contract_id, self.rid(), level)
+            print('[realtime request] msg', msg)
         
             key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
             fut = self._msg_router.register_key(key)
-            
+            print('[realtime request] key', key)
+
             await self._transport.send(msg)  
             confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
+            
+            print('[realtime request] confirm_msg', confirm_msg)
+
             return parse_market_data_subscription_statuses(confirm_msg)
     
     async def _unsubscribe_mkt_data(

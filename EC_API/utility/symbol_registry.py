@@ -90,10 +90,11 @@ class SymbolRegistry:
     def register(
             self, 
             symbol_name: str, 
-            metadata:ContractMetaDataType
+            metadata: ContractMetaDataType
             ) -> bool:
         
-        self.add_symbol(symbol_name, metadata['contract_id'])
+        res = self.add_symbol(symbol_name, metadata['contract_id'])
+        print('add_metadata success', res)
         try:
             self.add_metadata(symbol_name, metadata)
             return True
