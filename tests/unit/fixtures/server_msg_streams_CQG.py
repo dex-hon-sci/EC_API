@@ -197,7 +197,7 @@ def dummy_info_stream(
     return info
         # res: TrdSubStatus.StatusCode = TrdSubStatus.StatusCode.STATUS_CODE_SUCCESS,
 
-def dummy_composite_order_statuses_stream(num:int = 10) -> list[ServerMsg]:
+def dummy_composite_order_statuses_stream(num: int = 10) -> list[ServerMsg]:
     
     def _composite_oder_statuses_msg(
             server_msg: ServerMsg,
@@ -207,7 +207,11 @@ def dummy_composite_order_statuses_stream(num:int = 10) -> list[ServerMsg]:
         server_msg = build_order_request_acks_server_msg(server_msg, composite_ids[0])
         server_msg = build_trade_subscription_statuses_server_msg(server_msg, sub_id = composite_ids[1])
         server_msg = build_trade_snapshot_completions_server_msg(server_msg, composite_ids[2])
-        server_msg = build_order_statuses_server_msg(server_msg, chain_order_id = str(composite_ids[3]))
+        server_msg = build_order_statuses_server_msg(
+            server_msg, 
+            chain_order_id = str(composite_ids[3]),
+            res = OrderStatus.Status.IN_TRANSIT
+            )
 
         return server_msg
     

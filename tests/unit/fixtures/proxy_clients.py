@@ -62,5 +62,8 @@ class FakeTransport:
     def disconnect(self) -> bool:
         return True
     
-    def start(self):...
-    def stop(self):...
+    def start(self) -> bool:
+        return True
+    
+    def stop(self) -> bool:
+        return True
