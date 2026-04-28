@@ -15,7 +15,8 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     )
 from EC_API.exceptions import (
     UnsupportedLevelError,
-    MonitorDataRequestError
+    MonitorDataRequestError,
+    MonitorTimeOutError
     )
 
 async def _inject_after_send(
@@ -106,3 +107,40 @@ async def test_realtime_data_request_invalid_wrong_level() -> None:
         ):
         await MD._realtime_data_request(19, WRONG_LEVEL)
 
+
+@pytest.mark.asyncio
+async def test_realtime_data_request_timeout() -> None:
+    conn = ConnectCQG(
+        "host_name", "user_name", "password",
+        immediate_connect=False, client=object()
+        )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+    conn._timeout = 0.01
+
+    conn.start()
+    MD = MonitorDataCQG(conn)
+
+    with pytest.raises(MonitorTimeOutError):
+        await MD._realtime_data_request(19, MktDataSubLevel.LEVEL_TRADES)
+
+    await conn.stop()
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_mkt_data_timeout() -> None:
+    conn = ConnectCQG(
+        "host_name", "user_name", "password",
+        immediate_connect=False, client=object()
+        )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+    conn._timeout = 0.01
+
+    conn.start()
+    MD = MonitorDataCQG(conn)
+
+    with pytest.raises(MonitorTimeOutError):
+        await MD._unsubscribe_mkt_data(19)
+
+    await conn.stop()

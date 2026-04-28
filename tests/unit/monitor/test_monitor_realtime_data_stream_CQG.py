@@ -7,12 +7,19 @@ from EC_API.connect.enums import ConnectionState
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.realtime_data import MonitorDataCQG
-from EC_API._typing import ParsedRTMDCQG
+from EC_API._typing import (
+    ParsedRTMDCQG,
+    QuotesValueTypeCQG,
+    MarketValueTypeCQG,
+    Q_CONTRACT_ID, MV_CONTRACT_ID
+    )
+
 from tests.unit.fixtures.proxy_clients import (
     FakeTransport, 
     FakeCQGClient
     )
 from tests.unit.fixtures.server_msg_builders_CQG import (
+    build_logged_off_server_msg,
     build_symbol_resolution_report_server_msg,
     build_market_data_subscription_statuses_server_msg,
     build_real_time_market_data_server_msg
@@ -33,9 +40,16 @@ class FakeDataServer:
         msg_name = client_msg_type(msg)[0] 
         # we assume client dispatch message one at a time
         match msg_name:
+            # ---- Session ----
+            case "logon":
+                ...
+            case "logoff":
+                await self._logoff_response(msg)
+            # ---- Metadata ----
             case "information_requests": # In this context
                 await self._sym_res_response(msg)
                  
+            # ---- Realtime Data ----
             case "market_data_subscriptions":
                 await self._mkt_data_status_response(msg)
                 count = 0
@@ -45,7 +59,21 @@ class FakeDataServer:
                     count+=1
             case _:
                 pass
+            
+    # ---- Sessions ----
+    async def _logon_response(self, msg: ClientMsg) -> None:
+        ...
         
+    async def _restore_response(self, msg: ClientMsg) -> None:
+        ...
+
+    async def _logoff_response(self, msg: ClientMsg) -> None:
+        client_msg = build_logged_off_server_msg(
+            ServerMsg()
+            )
+        await self.transport.in_q.put(client_msg)
+        
+    # ---- Metadata ----
     async def _sym_res_response(self, msg: ClientMsg) -> None:
         sym = msg.information_requests[0].symbol_resolution_request.symbol
         
@@ -59,6 +87,7 @@ class FakeDataServer:
         await self.transport.in_q.put(sym_rp)
         #print('outq', outq)
         
+    # ---- Realtime Market ----
     async def _mkt_data_status_response(self, client_msg: ClientMsg):
         for mkt_sub in client_msg.market_data_subscriptions:
             mkt_status = build_market_data_subscription_statuses_server_msg(
@@ -83,8 +112,8 @@ class FakeDataServer:
                 contract_id = mkt_sub.contract_id
                 )
             await self.transport.in_q.put(server_msg)
-
-        
+    # ---- Trade Session ----
+    # ---- run method ----
     async def run(self):
         # while loop, scan the transport
         while not self._server_stop_evt.is_set():
@@ -95,7 +124,6 @@ class FakeDataServer:
             if client_msg.market_data_subscriptions:
                 if client_msg.market_data_subscriptions[0].level == MktDSub.Level.LEVEL_NONE:
                     break
-            
         
 
 async def fake_consumer(
@@ -113,7 +141,94 @@ async def fake_consumer(
         if count == stop_num_trigger:
             MD.conn._stop_evt.set()
     return res
-    
+
+@pytest.mark.asyncio
+async def test_monitor_data_stream_CQG_valid() -> None:
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        immediate_connect= False, 
+        client = FakeCQGClient()
+        )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+    conn._timeout = 0.1
+    async with conn:        
+        MD = MonitorDataCQG(conn)
+        loop = asyncio.get_running_loop()
+
+        # Setup Logon state
+        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
+        result,  _ = await asyncio.gather(
+            fake_consumer(MD, MktDataSubLevel.LEVEL_TRADES_BBA, 'FakeSymbol_0'),
+            FakeDataServer(conn, loop).run()
+            )  
+        print(result[0], len(result))
+
+        assert isinstance(result, list)
+        assert len(result) == 10
+        
+        assert isinstance(result[0], tuple)
+        assert len(result[0]) == 4
+        
+        for i in range(len(result)):
+            assert isinstance(result[i][0][0], QuotesValueTypeCQG)
+            assert isinstance(result[i][0][1], MarketValueTypeCQG)
+
+            assert result[i][0][0][Q_CONTRACT_ID] == 0
+            assert result[i][0][1][MV_CONTRACT_ID] == 0
+        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
+        
+@pytest.mark.asyncio
+async def test_stops_on_event() -> None:...
+
+@pytest.mark.asyncio
+async def test_monitor_data_stream_no_logon_invalid() -> None:
+    conn = ConnectCQG(
+        "host_name", "user_name", "password", 
+        immediate_connect = False, 
+        client = FakeCQGClient()
+        )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+    conn._timeout = 0.01
+        
+    async with conn:
+        MD = MonitorDataCQG(conn)
+        # conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON) <--no logon
+        
+        result = [tick async for tick in MD.stream(
+                        "FakeSymbol_0", level=MktDataSubLevel.LEVEL_TRADES_BBA)]
+        assert result == []
+        #async for res in MD.stream("FakeSymbol_0", level=MktDataSubLevel.LEVEL_TRADES_BBA):
+        #    print(res)
+        #    assert res is None
+        #    assert 1 == 0
+        
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_ccc_valid():
+    conn = ConnectCQG(
+        "host_name", "user_name", "password", 
+        immediate_connect = False, 
+        client = FakeCQGClient()
+        )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+    conn._timeout = 0.01
+        
+    async with conn:
+        MD = MonitorDataCQG(conn)
+        loop = asyncio.get_running_loop()
+
+        # Setup Logon state
+        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
+        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
+
+# test for error in realtime_requests..
+# test for error in unsubscribe requests...
+
+
 # =============================================================================
 # async def fake_producer_symres(        
 #         loop: asyncio.BaseEventLoop,       
@@ -225,54 +340,56 @@ async def fake_consumer(
 #         await fake_transport.in_q.put(unsub_msg)
 # 
 # =============================================================================
-@pytest.mark.asyncio
-async def test_monitor_data_CQG_yield_one_item_valid() -> None:
-    conn = ConnectCQG(
-        "host_name", 
-        "user_name", 
-        "password", 
-        immediate_connect= False, 
-        client = FakeCQGClient()
-        )
-    fake_transport = FakeTransport()
-    conn._transport = fake_transport
-    conn._timeout = 0.1
-    async with conn:        
-        MD = MonitorDataCQG(conn)
-        loop = asyncio.get_running_loop()
-
-        # Setup Logon state
-        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
-        result = await asyncio.gather(
-            fake_consumer(MD, MktDataSubLevel.LEVEL_TRADES_BBA, 'FakeSymbol_0'),
-            FakeDataServer(conn, loop).run()
-            )  
-        print(result)
-        #assert 1 ==0 
-        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
-
-        
-@pytest.mark.asyncio
-async def test_stops_on_event() -> None:...
-
-@pytest.mark.asyncio
-async def test_monitor_data_CQG_stream_valid():
-    conn = ConnectCQG(
-        "host_name", "user_name", "password", 
-        immediate_connect = False, 
-        client = FakeCQGClient()
-        )
-    fake_transport = FakeTransport()
-    conn._transport = fake_transport
-    conn._timeout = 0.01
-        
-    async with conn:
-        MD = MonitorDataCQG(conn)
-        loop = asyncio.get_running_loop()
-
-        # Setup Logon state
-        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
-        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
+# =============================================================================
+# @pytest.mark.asyncio
+# async def test_monitor_data_CQG_yield_one_item_valid() -> None:
+#     conn = ConnectCQG(
+#         "host_name", 
+#         "user_name", 
+#         "password", 
+#         immediate_connect= False, 
+#         client = FakeCQGClient()
+#         )
+#     fake_transport = FakeTransport()
+#     conn._transport = fake_transport
+#     conn._timeout = 0.1
+#     async with conn:        
+#         MD = MonitorDataCQG(conn)
+#         loop = asyncio.get_running_loop()
+# 
+#         # Setup Logon state
+#         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
+#         result = await asyncio.gather(
+#             fake_consumer(MD, MktDataSubLevel.LEVEL_TRADES_BBA, 'FakeSymbol_0'),
+#             FakeDataServer(conn, loop).run()
+#             )  
+#         print(result)
+#         #assert 1 ==0 
+#         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
+# 
+#         
+# @pytest.mark.asyncio
+# async def test_stops_on_event() -> None:...
+# 
+# @pytest.mark.asyncio
+# async def test_monitor_data_CQG_stream_valid():
+#     conn = ConnectCQG(
+#         "host_name", "user_name", "password", 
+#         immediate_connect = False, 
+#         client = FakeCQGClient()
+#         )
+#     fake_transport = FakeTransport()
+#     conn._transport = fake_transport
+#     conn._timeout = 0.01
+#         
+#     async with conn:
+#         MD = MonitorDataCQG(conn)
+#         loop = asyncio.get_running_loop()
+# 
+#         # Setup Logon state
+#         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
+#         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
+# =============================================================================
 
 # =============================================================================
 # @pytest.mark.asyncio
@@ -313,6 +430,3 @@ async def test_monitor_data_CQG_stream_valid():
 #             
 # =============================================================================
     
-# test for no logon
-# test for error in realtime_requests..
-# test for error in unsubscribe requests...

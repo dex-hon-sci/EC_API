@@ -167,11 +167,11 @@ class ConnectCQG(Connect):
                 )
             try:
                 stop_is_success = await self.stop()
-            except (Exception, AssertionError):
-                logger.warning("")
+            except Exception:
+                logger.warning("Unable to go through with standard stop() procedure to exit.")
                 return False
             else:
-                return stop_is_success
+                return False #stop_is_success
         
         return False
         
@@ -319,7 +319,7 @@ class ConnectCQG(Connect):
         while not self._stop_evt.is_set():
             try:
                 msg: ServerMsg = await self._transport.recv()
-                print("[router_loop] msg", msg)
+                #print("[router_loop] msg", msg)
                     
                 if not msg or not isinstance(msg, ServerMsg):
                     logger.warning("Invalid Message Type, msg: %s", msg)
