@@ -131,12 +131,12 @@ class ConnectCQG(Connect):
             )
         
         # Routers. Use queues inside for message storage
-        self._msg_router = MessageRouter()
         self._mkt_data_stream_router = StreamRouter()
         self._exec_stream_router = StreamRouter()
+        self._msg_router = MessageRouter()
         
-        # queues for containing different server messages
-        self._misc_queue: asyncio.Queue = asyncio.Queue() # For information report?
+        # queues for dead-letter server messages
+        self._misc_queue: asyncio.Queue = asyncio.Queue() # For 
         
         if immediate_connect:
             self.start()
@@ -325,7 +325,7 @@ class ConnectCQG(Connect):
                     logger.warning("Invalid Message Type, msg: %s", msg)
                     continue
                 
-                # 0) check if it is a composite message
+                # (0) check if it is a composite message
                 top_unique_fields = server_msg_type(msg)
                 
                 if len(top_unique_fields) > 1:
@@ -367,8 +367,14 @@ class ConnectCQG(Connect):
                                 key_type, msg_type, msg_id_type, msg_id = key
                                 # 3) RPC routing (futures), 
                                 if key_type in {"rpc_reqid", "session", "sub", "info"}:
-                                    self._msg_router.on_message(key, msg)
-                                    #await self._misc_queue.put(msg)
+                                    ticket_exist = self._msg_router.on_message(key, msg)
+                                    
+                                    if not ticket_exist:
+                                        # Dead letter
+                                        await self._misc_queue.put(msg)
+                                    
+                    # --- (4) Dead Letter Collections ---
+                    # For server-side (logoff)
                          
             except asyncio.CancelledError as e:
                 logger.error("")
@@ -490,7 +496,11 @@ class ConnectCQG(Connect):
                 self._state_mgr.transition_to(next_state)
             return int_msg
 
-    async def ping(self, token: str | None = None) -> PongType | None:
+    async def ping(
+            self, 
+            token: str | None = None
+        ) -> PongType | None:
+        
         if not token:
             token = str(self.rid())
         utc_time = int(datetime.now(tz=timezone.utc).timestamp())
@@ -508,7 +518,8 @@ class ConnectCQG(Connect):
             return parse_pong(server_msg)
         
     async def resolve_symbol(
-        self, symbol: str,
+            self, 
+            symbol: str,
         ) -> ContractMetaDataType | None:
         # symbol Resolution
         with msg_io_error_handler(
@@ -530,4 +541,20 @@ class ConnectCQG(Connect):
             
             # walk through the second layer of the message, Find all info report,        
             # parse a list of info
+            return parse_server_msg(server_msg, connect_parsers)
+        
+    async def deresolve_symbol(
+        self,
+        symbol: str
+        ) -> None:
+        with msg_io_error_handler(
+                SymbolResolutionError, 
+                timeout_error = ConnectTimeOutError
+            ):
+            rid = self.rid()
+            msg = build_resolve_symbol_msg(symbol, rid, subscribe = False)
+            msg_key = ("info", "information_reports:symbol_resolution_report", "id", rid)
+            fut = self._msg_router.register_key(msg_key)
+            await self._transport.send(msg)
+            server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
             return parse_server_msg(server_msg, connect_parsers)
