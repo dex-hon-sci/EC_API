@@ -1,8 +1,5 @@
 import pytest
 import asyncio
-import random
-from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg, ClientMsg
-from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as MktDSub
 from EC_API.connect.enums import ConnectionState
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.monitor.enums import MktDataSubLevel
@@ -13,118 +10,14 @@ from EC_API._typing import (
     MarketValueTypeCQG,
     Q_CONTRACT_ID, MV_CONTRACT_ID
     )
-
 from tests.unit.fixtures.proxy_clients import (
     FakeTransport, 
     FakeCQGClient
     )
-from tests.unit.fixtures.server_msg_builders_CQG import (
-    build_logged_off_server_msg,
-    build_symbol_resolution_report_server_msg,
-    build_market_data_subscription_statuses_server_msg,
-    build_real_time_market_data_server_msg
+from tests.unit.fixtures.dummy_server_CQG import (
+    FakeDataServerCQG
     )
 
-def client_msg_type(client_msg: ClientMsg) -> list[str]:
-    return [fd.name for fd, val in client_msg.ListFields()]
-
-class FakeDataServer:
-    def __init__(self, conn: ConnectCQG, loop):
-        self.conn = conn
-        self.transport = self.conn._transport
-        self.loop = loop
-        
-        self._server_stop_evt = asyncio.Event()
-        
-    async def response_logic(self, msg: ClientMsg):
-        msg_name = client_msg_type(msg)[0] 
-        # we assume client dispatch message one at a time
-        match msg_name:
-            # ---- Session ----
-            case "logon":
-                ...
-            case "logoff":
-                await self._logoff_response(msg)
-            # ---- Metadata ----
-            case "information_requests": # In this context
-                await self._sym_res_response(msg)
-                 
-            # ---- Realtime Data ----
-            case "market_data_subscriptions":
-                await self._mkt_data_status_response(msg)
-                count = 0
-                #while not self.conn._stop_evt():
-                while count < 100:
-                    await self._mkt_data_stream_responses(msg)
-                    count+=1
-            case _:
-                pass
-            
-    # ---- Sessions ----
-    async def _logon_response(self, msg: ClientMsg) -> None:
-        ...
-        
-    async def _restore_response(self, msg: ClientMsg) -> None:
-        ...
-
-    async def _logoff_response(self, msg: ClientMsg) -> None:
-        client_msg = build_logged_off_server_msg(
-            ServerMsg()
-            )
-        await self.transport.in_q.put(client_msg)
-        
-    # ---- Metadata ----
-    async def _sym_res_response(self, msg: ClientMsg) -> None:
-        sym = msg.information_requests[0].symbol_resolution_request.symbol
-        
-        sym_rp = build_symbol_resolution_report_server_msg(
-            ServerMsg(), 
-            report_id = msg.information_requests[0].id,
-            cotract_id = int(sym.split("_")[-1]),
-            contract_symbol = sym,
-            )
-        #outq = await self.loop.run_in_executor(None, self.transport.out_q.get)
-        await self.transport.in_q.put(sym_rp)
-        #print('outq', outq)
-        
-    # ---- Realtime Market ----
-    async def _mkt_data_status_response(self, client_msg: ClientMsg):
-        for mkt_sub in client_msg.market_data_subscriptions:
-            mkt_status = build_market_data_subscription_statuses_server_msg(
-                ServerMsg(),
-                contract_id= mkt_sub.contract_id,
-                level = mkt_sub.level
-                )
-            print("[producer] mkt_status", mkt_status)
-            from EC_API.protocol.cqg.router_util import extract_router_keys
-            print("[producer] key extraction", extract_router_keys(mkt_status))
-            
-            #outq = await self.loop.run_in_executor(None, self.transport.out_q.get)
-            #print('[producer] outq', outq)
-    
-            await self.transport.in_q.put(mkt_status)
-        
-    async def _mkt_data_stream_responses(self, client_msg: ClientMsg):
-        
-        for mkt_sub in client_msg.market_data_subscriptions:
-            server_msg = build_real_time_market_data_server_msg(
-                ServerMsg(),
-                contract_id = mkt_sub.contract_id
-                )
-            await self.transport.in_q.put(server_msg)
-    # ---- Trade Session ----
-    # ---- run method ----
-    async def run(self):
-        # while loop, scan the transport
-        while not self._server_stop_evt.is_set():
-            client_msg = await self.loop.run_in_executor(None, self.transport.out_q.get)
-            #client_msg = self.transport.out_q.get()
-            await self.response_logic(client_msg)
-            
-            if client_msg.market_data_subscriptions:
-                if client_msg.market_data_subscriptions[0].level == MktDSub.Level.LEVEL_NONE:
-                    break
-        
 
 async def fake_consumer(
         MD: MonitorDataCQG,
@@ -144,6 +37,12 @@ async def fake_consumer(
 
 @pytest.mark.asyncio
 async def test_monitor_data_stream_CQG_valid() -> None:
+    success_decision = {
+        'logoff': True,
+        'information_requests': True,
+        'market_data_subscriptions': True
+        }
+    
     conn = ConnectCQG(
         "host_name", 
         "user_name", 
@@ -162,9 +61,9 @@ async def test_monitor_data_stream_CQG_valid() -> None:
         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
         result,  _ = await asyncio.gather(
             fake_consumer(MD, MktDataSubLevel.LEVEL_TRADES_BBA, 'FakeSymbol_0'),
-            FakeDataServer(conn, loop).run()
+            FakeDataServerCQG(conn, loop, success_decision).run()
             )  
-        print(result[0], len(result))
+        #print(result[0], len(result))
 
         assert isinstance(result, list)
         assert len(result) == 10
@@ -180,8 +79,6 @@ async def test_monitor_data_stream_CQG_valid() -> None:
             assert result[i][0][1][MV_CONTRACT_ID] == 0
         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
         
-@pytest.mark.asyncio
-async def test_stops_on_event() -> None:...
 
 @pytest.mark.asyncio
 async def test_monitor_data_stream_no_logon_invalid() -> None:
@@ -197,17 +94,44 @@ async def test_monitor_data_stream_no_logon_invalid() -> None:
     async with conn:
         MD = MonitorDataCQG(conn)
         # conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON) <--no logon
-        
         result = [tick async for tick in MD.stream(
                         "FakeSymbol_0", level=MktDataSubLevel.LEVEL_TRADES_BBA)]
         assert result == []
-        #async for res in MD.stream("FakeSymbol_0", level=MktDataSubLevel.LEVEL_TRADES_BBA):
-        #    print(res)
-        #    assert res is None
-        #    assert 1 == 0
+
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_bad_res_report_invalid() -> None:
+    success_decision = {
+        'logoff': True,
+        'information_requests': True, #<--False
+        'market_data_subscriptions': True #<--False
+        }
+    
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        immediate_connect= False, 
+        client = FakeCQGClient()
+        )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+    conn._timeout = 0.1
+    async with conn:        
+        MD = MonitorDataCQG(conn)
+        loop = asyncio.get_running_loop()
+
+        # Setup Logon state
+        conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
+        result,  _ = await asyncio.gather(
+            fake_consumer(MD, MktDataSubLevel.LEVEL_TRADES_BBA, 'FakeSymbol_0'),
+            FakeDataServerCQG(conn, loop, success_decision).run()
+            )  
         
 @pytest.mark.asyncio
-async def test_monitor_data_CQG_stream_ccc_valid():
+async def test_monitor_data_CQG_stream_res_report_no_response_invalid():...
+
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_failed_symbol_regsiter_invalid():
     conn = ConnectCQG(
         "host_name", "user_name", "password", 
         immediate_connect = False, 
@@ -225,9 +149,40 @@ async def test_monitor_data_CQG_stream_ccc_valid():
         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
         conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGOFF)
 
-# test for error in realtime_requests..
-# test for error in unsubscribe requests...
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_failed_mkt_subs_invalid() -> None:...
 
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_max_subscribers_exceeded_invalid() -> None:...
+
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_max_sym_exceeded_invalid() -> None:...
+
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_unsupported_level_invalid() -> None:...
+
+@pytest.mark.asyncio
+async def test_monitor_data_CQG_stream_stops_on_event() -> None:...
+
+# =============================================================================
+#   From the symbol resolution block (lines 111–119):
+#   - SymbolResolutionError — server sends a bad/failed resolution report →
+#   decisions={'sym_resolution': False}
+#   - ConnectTimeOutError — server never responds to symbol resolution (no in_q message)
+#   - FailRegisterError / SymbolNotInRegistryError — resolution succeeds but registry
+#   rejects it
+# 
+#   From the subscription block (lines 129–139):
+#   - MonitorDataRequestError — server sends a failed subscription status →
+#   decisions={'mkt_status': False}
+#   - MaxSymbolsExceededError / MaxSubscribersExceededError — status code indicates
+#   capacity breach
+#   - UnsupportedLevelError — already tested at the unit level but not through stream()
+# 
+#   From the streaming loop:
+#   - test_stops_on_event — already stubbed out (line 184), just needs the body
+# 
+# =============================================================================
 
 # =============================================================================
 # async def fake_producer_symres(        
