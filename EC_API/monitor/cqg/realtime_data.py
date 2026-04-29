@@ -80,9 +80,35 @@ class MonitorDataCQG(Monitor):
     def rid(self) -> int:
         return self.conn.rid()
         
-    # --- Dunder methods overrides
-    # Automatically unsubscirbe and destroy the queue copy of the symbol in stream
-    # --- function calls
+    # --- Dunder methods overrides ---
+# =============================================================================
+#   Finalise this later
+#     def __del__(self):
+#         if self._symbol_registry.active_symbols:
+#             warnings.warn(
+#                 "MonitorDataCQG destroyed without cleanup. Use 'async with'.",
+#                 ResourceWarning
+#             )
+#             try:
+#                 loop = asyncio.get_event_loop()
+#                 if loop.is_running() and not loop.is_closed():
+#                     asyncio.ensure_future(self._cleanup())
+#             except Exception:
+#                 pass
+# =============================================================================
+    
+    async def __aenter__(self):
+        # Note that this is prefered only because Data and Trade Channel are 
+        # separated for CQG. It means the Connect Object is never shared
+        # among services.
+        await self._conn.__aenter__()
+        return self
+    
+    async def __aexit__(self, *args) -> bool:
+        await self._cleanup()
+        await self._conn._aexit(*args)
+        
+    # --- function calls ---
     async def stream(
             self, 
             symbol_name: str, 
@@ -148,6 +174,10 @@ class MonitorDataCQG(Monitor):
                 yield parse_real_time_market_data(msg)
            
         # ---- Handle Shutdown ----
+        # Note that stream() does not automatically unsubscribe to the
+        # Symbol resolution, but instead, only unsubscrine to market_data_requests. 
+        # Please use the graceful shutdown mechanism provided in _cleanup() to
+        # handle symbol unsubriptions
         finally:
             try:
                 await self._unsubscribe_mkt_data(contract_id)
@@ -205,3 +235,21 @@ class MonitorDataCQG(Monitor):
             confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return parse_market_data_subscription_statuses(confirm_msg)
 
+    # --- internal tracking and cleanup ---
+    async def _tracker_loop():...
+    
+    async def _cleanup(self) -> None:
+        # Automatically unsubscirbe and destroy the queue copy of the 
+        # symbol in stream
+        active_symbols = self._symbol_registry.active_symbols
+        if not active_symbols:
+            return 
+        
+        for sym in active_symbols:
+            try:
+                metadatas = await self._conn.deresolve_symbol(sym)
+            except ConnectTimeOutError as e:
+                logger.warning(str(e))
+                return
+ 
+            
