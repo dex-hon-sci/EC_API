@@ -1,5 +1,8 @@
 # *EC_API*: A vendor-agnoistic Infrastructure and Execution Framework for Algo Trading 
+======================================================================================
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 
+|Python|
 ## **Overview**
 `EC_API` provides easy-to-use functions for algorithmic trading. 
 It is a wrapper package that utilises Websocket messaging to facilitate 
@@ -24,11 +27,16 @@ the production version of the codes in its entirety.
   
 ## **Project Description**
 `EC_API` is a trading API that handles message relays 
-between client and servers. The package provides the RPC-like 
-asynchronous function calls to communicate with service providers
-to facilitate trading and market-data streaming. In addiion, we 
+between client and servers. The package provides the RPC-like [^1]
+function calls to communicate with service providers to
+facilitate trading and market-data streaming. In addiion, we 
 provide vendor-agnoistic tools in the form of strategy template to 
 help users formalising and building their Algo trading strategy.
+
+[^1]: For instance, the package exposes CQG WebAPI interactions 
+as async function calls using an RPC-like request/response pattern 
+over WebSocket.
+
 
 `EC_API` consists of two layers:
 ![plot](./images/message_flow.jpg)
