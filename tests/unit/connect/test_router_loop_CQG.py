@@ -8,6 +8,7 @@ Created on Fri Feb 20 18:00:18 2026
 import asyncio
 import pytest
 import time
+import logging
 from typing import Callable
 from EC_API._typing import RouterKey
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
@@ -548,7 +549,7 @@ async def test_router_loop_composite_msg() -> None:
         pytest.fail("Asyncio Time out")
     
 @pytest.mark.asyncio
-async def test_router_loop_empty_msg():
+async def test_router_loop_empty_msg(caplog):
     num = 10
     
     conn = ConnectCQG(
@@ -563,6 +564,36 @@ async def test_router_loop_empty_msg():
     conn._transport = fake_transport
     
     msg_stream = [ServerMsg() for _ in range(num)]
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+        
+    with caplog.at_level(logging.WARNING, logger="EC_API.connect.cqg.base"):
+        conn.start()
+        await asyncio.sleep(0.05)
+    
+    assert any("Empty ServerMsg" in r.message for r in caplog.records)
+    await conn.stop()
+
+@pytest.mark.asyncio
+async def test_router_loop_invalid_msg_logs_warning_empty_msg(caplog):
+
+    conn = ConnectCQG(
+        host_name="", user_name="", password="",
+        immediate_connect=False, client=object()
+    )
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+
+    # push a non-ServerMsg object
+    await fake_transport.in_q.put("not_a_server_msg")
+
+    with caplog.at_level(logging.WARNING, logger="EC_API.connect.cqg.base"):
+        conn.start()
+        await asyncio.sleep(0.05)
+
+    assert any("Invalid Message Type" in r.message for r in caplog.records)
+    await conn.stop()
+    
     
 
 @pytest.mark.asyncio

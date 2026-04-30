@@ -28,8 +28,6 @@ from EC_API.protocol.cqg.router_util import (
     is_account_summary_statuses_stream,
     is_ping, is_pong,
     #is_trade_history,
-    #realtime_tick_contract_id, 
-    #order_statuses_order_id,
     split_server_msg
     )
 from EC_API.protocol.cqg.parser_util import parse_server_msg
@@ -342,6 +340,7 @@ class ConnectCQG(Connect):
                 if len(top_unique_fields) > 1:
                     msgs = split_server_msg(msg, top_unique_fields)
                 elif len(top_unique_fields) == 0:
+                    logger.warning("Empty ServerMsg: %s", msg)
                     continue
                 else:
                     msgs = [msg]
@@ -543,6 +542,7 @@ class ConnectCQG(Connect):
         if not token:
             token = str(self.rid())
         utc_time = int(datetime.now(tz=timezone.utc).timestamp()*1000)
+        print(token, utc_time)
         
         with msg_io_error_handler(
                 ConnectRequestError, 
