@@ -41,6 +41,12 @@ PING_REQUEST_REQUIRED_FIELDS = {
     'ping_utc_time': ('ping_utc_time', int, int)
     }
 
+PONG_REQUEST_REQUIRED_FIELDS = {
+    'token': ('token', str, str),
+    'ping_utc_time': ('ping_utc_time', int, int),
+    'pong_utc_time': ('pong_utc_time', int, int)
+    }
+
 RESOLVE_SYM_REQUEST_REQUIRED_FIELDS = {
     'symbol_name': ('symbol_name', str, str), 
     'request_id': ('request_id', int, int), 

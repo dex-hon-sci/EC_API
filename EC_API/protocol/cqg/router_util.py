@@ -60,27 +60,6 @@ def extract_router_keys(
 
     return res
 
-# --- Parsers
-# =============================================================================
-# def parse_server_msg(
-#         server_msg: ServerMsg
-#     ) -> list[Any]:
-#     # Dispatch to message specific parsers
-#     msg_types = server_msg_type(server_msg)
-#     res: list[Optional[RouterKey]] = []
-#     for msg_type in msg_types:
-#         parser = master_parsers.get(msg_type)
-#         if parser is None:
-#             continue
-#         try:
-#             res.extend(parser(server_msg))
-#         except Exception as e:
-#             raise MsgParserError("Failed to parse server message.") from e
-#             #logger.info('')
-#             #continue
-#     return res
-# 
-# =============================================================================
 # --- Message treatment utility
 def split_server_msg(msg: ServerMsg, targets: list[str]):
     # Split message on the 
@@ -98,13 +77,24 @@ def split_server_msg(msg: ServerMsg, targets: list[str]):
     return res
 
 # --- Bool checks ----
+def is_ping(field_name: str) -> bool:
+    return True if field_name in {"ping"} else False
+
+def is_pong(field_name: str) -> bool:
+    return True if field_name in {"pong"} else False
+
 def is_realtime_tick(field_name: str) -> bool:
-    #for fd_name in server_msg_type(msg):
-    #return True if fd_name in {"real_time_market_data"} else False
     return True if field_name in {"real_time_market_data"} else False
 
 def is_order_update_stream(field_name: str) -> bool:
     return True if field_name in {"order_statuses"} else False
+
+def is_position_statuses_stream(field_name: str) -> bool:
+    return True if field_name in {"position_statuses"} else False
+
+def is_account_summary_statuses_stream(field_name: str) -> bool:
+    return True if field_name in {"account_summary_statuses"} else False
+
 
 def is_trade_history(field_name: str) -> bool:
     return True if field_name in {"InformationReport:historical_orders_report"} else False

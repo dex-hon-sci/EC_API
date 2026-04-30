@@ -11,6 +11,7 @@ import time
 from typing import Callable
 from EC_API._typing import RouterKey
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
+from EC_API.ext.WebAPI.user_session_2_pb2 import Ping, Pong
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.transport.routers import StreamRouter, MessageRouter
 from EC_API.protocol.cqg.router_util import (
@@ -21,6 +22,7 @@ from EC_API.protocol.cqg.router_util import (
     )
 from tests.unit.fixtures.proxy_clients import FakeTransport
 from tests.unit.fixtures.server_msg_builders_CQG import (
+    build_ping_server_msg,
     build_pong_server_msg,
     build_trade_subscription_statuses_server_msg,
     build_trade_snapshot_completions_server_msg,
@@ -90,6 +92,8 @@ async def test_starvation_check() -> None:
         immediate_connect=False,
         client=object()
         )
+    conn._timeout = 0.1
+
     fake_transport = FakeTransport()
     conn._transport = fake_transport
 
@@ -131,7 +135,7 @@ async def test_starvation_check() -> None:
                 if drained % 100 == 0:
                     print(f"drained {drained} at {time.perf_counter():.4f}")
     
-    await asyncio.wait_for(counting_drain(), timeout=5.0)
+    await asyncio.wait_for(counting_drain(), timeout=0.2)
     
 @pytest.mark.asyncio
 async def test_router_loop_realtime_mkt_stream_valid() -> None:
@@ -145,6 +149,8 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
         immediate_connect=False,
         client=object()
         )
+    conn._timeout = 0.1
+
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
 
@@ -177,7 +183,7 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
         await asyncio.wait_for(_drain_all_stream_data(
             queues, rtmd_stream, lambda rtmd: rtmd.contract_id
             ), 
-            timeout = 1)
+            timeout = 0.1)
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")
 
@@ -199,6 +205,8 @@ async def test_router_loop_orderstatus_updates_stream_valid() -> None:
         immediate_connect=False,
         client=object()
         )
+    conn._timeout = 0.1
+
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
     
@@ -227,7 +235,7 @@ async def test_router_loop_orderstatus_updates_stream_valid() -> None:
     try:
         await asyncio.wait_for(_drain_all_stream_data(
             queues, msg_stream, order_statuses_order_id
-            ), timeout=1)
+            ), timeout=0.2)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")
@@ -245,6 +253,8 @@ async def test_router_loop_session_msg_routing_valid():
         immediate_connect=False,
         client=object()
         )
+    conn._timeout = 0.1
+
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
     
@@ -297,6 +307,7 @@ async def test_router_loop_rpc_msg_routing_valid() -> None:
         immediate_connect=False,
         client=object()
         )
+    conn._timeout = 0.1
     
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
@@ -338,6 +349,40 @@ async def test_router_loop_rpc_msg_routing_valid() -> None:
         assert key not in conn._msg_router.pending
         
     await conn.stop()
+    
+@pytest.mark.asyncio
+async def test_router_loop_ping_msg_routing_valid():
+    conn = ConnectCQG(
+        host_name = "",
+        user_name = "", 
+        password = "",
+        immediate_connect=False,
+        client=object()
+        )
+    conn._timeout = 0.1
+    
+    fake_transport = FakeTransport()    
+    conn._transport = fake_transport
+    
+    msg_stream = [
+        build_ping_server_msg(ServerMsg(), token = str(i))  for i in range(10)
+        ]
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+        
+    # Start the test
+    conn.start()
+    await asyncio.sleep(0.6)
+    
+    assert fake_transport.out_q.qsize() == len(msg_stream)
+    for in_msg in msg_stream:
+        out_msg = fake_transport.out_q.get()
+        assert in_msg.ping is not None        
+        assert out_msg.pong is not None
+        assert in_msg.ping.token == out_msg.pong.token
+        assert out_msg.pong.pong_utc_time >out_msg.pong.ping_utc_time
+        
+    await conn.stop()
 
 @pytest.mark.asyncio
 async def test_router_loop_info_msg_routing_valid():
@@ -348,6 +393,7 @@ async def test_router_loop_info_msg_routing_valid():
         immediate_connect=False,
         client=object()
         )
+    conn._timeout = 0.1
     
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
@@ -392,6 +438,8 @@ async def test_router_loop_composite_msg() -> None:
         immediate_connect=False,
         client=object()
         )
+    
+    conn._timeout = 0.1
 
     fake_transport = FakeTransport()    
     conn._transport = fake_transport
@@ -410,13 +458,6 @@ async def test_router_loop_composite_msg() -> None:
     msg_stream_comp_mkt_data_stream = [
         split_server_msg(msg, mkt_targets)[1]
         for i, msg in enumerate(msg_stream_comp_mkt_data)]
-    
-    #msg_stream_comp_mkt_data_stream = []
-    #for i, msg in enumerate(msg_stream_comp_mkt_data):
-    #    S = split_server_msg(msg, mkt_targets)
-    #    msg_stream_comp_mkt_data_stream.append(S[0])
-    #    msg_stream_comp_mkt_data_stream.append(S[1])
-        
     
     msg_stream_comp_ord_statuses_rpc = []
     for i, msg in enumerate(msg_stream_comp_ord_statuses):
@@ -489,7 +530,7 @@ async def test_router_loop_composite_msg() -> None:
     try:
         await asyncio.wait_for(_drain_all_stream_data(
             queues, msg_stream_comp_ord_statuses_stream, order_statuses_order_id
-            ), timeout=1)
+            ), timeout=0.2)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")
@@ -500,7 +541,7 @@ async def test_router_loop_composite_msg() -> None:
         rtmd_stream = [rtmd for msg in msg_stream_comp_mkt_data_stream for rtmd in msg.real_time_market_data]
         await asyncio.wait_for(_drain_all_stream_data(
             queues_mkt, rtmd_stream, lambda rtmd: rtmd.contract_id
-            ), timeout=1)
+            ), timeout=0.2)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")

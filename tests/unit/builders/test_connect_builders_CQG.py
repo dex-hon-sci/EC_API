@@ -12,11 +12,12 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import (
 from EC_API.ext.WebAPI.user_session_2_pb2 import ( 
     Logon, Logoff, 
     RestoreOrJoinSession,
-    Ping
+    Ping, Pong
     )
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
     build_restore_msg, build_ping_msg,
+    build_pong_msg,
     build_resolve_symbol_msg
     )
 from EC_API.exceptions import MsgBuilderError
@@ -73,6 +74,15 @@ def test_build_ping_msg_valid() -> None:
     assert type(msg.ping) == Ping
     assert msg.ping.token == 'Hello'
     assert msg.ping.ping_utc_time == 10
+    
+def test_build_pong_msg_valid() -> None:
+    msg = build_pong_msg('Hello', ping_utc_time=10, pong_utc_time=11)
+    
+    assert type(msg.pong) == Pong
+    assert msg.pong.token == 'Hello'
+    assert msg.pong.ping_utc_time == 10
+    assert msg.pong.pong_utc_time == 11
+
 
 def test_build_resolve_symbol_msg_valid() -> None:
     msg = build_resolve_symbol_msg(symbol_name="CLEV25",
@@ -183,6 +193,26 @@ def test_build_ping_msg_ping_utc_time_wrong_type_float() -> None:
     with pytest.raises(MsgBuilderError):
         build_ping_msg(token='hello', ping_utc_time=10.0)
 
+# --- build_pong_msg ---
+def test_build_pong_msg_token_wrong_type() -> None:
+    with pytest.raises(MsgBuilderError):
+        build_pong_msg(token=999, ping_utc_time=10, pong_utc_time = 11)
+
+def test_build_pong_msg_ping_utc_time_wrong_type_str() -> None:
+    with pytest.raises(MsgBuilderError):
+        build_pong_msg(token='hello', ping_utc_time='10', pong_utc_time = 11)
+
+def test_build_pong_msg_ping_utc_time_wrong_type_float() -> None:
+    with pytest.raises(MsgBuilderError):
+        build_pong_msg(token='hello', ping_utc_time=10.0, pong_utc_time = 11)
+
+def test_build_pong_msg_pong_utc_time_wrong_type_str() -> None:
+    with pytest.raises(MsgBuilderError):
+        build_pong_msg(token='hello', ping_utc_time=10, pong_utc_time = "11")
+
+def test_build_pong_msg_pong_utc_time_wrong_type_float() -> None:
+    with pytest.raises(MsgBuilderError):
+        build_pong_msg(token='hello', ping_utc_time=10, pong_utc_time = 11.0)
 
 # --- build_resolve_symbol_msg ---
 

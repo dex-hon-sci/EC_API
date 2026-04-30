@@ -47,6 +47,12 @@ def parse_logged_off(server_msg: ServerMsg) -> dict[str, Any]:
             }
     except Exception:
         raise MsgParserError("Failed to parse logged_off.")
+        
+def parse_ping(server_msg: ServerMsg) -> tuple[str, str, int]:
+    try:
+        return ('ping', server_msg.ping.token, server_msg.ping.ping_utc_time)
+    except Exception:
+        raise  MsgParserError("Failed to parse ping.")
 
 def parse_pong(server_msg: ServerMsg) -> tuple[str, str, int, int]:
     try:
@@ -61,7 +67,6 @@ def parse_pong(server_msg: ServerMsg) -> tuple[str, str, int, int]:
 # using the server_msg_type(): "information_reports", we have to route it through
 # yet another master parser function: parse_information_report()
 metadata_parsers: dict[str, Parser_func] = {}
-
 
 def register_info_report_parsers(msg_name: str):
     # decorator for registering extractors functions

@@ -73,6 +73,16 @@ def build_logged_off_server_msg(
     logged_off.logoff_reason = res
     return server_msg
 
+def build_ping_server_msg(
+        server_msg: ServerMsg,
+        token: str,
+        ping_time: int = int(datetime.now().timestamp()),
+        ) -> ServerMsg:
+    ping = server_msg.ping
+    ping.token = token
+    ping.ping_utc_time = ping_time
+    return server_msg
+
 def build_pong_server_msg(
         server_msg: ServerMsg,
         token: str,

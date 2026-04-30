@@ -18,6 +18,7 @@ SERVER_MSG_FAMILY = {
     "restore_or_join_session_result": "session",
     "concurrent_connection_join_results": "session",
     "logged_off": "session",
+    "ping": "session",
     "pong": "session",
     # (2) info report container
     "information_reports": "info",
@@ -48,6 +49,38 @@ SERVER_MSG_FAMILY = {
 
 
 # ---- Old code ----
+# key_value pairs for requests and expected reponse types
+MAP_RESPONSES_TYPES_STR = {
+    'logon': ["logon_result", "concurrent_connection_join_results"],
+    'restore_or_join_session': ["restore_or_join_session_result"],
+    'logoff': ["logged_off"],
+    'ping': ["pong"],
+    'information_requests': ["information_reports",
+                             "symbol_resolution_report",
+                             "session_information_report",
+                             "historical_orders_report",
+                             "option_maturity_list_report",
+                             "instrument_group_report",
+                             "at_the_money_strike_report"
+                             ],
+    'trade_subscriptions': ["trade_subscription_statuses",
+                            "trade_snapshot_completions",],
+    'order_requests': [
+        "order_statuses", 
+        "go_flat_statuses",
+        "order_request_rejects",
+        "order_request_acks",
+        "position_statuses",
+        "account_summary_statuses"
+        ],
+    'market_data_subscriptions': ["market_data_subscription_statuses",
+                                  "real_time_market_data"],
+    'time_and_sales_requests': ["time_and_sales_reports"],
+    'time_bar_requests': ["time_bar_reports"],
+    'volume_profile_requests': ["volume_profile_reports"],
+    'non_timed_bar_requests': ["non_timed_bar_reports"]
+    }
+
 LOGON_RESULT_STATUS_ENUMS_BOOL = {
     "Accept": [LOR.ResultCode.RESULT_CODE_SUCCESS] ,
     "Reject": [LOR.ResultCode.RESULT_CODE_FAILURE,
@@ -267,7 +300,7 @@ MAP_STATUS_ENUMS = {
     "logon_result": LOGON_RESULT_STATUS_ENUMS_BOOL,
     "logged_off": LOGGEDOFF_REASON_ENUMS_BOOL,
     "restore_or_join_session_result": RESTORE_STATUS_ENUMS_BOOL,
-    "information_reprort": INFORMATION_REPORT_STATUS_ENUMS_BOOL,
+    "information_report": INFORMATION_REPORT_STATUS_ENUMS_BOOL,
     "trade_subscription_statuses": TRADESUBSCRIPTIONS_STATUS_ENUMS_BOOL,
     "order_request_rejects": ORDER_REJECT_CODE_ENUMS_BOOL,
     "order_statuses": {"new_order": NEWORDER_ORDERSTATUS_ENUMS_BOOL,
@@ -282,37 +315,7 @@ MAP_STATUS_ENUMS = {
     "market_data_subscription_statuses": MARKETDATA_SUB_STATUS_ENUMS_BOOL,
     }
 
-# key_value pairs for requests and expected reponse types
-MAP_RESPONSES_TYPES_STR = {
-    'logon': ["logon_result", "concurrent_connection_join_results"],
-    'restore_or_join_session': ["restore_or_join_session_result"],
-    'logoff': ["logged_off"],
-    'ping': ["pong"],
-    'information_requests': ["information_reports",
-                             "symbol_resolution_report",
-                             "session_information_report",
-                             "historical_orders_report",
-                             "option_maturity_list_report",
-                             "instrument_group_report",
-                             "at_the_money_strike_report"
-                             ],
-    'trade_subscriptions': ["trade_subscription_statuses",
-                            "trade_snapshot_completions",],
-    'order_requests': [
-        "order_statuses", 
-        "go_flat_statuses",
-        "order_request_rejects",
-        "order_request_acks",
-        "position_statuses",
-        "account_summary_statuses"
-        ],
-    'market_data_subscriptions': ["market_data_subscription_statuses",
-                                  "real_time_market_data"],
-    'time_and_sales_requests': ["time_and_sales_reports"],
-    'time_bar_requests': ["time_bar_reports"],
-    'volume_profile_requests': ["volume_profile_reports"],
-    'non_timed_bar_requests': ["non_timed_bar_reports"]
-    }
+
 
 
 REQUEST_TO_REPLY = {

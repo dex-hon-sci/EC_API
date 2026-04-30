@@ -4,15 +4,14 @@ from EC_API.connect.cqg.parsers import (
     parse_logon_result,
     parse_logged_off,
     parse_restore_or_join_session_result,
-    parse_pong,
-    parse_symbol_resolution_report
+    parse_ping, parse_pong
     )
 from tests.unit.fixtures.server_msg_builders_CQG import (
     build_logon_result_server_msg,
     build_logged_off_server_msg,
     build_restore_or_join_session_result_server_msg,
+    build_ping_server_msg,
     build_pong_server_msg,
-    build_symbol_resolution_report_server_msg
     )
 from EC_API.exceptions import MsgParserError
 
@@ -42,6 +41,15 @@ def test_parse_restore_or_join_session_result_valid() -> None:
     assert len(res) == 3
     for k, v in res.items():
         assert k in ("result_code", "base_time", "server_time")
+        
+def test_parse_ping_valid() -> None:
+    s = ServerMsg()
+    msg = build_ping_server_msg(s, 'token')
+    res = parse_ping(msg)
+    assert isinstance(res, tuple) 
+    assert len(res) == 3
+    assert res[0] == "ping"
+    assert res[1] == "token"
 
 def test_parse_pong_valid() -> None:
     s = ServerMsg()
@@ -63,6 +71,10 @@ def test_parse_logged_off_null()-> None:
 def test_parse_restore_or_join_session_result_null()-> None:
     with pytest.raises(MsgParserError):
         parse_restore_or_join_session_result(None)
+        
+def test_parse_ping_null()-> None:
+    with pytest.raises(MsgParserError):
+        parse_ping(None)
 
 def test_parse_pong_null()-> None:
     with pytest.raises(MsgParserError):

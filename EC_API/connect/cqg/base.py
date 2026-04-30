@@ -6,6 +6,7 @@ Created on Mon Aug 18 11:34:22 2025
 @author: dexter
 """
 import asyncio
+from collections import deque
 from typing import (
     Optional, Any, Callable, cast
     )
@@ -23,6 +24,9 @@ from EC_API.protocol.cqg.router_util import (
     server_msg_type,
     is_realtime_tick, 
     is_order_update_stream, 
+    is_position_statuses_stream,
+    is_account_summary_statuses_stream,
+    is_ping, is_pong,
     #is_trade_history,
     #realtime_tick_contract_id, 
     #order_statuses_order_id,
@@ -31,8 +35,10 @@ from EC_API.protocol.cqg.router_util import (
 from EC_API.protocol.cqg.parser_util import parse_server_msg
 from EC_API.connect.cqg.builders import (
     build_logon_msg, build_logoff_msg,
-    build_ping_msg, build_resolve_symbol_msg,
-    build_restore_msg
+    build_ping_msg, 
+    build_pong_msg,
+    build_resolve_symbol_msg,
+    build_restore_msg,
     )
 from EC_API.connect.enums import CONNECT_STATES_LIFECYCLE
 from EC_API.connect.cqg.enum_mapping import (
@@ -44,8 +50,9 @@ from EC_API.connect.cqg.parsers import (
     parse_logon_result,
     parse_restore_or_join_session_result,
     parse_logged_off,
+    parse_ping,
     parse_pong,
-    parse_symbol_resolution_report, connect_parsers
+    connect_parsers
     )
 from EC_API.utility.state_mgr import StateMgr
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
@@ -56,8 +63,6 @@ from EC_API.exceptions import (
     ConnectRequestError,
     #ConnectCancelledError,
     ConnectTimeOutError,
-    #MsgBuilderError,
-    #MsgParserError,
     KeyExtractorError,
     SymbolResolutionError
     )
@@ -132,11 +137,19 @@ class ConnectCQG(Connect):
         
         # Routers. Use queues inside for message storage
         self._mkt_data_stream_router = StreamRouter()
+        
         self._exec_stream_router = StreamRouter()
+        self._pos_status_stream_router = StreamRouter()
+        self._acc_summary_stream_router = StreamRouter()
+        
         self._msg_router = MessageRouter()
         
         # queues for dead-letter server messages
-        self._misc_queue: asyncio.Queue = asyncio.Queue() # For 
+        self._misc_queue: asyncio.Queue = asyncio.Queue()
+        
+        # Latency/reaction attributes
+        self.ping_RTTs = deque(maxlen=20)
+        self.inactivity_timeout = 100
         
         if immediate_connect:
             self.start()
@@ -309,9 +322,7 @@ class ConnectCQG(Connect):
                     if not isinstance(e, asyncio.CancelledError):
                         logger.warning("Router task raised on shutdown: %s", e)
                 self._state_mgr.transition_to(ConnectionState.CLOSED)
-                
         return True
-    
     
     # ---- Router Loop ------        
     async def _router_loop(self) -> None:
@@ -337,7 +348,14 @@ class ConnectCQG(Connect):
     
                 for msg, top_unique_field in zip(msgs, top_unique_fields):
                     # Cheapest check first, 
-                    # --- (1) streaming dispatch ---
+                    # --- (1) Ping/Pong dispatch
+                    if is_ping(top_unique_field):
+                        utc_time = int(datetime.now(tz=timezone.utc).timestamp()*1000)
+                        await self.pong(msg.ping.token, msg.ping.ping_utc_time, utc_time) 
+                        logger.info(f"Responded to Server Ping at {utc_time}")
+                        continue
+                    
+                    # --- (2) streaming realtime Data dispatch ---
                     if is_realtime_tick(top_unique_field):
                         for rtmd in msg.real_time_market_data:
                             await self._mkt_data_stream_router.publish(
@@ -345,15 +363,29 @@ class ConnectCQG(Connect):
                                 )
                         continue
         
-                    # --- (2) order update dispatch ---
+                    # --- (3) order update-related dispatch ---
                     if is_order_update_stream(top_unique_field):
                         for ord_sts in msg.order_statuses:
                             await self._exec_stream_router.publish(
                                 ord_sts.chain_order_id, msg
                                 )
                         continue
-                        
-                    # --- (3) Expensive RPC type key matching ---
+                    
+                    if is_position_statuses_stream(top_unique_field):
+                        for pos_sts in msg.position_statuses:
+                            await self._pos_status_stream_router.publish(
+                                pos_sts.contract_id, msg
+                                )
+                        continue
+                    
+                    if is_account_summary_statuses_stream(top_unique_field):
+                        for acc_summ in msg.ccount_summary_statuses:
+                            await self._acc_summary_stream_router.publish(
+                                acc_summ.account_id, msg
+                                )
+                        continue
+        
+                    # --- (4) Expensive RPC type key matching ---
                     try:
                         keys = extract_router_keys(msg)
                         print('[router_loop] keys', keys)
@@ -370,12 +402,16 @@ class ConnectCQG(Connect):
                                     ticket_exist = self._msg_router.on_message(key, msg)
                                     
                                     if not ticket_exist:
-                                        # Dead letter
+                                        # (5) --- Unsolicited Messages ---
                                         await self._misc_queue.put(msg)
                                     
-                    # --- (4) Dead Letter Collections ---
-                    # For server-side (logoff)
-                         
+                    # --- (5) Dead Letters/Unsolicited Message Collections ---
+                    # For server-side
+                    # 1. logged_off
+                    # 2. concurrent_connection_join_results
+                    # 3. information_reports:symbol_resolution_report
+                    # 4. market_data_subscription_statuses
+                     
             except asyncio.CancelledError as e:
                 logger.error("")
                 raise
@@ -398,7 +434,10 @@ class ConnectCQG(Connect):
         while not self._stop_evt.is_set():
             ...
              
-    # ---- CQG messages function calls ----
+    async def _heartbeat_loop(self):
+        ...
+    
+    # ---- CQG session messages function calls ----
     async def logon(
         self, 
         client_app_id: str ='WebApiTest', 
@@ -503,7 +542,7 @@ class ConnectCQG(Connect):
         
         if not token:
             token = str(self.rid())
-        utc_time = int(datetime.now(tz=timezone.utc).timestamp())
+        utc_time = int(datetime.now(tz=timezone.utc).timestamp()*1000)
         
         with msg_io_error_handler(
                 ConnectRequestError, 
@@ -515,8 +554,29 @@ class ConnectCQG(Connect):
             fut = self._msg_router.register_key(msg_key)
             await self._transport.send(ping_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
+            
+            self.ping_RTTs.append(
+                server_msg.pong.pong_utc_time - server_msg.pong.ping_utc_time
+                )
             return parse_pong(server_msg)
         
+    async def pong(
+            self,
+            token: str,
+            ping_utc_time: int,
+            pong_utc_time: int
+        ) -> None:
+
+        with msg_io_error_handler(
+                ConnectRequestError, 
+                timeout_error = ConnectTimeOutError
+                ):
+            pong_msg = build_pong_msg(token, ping_utc_time, pong_utc_time)
+            
+            await self._transport.send(pong_msg)
+            return 
+        
+    # ---- CQG metadata messages function calls ----
     async def resolve_symbol(
             self, 
             symbol: str,
