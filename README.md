@@ -1,6 +1,10 @@
 # *EC_API*: A vendor-agnoistic Infrastructure and Execution Framework for Algo Trading 
 ![Python](https://img.shields.io/badge/python-3.12-blue.svg)
 
+![CI](https://github.com/dex-hon-sci/EC_API/actions/workflows/unittest.yml/badge.svg)
+  
+[![Coverage](https://codecov.io/gh/dex-hon-sci/EC_API/branch/main/graph/badge.svg)](https://codecov.io/gh/dex-hon-sci/EC_API)
+
 ## **Overview**
 `EC_API` provides easy-to-use functions for algorithmic trading. 
 It is a wrapper package that utilises Websocket messaging to facilitate 
@@ -13,16 +17,17 @@ the production version of the codes in its entirety.
 - [Project Description](#project-description)
 - [Installation Guide](#installation-guide)
 - [Modules Review](#module-reviews)
-- [Interfacing with Exchanges](#interfacing-with-exchanges)
 - [Usage](#usage)
   - [Establish Connection](#connection)
   - [Sending Orders](#sending-orders)
   - [Monitoring and Data Feed](#monitoring-and-data-feed)
   - [Payload and Safety Parameters](#risk-and-safety)
 - [Strategy Building](#strategy-building)
+  - [Action Node](#action-node)
   - [Action Tree](#action-tree)
-- [Releases](#releases)
-  
+  - [OpSignal](#op-signal)
+  - [OpStrategy](#op-strategy)
+    
 ## **Project Description**
 `EC_API` is a trading API that handles message relays 
 between client and servers. The package provides the RPC-like [^1]
@@ -34,6 +39,13 @@ help users formalising and building their Algo trading strategy.
 [^1]: For instance, the package exposes CQG WebAPI interactions 
 as async function calls using an RPC-like request/response pattern 
 over WebSocket.
+
+Currently supported vendors:
+
+| #  | Name | Folder Label | Protocol | Status | Docs |
+|----| ---- |-------------| --------- | ---- | ---- |
+| 0. | Archive | `backtest` | Internal DB conncetion | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
+| 1. | CQG WebAPI | `cqg` | WebSocket TSL+protobuf message | ![Status](https://img.shields.io/badge/In_Progress-6030D9) | Docs |
 
 
 `EC_API` consists of two layers:
@@ -76,12 +88,6 @@ as cool-down to aid users in developing their custom strategy. One can
 inherit or inject this class into their strategy objects that runs in live
 session.
 
-Currently supported vendors:
-
-|    | Name | Folder Label | Protocol | Status |
-|----|-----------|-------------| ---- | ---- |
-| 0. | Archive | `backtest` | Internal DB conncetion | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) |
-| 1. | CQG WebAPI | `cqg` | WebSocket TSL+protobuf message | ![Status](https://img.shields.io/badge/In_Progress-6030D9) |
 
 ## **Installation Guide**
 Make sure your Python version is at least 3.12.
@@ -130,7 +136,7 @@ conn.stop()
 ```
 The `Connect` objects manages message dispatch and communication to 
 vendor's server. The recommended way to start/stop the service is via
-and async context manager. Alternativelt, you may also start/stop the 
+and async context manager. Alternatively, you may also start/stop the 
 service through `conn.start()` and `conn.stop()` function calls, respectively.
 
 ### **Monitoring and Data Feed**
@@ -161,7 +167,7 @@ where `QuotesValueTypeCQG`, `MarketValueTypeCQG` are also `tuple`s.
 For detail description of the field indexing, please refer to either 
 `_typing.py` file or the internal documentation.
 
-### **Trade Sesssion and Live Orders**
+### **Trade Session and Live Orders**
 To handle trade session and send orders to the exchanges, you need to
 use establish a `TradeSession` object and operate within the context code 
 block. Requests related to the trade account, such as order request, tracking
