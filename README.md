@@ -1,5 +1,5 @@
 # *EC_API*: A vendor-agnoistic Infrastructure and Execution Framework for Algo Trading 
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)/v/3.12/3.13/3.14
+![Python](https://img.shields.io/badge/python-3.12-blue.svg)
 
 ## **Overview**
 `EC_API` provides easy-to-use functions for algorithmic trading. 
