@@ -1,4 +1,4 @@
-# *EC_API*: A wrapper package utilising WebSocket for Algo Trading 
+# *EC_API*: A vendor-agnoistic Infrastructure and Execution Framework for Algo Trading 
 
 ## **Overview**
 `EC_API` provides easy-to-use functions for algorithmic trading. 
@@ -24,36 +24,37 @@ the production version of the codes in its entirety.
   
 ## **Project Description**
 `EC_API` is a trading API that handles message relays 
-between client and servers in an asynchronous way. The package provide 
-necessarily RPC-like function calls to communicate with differennt
-service providers. On top of that we provide vendor-agnoistic tools to 
-help users to formalise and build their trading strategy.
+between client and servers. The package provides the RPC-like 
+asynchronous function calls to communicate with service providers
+to facilitate trading and market-data streaming. In addiion, we 
+provide vendor-agnoistic tools in the form of strategy template to 
+help users formalising and building their Algo trading strategy.
 
-`EC_API` constist of two layers:
+`EC_API` consists of two layers:
 ![plot](./images/message_flow.jpg)
 
 1. **The Infrastructure Layer**
 
 This layer consist of the modules `transport`, `connect`, `ordering`, 
-and `monitor`. Within them lives vendor-specific codes that routes 
+and `monitor`. Within these folders lives vendor-specific codes that routes 
 messages through their respective channel and follow the rules of 
 vendor-specific data format. The general architecture, however, is the
 same across service providers. 
 
-In short, the `transport` layer handles synchronous operations of 
-sending/receiving messages; the `connect` layer establish connection,
-manage service state, as well as routing server response messages from 
-the `transport` layer to their respective callers asynchronously. The 
-`MonitorData` (from the `monitor` module) class in the example sit on 
-top of the `connect` layer and handle real-time data function calls and
-streaming. `TradeSession` (from the `ordering` module) establish trading
+The `transport` layer handles synchronous operations of sending/receiving 
+messages; the `connect` layer establish connection, manage service
+ state, as well as routing server response messages from the `transport`
+ layer to their respective callers asynchronously. The `MonitorData` 
+(from the `monitor` module) class in the example sit on top of the
+`connect` layer and handle real-time data function calls and streaming.
+`TradeSession` (from the `ordering` module) establish trading
 route to a service provider and allow users to send order requests via 
 the `LiveOrder` objects.
 
 2. **The Strategy/User Layer**
 
-The user layer consist of the two module: `op_strategy` and `payload` and 
-they are completely vendor-agnostic. 
+The user layer consists of the two module: `op_strategy` and `payload`. 
+This layer is completely vendor-agnostic. 
 
 `Payload` objects (from the `payload` module) is a simple data class 
 wrapper that owns the risk-checks for the parameters of an pending order. 
@@ -137,8 +138,23 @@ async with MonitorDataCQG(conn) as MD:
         print(data)
  
 ```
+While different vendors would have a different data schema, we unify the 
+market data in to the same format of `ParsedRTMD`. It is a the form of 
+a 4-`tuple` with each entry containing a list of market data. For example,
+in the case of CQG, we have:
+```python
+ParsedRTMDCQG = tuple[
+    list[QuotesValueTypeCQG], 
+    list[MarketValueTypeCQG], 
+    list[DOMValueTypeCQG],
+    list[QuotesValueTypeCQG] # corrections field
+    ]
+```
+where `QuotesValueTypeCQG`, `MarketValueTypeCQG` are also `tuple`s.
+For detail description of the field indexing, please refer to either 
+`_typing.py` file or the internal documentation.
 
-### **Trade Sesssion**
+### **Trade Sesssion and Live Orders**
 To handle trade session and send orders to the exchanges, you need to
 use establish a `TradeSession` object and operate within the context code 
 block. Requests related to the trade account, such as order request, tracking
@@ -146,20 +162,12 @@ position statuses or account summaries should be done in a`TradeSession`.
 Note that RPC-like function calls for orders belong to the `LiveOrder` objects
 while trade subscriptions calls belongs to the `TradeSession` objects.
 
-```python
-from EC_API.ordering.cqg.trade_session import TradeSessionCQG
-
-async with TradeSessionCQG(conn) as TS:
-    # --- Do something ----
-
-```
-
-### **Sending Orders**
 To send a new order request directly via `EC_API`'s native functions 
 (not recommended) from the `ordering` module.
 
 ```python
 from datetime import timezone, datetime, timedelta
+from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.ordering.cqg.live_order import LiveOrderCQG
 from EC_API.ordering.enums import (
     OrderType, Duration, Side,
@@ -184,8 +192,10 @@ async with TradeSessionCQG(conn) as TS:
     CLOrder = LiveOrderCQG(TS)
     
     # Specify the request type as you send the order
-    CLOrder.send(request_type = RequestType.NEW_ORDER, 
-                  request_details = ORDER_INFO)  
+    CLOrder.send(
+        request_type = RequestType.NEW_ORDER, 
+        request_details = ORDER_INFO
+        )  
 ```
 ### **Payload and Safety Parameters**
 However, it is recommended to send order requests via a `Payload` object. 
@@ -409,9 +419,4 @@ Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 
 
 ```
-
-
-## Releases
-From v0.1.0 onward, `EC_API` is designed to be async-native. All RPC-like 
-function calls functions are awaitable.
 
