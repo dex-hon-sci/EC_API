@@ -7,8 +7,8 @@ Created on Mon Aug 25 18:58:16 2025
 """
 from typing import Protocol
 # EC_API imports
-from EC_API.monitor.tick import TickBuffer
-from EC_API.monitor.tick_stats import TickBufferStat
+from EC_API.common.tick import TickBuffer
+from EC_API.common.tick_stats import TickBufferStat
     
     
 class DataFeed:
