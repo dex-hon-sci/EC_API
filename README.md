@@ -32,7 +32,7 @@ help users to formalise and build their trading strategy.
 `EC_API` constist of two layers:
 ![plot](./images/message_flow.jpg)
 
-1. **The Infrastructure layer**
+1. **The Infrastructure Layer**
 
 This layer consist of the modules `transport`, `connect`, `ordering`, 
 and `monitor`. Within them lives vendor-specific codes that routes 
@@ -50,7 +50,7 @@ streaming. `TradeSession` (from the `ordering` module) establish trading
 route to a service provider and allow users to send order requests via 
 the `LiveOrder` objects.
 
-2. **The Strategy/User layer**
+2. **The Strategy/User Layer**
 
 The user layer consist of the two module: `op_strategy` and `payload` and 
 they are completely vendor-agnostic. 
@@ -89,9 +89,9 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 | Module | Description |
 |-----------|-------------|
 | `common`  | It contains the common object schema used across the EC<br>application system, such as: `Metrics`, `DataFeed`, etc.|
-| `connect` | The connection module is in charge of authentication and<br>message hear-back. |
+| `connect` | The connection module is in charge of session state control<br> and message dispatching to the async callers. |
 | `ext` | External codes. Trade routing API codes live here. |
-| `monitor` | The monitor module takes care of information request, open-order<br>tracking, and real-time data request. Specify `DataFeed` input<br>for strategy here.|
+| `monitor` | The monitor module takes care of streaming function with <br>real-time market data. |
 | `op_strategy` | It defines the format for operational strategy (`OpStrategy`).<br> Key components for strategy building, such as `OpSignal`<br>that controls the life-cycle of signals, as well as `ActionNode`<br> and `ActionTree` (a finite-state machine) that controls<br>order flow and execution, are in this module. |
 | `ordering` | It handles `LiveOrder` type objects and how we send order requests <br>to the exchanges. |
 | `payload` | It contains the `Payload` class where parameter validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
@@ -116,37 +116,42 @@ ACCOUNT_ID = 0000000
 
 # create a connection before trading
 conn = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID)
-
+conn.start()
+# ...Do Something...
+conn.stop()
 ```
-The `Connect` objects are central to any trading
-operations. The recommended way to start/stop the service is through 
-`conn.start()` and `conn.stop()` function calls, respectively.
+The `Connect` objects manages message dispatch and communication to 
+vendor's server. The recommended way to start/stop the service is via
+and async context manager. Alternativelt, you may also start/stop the 
+service through `conn.start()` and `conn.stop()` function calls, respectively.
 
 ### **Monitoring and Data Feed**
-To monitor Real-time Data:
+To stream real-time market Data:
 ```python
 from EC_API.monitor.cqg.realtime import MonitorDataCQG
+from EC_API.monitor.enums import MktDataSubLevel
 
-with ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID) as conn:
-    MD = MonitorDataCQG(conn)
-    async for data in MD.stream('EQ'):
+async with MonitorDataCQG(conn) as MD:
+    # level parameter control the level of details in market data received
+    async for data in MD.stream('EQ', level = MktDataSubLevel.LEVEL_TRADES_BBA):
         print(data)
  
-# ... DO somethibg else
-
 ```
 
 ### **Trade Sesssion**
-To monitor trade information or send orders to the exchanges, you need to
-establish a `trade_session` first. 
+To handle trade session and send orders to the exchanges, you need to
+use establish a `TradeSession` object and operate within the context code 
+block. Requests related to the trade account, such as order request, tracking
+position statuses or account summaries should be done in a`TradeSession`.
+Note that RPC-like function calls for orders belong to the `LiveOrder` objects
+while trade subscriptions calls belongs to the `TradeSession` objects.
 
 ```python
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 
-TS = TradeSessionCQG(conn)
-conn.start()
+async with TradeSessionCQG(conn) as TS:
+    # --- Do something ----
 
-conn.stop()
 ```
 
 ### **Sending Orders**
@@ -174,13 +179,13 @@ ORDER_INFO =  {
     "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
     }
                       
-# LiveOrder belongs to a particular trade session                      
-CLOrder1 = LiveOrderCQG(TS, 
-                        ORDER_INFO
-                       )
-# Specify the request type as you send the order
-CLOrder1.send(request_type = RequestType.NEW_ORDER, 
-              request_details = new_order_details)  
+async with TradeSessionCQG(conn) as TS:
+    # LiveOrder belongs to a particular trade session                      
+    CLOrder = LiveOrderCQG(TS)
+    
+    # Specify the request type as you send the order
+    CLOrder.send(request_type = RequestType.NEW_ORDER, 
+                  request_details = ORDER_INFO)  
 ```
 ### **Payload and Safety Parameters**
 However, it is recommended to send order requests via a `Payload` object. 

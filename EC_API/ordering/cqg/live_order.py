@@ -52,13 +52,8 @@ class LiveOrderCQG(LiveOrder):
     def __init__(
             self, 
             trade_session: TradeSessionCQG,
-            symbol_name: str, 
-            request_id: int, 
-            account_id: int,
             timeout: int | float = 1,
-        ):                 #sub_scope: int = SubScope.ORDERS,
-                 #auto_unsub: bool = True,
-
+        ):
         # Message Routing
         self._trade_session: TradeSessionCQG = trade_session
         self._conn: ConnectCQG = self._trade_session._conn
@@ -66,11 +61,6 @@ class LiveOrderCQG(LiveOrder):
         
         self.msg_router: MessageRouter = self._conn._msg_router
         self.stream_router: StreamRouter = self._conn._exec_stream_router
-                        
-        # CQG-related input parameters
-        self._symbol_name = symbol_name
-        self.request_id = request_id
-        self.account_id = account_id
                 
     # ---
     @property
@@ -79,10 +69,7 @@ class LiveOrderCQG(LiveOrder):
     
     def rid(self):
         return self._conn.rid()
-    
-    def check_state(self):
-        return 
-    
+        
     # --- CQG function calls
     async def _new_order_request(
             self, 
