@@ -428,3 +428,6 @@ Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 
 ```
 
+|Python| image:: https://img.shields.io/badge/Python->3.12%2B-blue?logo=python&logoColor=white
+    :target: https://pypi.python.org/pypi/prism
+    :alt: PyPI - Python Versions
