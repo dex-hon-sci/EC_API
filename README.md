@@ -78,9 +78,10 @@ session.
 
 Currently supported vendors:
 
-|    | Name | Protocol |
-|----|-----------|-------------|
-| 1. | CQG WebAPI | WebSocket TSL+protobuf message |
+|    | Name | Folder Label | Protocol | Status |
+|----|-----------|-------------| ---- |
+| 0. | Archive | `backtest` | Internal DB conncetion | https://img.shields.io/badge/To_Be_Started-F54927 |
+| 1. | CQG WebAPI | `cqg` | WebSocket TSL+protobuf message | https://img.shields.io/badge/In_Progress-6030D9|
 
 ## **Installation Guide**
 Make sure your Python version is at least 3.12.
