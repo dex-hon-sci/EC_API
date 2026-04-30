@@ -1,8 +1,6 @@
 # *EC_API*: A vendor-agnoistic Infrastructure and Execution Framework for Algo Trading 
-![Python](https://img.shields.io/badge/python-3.12-blue.svg)
-
+![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue.svg)
 ![CI](https://github.com/dex-hon-sci/EC_API/actions/workflows/unittest.yml/badge.svg)
-  
 [![Coverage](https://codecov.io/gh/dex-hon-sci/EC_API/branch/main/graph/badge.svg)](https://codecov.io/gh/dex-hon-sci/EC_API)
 
 ## **Overview**
