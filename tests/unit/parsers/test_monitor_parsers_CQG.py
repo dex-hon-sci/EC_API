@@ -15,9 +15,13 @@ from EC_API.monitor.cqg.parsers import (
     parse_real_time_market_data,
     parse_market_data_subscription_statuses
     )
+from tests.unit.fixtures.server_msg_builders_CQG import (
+    build_simple_real_time_market_data_only_1quote_server_msg
+    )
 from tests.unit.fixtures.server_msg_streams_CQG import (
     build_market_data_subscription_statuses_server_msg,
-    build_real_time_market_data_server_msg,
+    build_real_time_market_data_server_msg
+    ,
     dummy_realtime_data_stream, 
     dummy_order_update_stream
     )
@@ -250,7 +254,37 @@ def test_parser_real_data_stream_valid() -> None:
     assert res[1][1][MV_CORRECT_PRICE_SCALE] == 10.123
     assert res[1][1][MV_IS_SNAPSHOT] == False
 
+def test_build_simple_real_time_market_data_only_1quote_valid() -> None:
+    server_msg = build_simple_real_time_market_data_only_1quote_server_msg(ServerMsg())
+    
+    real_time_market_data = server_msg.real_time_market_data
+    
+    res = parse_real_time_market_data(real_time_market_data[0])
 
+    # --- Check the two quotes ---
+    assert len(res[0]) == 1 # one quotes data
+    assert len(res[0][0]) ==16 # one quotes data
+    # --- Quote 0
+    assert res[0][0][Q_CONTRACT_ID] == 1 # contract_id
+    assert res[0][0][Q_TYPE] == Quote.Type.TYPE_TRADE
+    assert res[0][0][Q_SCALED_PRICE] == 19201
+    assert res[0][0][Q_SCALED_SOURCE_PRICE] == 10029
+    assert res[0][0][Q_PRICE_YIELD] == 100
+    assert res[0][0][Q_VOL_SIGNIFICAND] == 0
+    assert res[0][0][Q_VOL_EXPONENT] == 2
+    assert res[0][0][Q_INDICATORS] == (Quote.Indicator.INDICATOR_OPEN,)
+    assert res[0][0][Q_SALES_CONDITION] == Quote.SalesCondition.SALES_CONDITION_HIT
+    assert res[0][0][Q_TRADE_ATTRS] == (
+        None, None, None, None, None
+        )
+    assert res[0][0][Q_SCALED_CURRENCY_RATE_PRICE] == 32
+    assert res[0][0][Q_SCALED_PREMIUM] == 11
+    assert res[0][0][Q_MARKET_STATE] == (
+        None, None, None, None, None, None
+        )
+    assert res[0][0][Q_CORRECT_PRICE_SCALE] == 0.0
+    assert res[0][0][Q_IS_SNAPSHOT] == False    
+    
 def test_parse_real_time_market_data_invalid() -> None:
       with pytest.raises(MsgParserError):
           parse_real_time_market_data(None)

@@ -54,8 +54,6 @@ TARGETS = {
 def _parse_market_state(     
         market_state: MarketState
     ) -> tuple[int, int, int, int, bool, bool] | tuple[None, None, None, None, None, None]:
-    if market_state is None:
-        return (None, None, None, None, None)
     ts = market_state.trading_state
     return (
           ts.exchange_state,       # MS_EXCHANGE_STATE
@@ -88,7 +86,8 @@ def _parse_quotes(
     # [15] is_snapshot              bool
     
     contract_id: int = real_time_market_data.contract_id
-    mkt_state = _parse_market_state(real_time_market_data.market_state)
+    mkt_state = _parse_market_state(real_time_market_data.market_state) if\
+        real_time_market_data.HasField("market_state") else (None, None, None, None, None, None)
     
     res = []
     for ele in real_time_market_data.quotes:
@@ -167,7 +166,9 @@ def _parse_market_values(
       # [29] is_snapshot                      bool
     res = []
     contract_id = real_time_market_data.contract_id
-    mkt_state = _parse_market_state(real_time_market_data.market_state)
+    mkt_state = _parse_market_state(real_time_market_data.market_state) if\
+        real_time_market_data.HasField("market_state") else (None, None, None, None, None, None)
+
 
     for ele in real_time_market_data.market_values:
         my = ele.market_yields

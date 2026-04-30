@@ -180,3 +180,59 @@ def test_parse_information_report_no_subtype_returns_empty_list() -> None:
     report.status_code = InformationReport.StatusCode.STATUS_CODE_NOT_FOUND
     res = parse_server_msg(msg, connect_parsers)
     assert res == []
+    
+# ---- Test Raises 
+    
+def test_parse_symbol_resolution_report_raises(monkeypatch):
+    from EC_API.connect.cqg import parsers
+
+    monkeypatch.setattr(parsers, 'MessageToDict', lambda *a, **kw: (_ for _ in
+()).throw(Exception("forced")))
+
+    with pytest.raises(MsgParserError):
+        parsers.parse_symbol_resolution_report(InformationReport())
+        
+def test_parse_session_information_report_raises(monkeypatch):
+    from EC_API.connect.cqg import parsers
+
+    monkeypatch.setattr(parsers, 'MessageToDict', lambda *a, **kw: (_ for _ in
+()).throw(Exception("forced")))
+
+    with pytest.raises(MsgParserError):
+        parsers.parse_session_information_report(InformationReport())
+
+def test_parse_option_maturity_list_report_raises(monkeypatch):
+    from EC_API.connect.cqg import parsers
+
+    monkeypatch.setattr(parsers, 'MessageToDict', lambda *a, **kw: (_ for _ in
+()).throw(Exception("forced")))
+
+    with pytest.raises(MsgParserError):
+        parsers.parse_option_maturity_list_report(InformationReport())
+
+def test_parse_instrument_group_report_raises(monkeypatch):
+    from EC_API.connect.cqg import parsers
+
+    monkeypatch.setattr(parsers, 'MessageToDict', lambda *a, **kw: (_ for _ in
+()).throw(Exception("forced")))
+
+    with pytest.raises(MsgParserError):
+        parsers.parse_instrument_group_report(InformationReport())
+        
+def test_parse_historical_orders_report_raises(monkeypatch):
+    from EC_API.connect.cqg import parsers
+
+    monkeypatch.setattr(parsers, 'MessageToDict', lambda *a, **kw: (_ for _ in
+()).throw(Exception("forced")))
+
+    with pytest.raises(MsgParserError):
+        parsers.parse_historical_orders_report(InformationReport())
+        
+def test_parse_at_the_money_strike_report_raises(monkeypatch):
+    from EC_API.connect.cqg import parsers
+
+    monkeypatch.setattr(parsers, 'MessageToDict', lambda *a, **kw: (_ for _ in
+()).throw(Exception("forced")))
+
+    with pytest.raises(MsgParserError):
+        parsers.parse_at_the_money_strike_report(InformationReport())

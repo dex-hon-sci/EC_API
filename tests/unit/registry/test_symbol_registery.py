@@ -4,7 +4,8 @@ from EC_API.exceptions import (
     SymbolNotInRegistryError,
     MetaDataMissingError,
     DuplicateSymbolError,
-    
+    FailRegisterError,
+    DuplicateSymbolError
 )
 
 SYMBOL   = "ES"
@@ -31,10 +32,15 @@ def reg_with_metadata(reg):
     return reg
 
 @pytest.fixture
+def reg_with_symbol_and_metadata(reg):
+    reg.add_symbol(SYMBOL, CONTRACT)
+    reg.add_metadata(SYMBOL, METADATA)
+    return reg
+
+@pytest.fixture
 def reg_registered(reg):
     reg.register(SYMBOL, METADATA)
     return reg
-
 
 # ---- add_symbol -------------------------------------------------------------
 def test_add_symbol_returns_true(reg):
@@ -47,7 +53,6 @@ def test_add_symbol_stored(reg):
 def test_add_symbol_duplicate_raises(reg_with_symbol):
     with pytest.raises(DuplicateSymbolError):
         reg_with_symbol.add_symbol(SYMBOL, CONTRACT)
-
 
 # ---- remove_symbol ----------------------------------------------------------
 def test_remove_symbol_returns_true(reg_with_symbol):
@@ -113,6 +118,22 @@ def test_register_multiple_symbols(reg):
     reg.register(SYMBOL2, METADATA2)
     assert reg.sym_to_contract_ids[SYMBOL2] == CONTRACT2
 
+def test_failed_register_duplicate(reg_with_symbol):
+    with pytest.raises(DuplicateSymbolError):
+        reg_with_symbol.add_symbol("ES", CONTRACT)
+        
+def test_register_rolls_back_symbol_on_duplicate_metadata():
+    registry = SymbolRegistry()
+    metadata = {'contract_id': 42, 'contract_symbol': 'EP'}
+
+    # Force the split state: metadata present, symbol not
+    registry._metadata['EP'] = metadata
+
+    with pytest.raises(FailRegisterError):
+        registry.register('EP', metadata)
+
+    # Rollback verified — symbol must not be left stranded in _sym_to_contract_ids
+    assert 'EP' not in registry._sym_to_contract_ids
 
 # ---- deregister -------------------------------------------------------------
 def test_deregister_returns_true(reg_registered):
@@ -130,8 +151,7 @@ def test_deregister_removes_metadata(reg_registered):
 def test_deregister_missing_returns_false(reg):
     with pytest.raises(SymbolNotInRegistryError):
         reg.deregister(SYMBOL)
-
-
+    
 # ---- get_contract_ids -------------------------------------------------------
 def test_get_contract_ids_returns_correct_id(reg_registered):
     assert reg_registered.get_contract_ids(SYMBOL) == CONTRACT
@@ -148,3 +168,12 @@ def test_get_metadata_returns_correct_metadata(reg_registered):
 def test_get_metadata_missing_raises(reg):
     with pytest.raises(MetaDataMissingError):
         reg.get_metadata(SYMBOL)
+        
+# ---- Has Symbol ----
+def test_has_symbol_valid(reg_with_symbol_and_metadata):
+    print(reg_with_symbol_and_metadata._sym_to_contract_ids)
+    print(reg_with_symbol_and_metadata._metadata)
+    assert reg_with_symbol_and_metadata.has_symbol(SYMBOL)
+    assert not reg_with_symbol_and_metadata.has_symbol("NQ")
+    
+

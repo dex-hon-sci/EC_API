@@ -48,7 +48,10 @@ addopts = "--cov=EC_API --cov-report=term-missing --ignore=tests/unit/action/tes
 #addopts = "--cov=EC_API --cov-fail-under=80 --cov-report=term-missing --ignore=tests/unit/action/test_action.py"
 
 [tool.coverage.run]
-omit = ["EC_API/ext/WebAPI/*"]
+omit = ["EC_API/ext/*", "EC_API/ext/**/*"]
+
+[tool.coverage.report]
+omit = ["EC_API/ext/*", "EC_API/ext/**/*"]
 
 [tool.ruff]
 line-length = 100

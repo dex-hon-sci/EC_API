@@ -126,7 +126,36 @@ async def test_ping_success() -> None:
     assert result[1] == "token_1"
     await conn.stop()
 
-
+@pytest.mark.asyncio
+async def test_ping_success_no_token() -> None:
+    conn, ft = make_conn()
+    conn.start()
+    
+    response = build_pong_server_msg(ServerMsg(),token="11")
+    await ft.in_q.put(response)
+    
+    result = await conn.ping()
+    assert result is not None
+    assert result[1].isdigit() 
+    assert result[1] == "11"
+    await conn.stop()
+    
+# --- pong tests
+# =============================================================================
+# @pytest.mark.asyncio
+# async def test_pong_success() -> None:
+#     conn, ft = make_conn()
+#     conn.start()
+#     
+#     response = build_pong_server_msg(ServerMsg(), token="token_1")
+#     await ft.in_q.put(response)
+#     
+#     result = await conn.pong('')
+#     assert result is not None
+#     assert result[1] == "token_1"
+#     await conn.stop()
+# =============================================================================
+    
 # --- logon sad paths
 @pytest.mark.asyncio
 async def test_logon_failure_result_code() -> None:

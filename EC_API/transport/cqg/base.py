@@ -94,12 +94,10 @@ class TransportCQG:
             except WebSocketWantWriteError as e:
                 raise TransportSendError(f"Send Buffer Full [WantWrite]:{e}.")
             except OSError as e:
-                logger.error("I/O send error: %s.", e)
                 raise TransportSendError(f"Send socket error [{e.errno}]:{e}.")
             except (TypeError, ValueError) as e:
                 raise TransportSendError(f"Send Protocol Error: {e}.")
             except Exception as e:
-                logger.error("Unexpected send error: %s", e)
                 raise TransportSendError(f"Unexpected send error: {e}.")
             
     def _recv_loop(self) -> None:
@@ -126,7 +124,7 @@ class TransportCQG:
             asyncio.run_coroutine_threadsafe(
                 self._in_q.put(server_msg),
                 self._loop,
-            ) 
+                ) 
     
     # --- Thread based msg ---------
     def start(self) -> None:

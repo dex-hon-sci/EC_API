@@ -175,23 +175,3 @@ def parse_at_the_money_strike_report(
             )
     except Exception:
         raise MsgParserError("Failed to parse at_the_money_strike_report.")
-# =============================================================================
-#         return {
-#         'contract_id': sym_rp.contract_metadata.contract_id,
-#         'contract_symbol': sym_rp.contract_metadata.contract_symbol,
-#         'correct_price_scale': sym_rp.contract_metadata.correct_price_scale,
-#         'display_price_scale': sym_rp.contract_metadata.display_price_scale,
-#         'description': sym_rp.contract_metadata.description,
-#         'title': sym_rp.contract_metadata.title,
-#         'tick_size': sym_rp.contract_metadata.tick_size,
-#         'currency': sym_rp.contract_metadata.currency,
-#         'tick_value': sym_rp.contract_metadata.tick_value,
-#         'cfi_code': sym_rp.contract_metadata.cfi_code,
-#         'instrument_group_name': sym_rp.contract_metadata.instrument_group_name,
-#         'session_info_id': sym_rp.contract_metadata.session_info_id,
-#         'short_instrument_group_name': sym_rp.contract_metadata.short_instrument_group_name,
-#         'instrument_group_description': sym_rp.contract_metadata.instrument_group_description,
-#         'country_code': sym_rp.contract_metadata.country_code         
-#         }
-#     except Exception:
-# =============================================================================

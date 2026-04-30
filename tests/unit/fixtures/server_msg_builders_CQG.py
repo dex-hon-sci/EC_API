@@ -431,7 +431,28 @@ def build_market_data_subscription_statuses_server_msg(
         
     return server_msg
 
+def build_simple_real_time_market_data_only_1quote_server_msg(
+        server_msg: ServerMsg,
+        contract_id: int = 1
+    ) -> ServerMsg:
+    real_time_market_data = server_msg.real_time_market_data.add()
+    
+    real_time_market_data.contract_id = contract_id
+    quotes = real_time_market_data.quotes.add()
+    quotes.quote_utc_time = int(datetime.now().timestamp())
+    quotes.type = Quote.Type.TYPE_TRADE
+    quotes.scaled_price = 19201
+    quotes.scaled_source_price = 10029
+    quotes.price_yield = 100
+    quotes.volume.significand = 0
+    quotes.volume.exponent = 2
+    quotes.indicators.append(Quote.Indicator.INDICATOR_OPEN)
+    quotes.sales_condition = Quote.SalesCondition.SALES_CONDITION_HIT
 
+    quotes.scaled_currency_rate_price = 32
+    quotes.scaled_premium = 11
+    return server_msg
+    
 def build_real_time_market_data_server_msg(
         server_msg: ServerMsg,
         contract_id: int = 1

@@ -45,12 +45,29 @@ async def test_unsubscribe_valid() -> None:
     assert q1_2.qsize() == 1
     assert q2.qsize() == 1
 
+def test_get_subscriber_count_valid() -> None:
+    SR = StreamRouter()
+    SR.subscribe(1)
+    SR.subscribe(1)
+    
+    count = SR.subscriber_count(1)
+    assert count == 2
+    
+def test_get_sub_id_count_valid() -> None:
+    SR = StreamRouter()
+    SR.subscribe(1)
+    SR.subscribe(2)
+    
+    count = SR.sub_id_count
+    assert count == 2
+
+# ---
 def test_unsubscribe_invalid_q() -> None:
     SR = StreamRouter()
-    q1_1 = SR.subscribe(1)
-    q1_2 = SR.subscribe(1)
+    SR.subscribe(1)
+    SR.subscribe(1)
     q2 = SR.subscribe(2)
-    with pytest.raises(SubscriptionQueueMismatchError) as e:
+    with pytest.raises(SubscriptionQueueMismatchError):
         SR.unsubscribe(1, q2)
          
     assert len(SR._subs[1]) == 2
@@ -144,3 +161,17 @@ async def test_sub_q_mismatch_error() -> None:
     SR.subscribe(1)
     with pytest.raises(SubscriptionQueueMismatchError):
         SR.unsubscribe(1, [])
+
+def test_get_subscriber_count_invalid() -> None:
+    SR = StreamRouter()
+    SR.subscribe(1)
+    SR.subscribe(1)
+    
+    with pytest.raises(UnknownSubscriptionError):
+        SR.subscriber_count(2)
+        
+def test_invalid_dropping_policy() -> None:
+    with pytest.raises(InvalidDroppingPolicy):
+        StreamRouter(drop_policy="drop_whatever")
+
+    
