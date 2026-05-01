@@ -9,8 +9,11 @@ Created on Sat Dec 13 18:23:10 2025
 import queue
 import asyncio
 # EC_API imports
-#from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg, ServerMsg
 from EC_API._typing import ServerMsgType, ClientMsgType
+from EC_API.exceptions import (
+    TransportConnectError, 
+    TransportDisconnectError
+    )
 
 class FakeCQGClient:
     # For the dependecy injection in unit tests
@@ -50,6 +53,11 @@ class FakeTransport:
         self.in_q: asyncio.Queue[ServerMsgType] = asyncio.Queue()
         self.out_q: queue.Queue[ClientMsgType] = queue.Queue()
 
+        self.fail_connect: bool = False
+        self.fail_disconnect: bool = False
+        self.fail_start: bool = False
+        self.fail_stop: bool = False
+        
     async def recv(self) -> ServerMsgType:
         return await self.in_q.get()
     
@@ -57,13 +65,21 @@ class FakeTransport:
         self.out_q.put(msg)
         
     def connect(self) -> bool:
+        if self.fail_connect:
+            raise TransportConnectError("Fail to Connect")
         return True
     
     def disconnect(self) -> bool:
+        if self.fail_disconnect:
+            raise TransportDisconnectError("Fail to Disconnect")
         return True
     
     def start(self) -> bool:
+        if self.fail_start:
+            return False
         return True
     
     def stop(self) -> bool:
+        if self.fail_stop:
+            raise TransportDisconnectError("Fail to Stop")
         return True

@@ -10,9 +10,7 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg, ClientMsg
 from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as MktDSub
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff
 from EC_API.ext.WebAPI.webapi_2_pb2 import InformationReport as InfoRp
-
 from EC_API.connect.cqg.base import ConnectCQG
-
 from tests.unit.fixtures.server_msg_builders_CQG import (
     build_logged_off_server_msg,
     build_symbol_resolution_report_server_msg,

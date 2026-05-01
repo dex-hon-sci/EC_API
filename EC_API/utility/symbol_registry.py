@@ -93,8 +93,7 @@ class SymbolRegistry:
             metadata: ContractMetaDataType
             ) -> bool:
         
-        res = self.add_symbol(symbol_name, metadata['contract_id'])
-        print('add_metadata success', res)
+        self.add_symbol(symbol_name, metadata['contract_id'])
         try:
             self.add_metadata(symbol_name, metadata)
             return True
@@ -134,20 +133,3 @@ class SymbolRegistry:
         if symbol_name in self._sym_to_contract_ids.keys() and \
            symbol_name in self._metadata.keys(): return True
         else: return False
-
-# =============================================================================
-#     def is_active(self, symbol_name:str) -> bool: Work on this later
-#         if symbol_name in self._active_symbols:
-#             return True
-#         return False
-#     
-# =============================================================================
-# =============================================================================
-#     def num_active_streams(self, symbol_name:str):
-#         if not self._active_data_streams.get(symbol_name):
-#             raise SymbolNotInRegistryError(
-#                 f"Symbol: {symbol_name} is not in the registry.", 
-#                 )
-#         
-#         return self._active_data_streams[symbol_name]
-# =============================================================================

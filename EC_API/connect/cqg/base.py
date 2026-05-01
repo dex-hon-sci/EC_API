@@ -94,7 +94,8 @@ class ConnectCQG(Connect):
             password: str,
             account_id: str = "",
             immediate_connect: bool = False,
-            client: Optional[webapi_client.WebApiClient] = None
+            client: Optional[webapi_client.WebApiClient] = None,
+            transport: Optional[TransportCQG] = None
         ):
         # Inputs
         self._host_name = host_name
@@ -130,8 +131,8 @@ class ConnectCQG(Connect):
         self._transport = TransportCQG(
             self._host_name,
             loop = self._loop, 
-            client=self._client
-            )
+            client = self._client
+            ) if transport is None else transport
         
         # Routers. Use queues inside for message storage
         self._mkt_data_stream_router = StreamRouter()
@@ -604,9 +605,10 @@ class ConnectCQG(Connect):
             return parse_server_msg(server_msg, connect_parsers)
         
     async def deresolve_symbol(
-        self,
-        symbol: str
+            self,
+            symbol: str
         ) -> None:
+        
         with msg_io_error_handler(
                 SymbolResolutionError, 
                 timeout_error = ConnectTimeOutError
