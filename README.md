@@ -1,4 +1,4 @@
-# *EC_API*: A vendor-agnoistic Infrastructure and Execution Framework for Algo Trading 
+# *EC_API*: A vendor-agnostic Infrastructure and Execution Framework for Algo Trading 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue.svg)
 ![CI](https://github.com/dex-hon-sci/EC_API/actions/workflows/unittest.yml/badge.svg)
 [![Coverage](https://codecov.io/gh/dex-hon-sci/EC_API/branch/main/graph/badge.svg)](https://codecov.io/gh/dex-hon-sci/EC_API)
@@ -8,14 +8,12 @@
 It is a wrapper package that utilises Websocket messaging to facilitate 
 trades, real-time data monitoring, open positions tracking, etc.
 
-This repo is for review and education purpose-only. It does not represent 
-the production version of the codes in its entirety.
-
 ## **Table of contents**
 - [Project Description](#project-description)
 - [Installation Guide](#installation-guide)
 - [Modules Review](#module-reviews)
 - [Usage](#usage)
+-[Interfacing with Exchanges](#Interface)
   - [Establish Connection](#connection)
   - [Sending Orders](#sending-orders)
   - [Monitoring and Data Feed](#monitoring-and-data-feed)
@@ -116,9 +114,12 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 Here are some usage examples. 
 We use the CQG connection as an example in this demonstration.
 
+## **Interfacing with Exchanges**
+
 ### **Establish Connection**
 To establish a connection and start running:
 ```python
+import asyncio
 from EC_API.connect.cqg.connect import ConnectCQG
 
 HOST_NAME = 'wss://demo.traderoute.com:000'
@@ -127,10 +128,14 @@ PASSWORD = 'PASSWORD'
 ACCOUNT_ID = 0000000
 
 # create a connection before trading
-conn = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID)
-conn.start()
-# ...Do Something...
-conn.stop()
+
+async def main():
+    conn = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID)
+    conn.start()
+    # ...Do Something...
+    await conn.stop() # Note that stop() is async but start() is sync
+    
+asyncio.run(main())
 ```
 The `Connect` objects manages message dispatch and communication to 
 vendor's server. The recommended way to start/stop the service is via
@@ -200,10 +205,7 @@ ORDER_INFO =  {
                       
 async with TradeSessionCQG(conn) as TS:
     # LiveOrder belongs to a particular trade session                      
-    CLOrder = LiveOrderCQG(TS)
-    
-    # Specify the request type as you send the order
-    CLOrder.send(
+    CLOrder = LiveOrderCQG(TS).send(
         request_type = RequestType.NEW_ORDER, 
         request_details = ORDER_INFO
         )  
@@ -263,7 +265,7 @@ To illustrate the workflow, we can look at the following example that shows
 the schema of our operational strategy format.
 ![plot](./images/OpSignal_schema_v2.jpg)
 
-
+## Action Node
 First, we specify the trigger conditions and `Payload` objects to be sent.
 ```python
 from datetime import datetime, timedelta, timezone
