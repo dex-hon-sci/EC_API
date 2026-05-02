@@ -204,8 +204,10 @@ ORDER_INFO =  {
     }
                       
 async with TradeSessionCQG(conn) as TS:
-    # LiveOrder belongs to a particular trade session                      
-    CLOrder = LiveOrderCQG(TS).send(
+    await TS.trade_subscription_request(sub_id=1, sub_scope = SubScope.ORDERS)
+    # Note that you need to resolve the symbol before trading
+    await TS.resolve_symbol("CLEV25") 
+    await LiveOrderCQG(TS).send(
         request_type = RequestType.NEW_ORDER, 
         request_details = ORDER_INFO
         )  
@@ -214,27 +216,34 @@ async with TradeSessionCQG(conn) as TS:
 However, it is recommended to send order requests via a `Payload` object. 
 It is a vendor-agnostic dataclass that conduct safety checks upon creation.
 
+We allow for a two-stage risk check: (1) pre-trade risk check that the user 
+provided in the form of a static toml file, and (2) in-session risk check 
+updated based on the session information. 
+
+Here is the format for static toml file for pre-trade check:
+
 To send orders with `Payload`, you can do the following:
 ```python 
 from EC_API.payload.base import Payload, ExecutePayload
-from EC_API.payload.cqg.safety import CQGFormatCheck # Import safety standard specific to cqg
-from EC_API.ordering.enums import (
-    OrderType, Duration, Side,
-    ExecInstruction, RequestType
-    )
+from EC_API.payload.cqg.safety import PreTradeRiskCheck
+
+# Load the pre-trade risk check
+PREC = PreTradeRiskCheck('cqg')
+PREC.load("risk_para.toml")
 
 # Construct Payload object
 PL1 = Payload(
   status = PayloadStatus.PENDING,
   order_request_type = RequestType.NEW_ORDER,
   order_info = ORDER_INFO,
-  check_method = CQGFormatCheck # Setup the format checking policy
+  check_method = PREC # Static risk check done upon creation
   )
 
-# ExecutePayload 
-try: # Specify the type of live order we are using here.
-  EP = ExecutePayload(TS, PL1, ACCOUNT_ID, live_order=LiveOrderCQG).unload()
-
+async with TradeSessionCQG(conn) as TS:
+    await TS.trade_subscription_request(sub_id=1, sub_scope = SubScope.ORDERS)
+    await TS.resolve_symbol("CLEV25") 
+    await ExecutePayload(PL1, live_order=LiveOrderCQG(TS)).unload()
+    
 ```
 
 ## **Strategy Building (WIP)**
