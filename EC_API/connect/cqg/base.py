@@ -59,6 +59,7 @@ from EC_API.exceptions import (
     TransportConnectError,
     TransportDisconnectError,
     ConnectRequestError,
+    ConnectEnterError,
     #ConnectCancelledError,
     ConnectTimeOutError,
     KeyExtractorError,
@@ -113,7 +114,7 @@ class ConnectCQG(Connect):
         self._loop = asyncio.get_running_loop()
         self._router_task: Optional[asyncio.Task] = None
         self._stop_evt = asyncio.Event()
-        self._timeout: float | int = 1 # make make this a ping based decision
+        self._timeout: float | int = 1.0 # make make this a ping based decision
 
         # State Control
         self._state_mgr = StateMgr(
@@ -147,8 +148,8 @@ class ConnectCQG(Connect):
         self._misc_queue: asyncio.Queue = asyncio.Queue()
         
         # Latency/reaction attributes
-        self.ping_RTTs = deque(maxlen=20)
-        self.inactivity_timeout = 100
+        self.ping_RTTs: deque = deque(maxlen=20)
+        self.inactivity_timeout: float = 100.0
         
         if immediate_connect:
             self.start()
@@ -165,10 +166,10 @@ class ConnectCQG(Connect):
         if start_is_success:
             return self
         else:
-            raise
+            raise ConnectEnterError("Fail to enter connection via context manager.")
     
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:        
-        if self.state not in (                
+        if self.state in (                
                 ConnectionState.UNKNOWN, 
                 ConnectionState.CLOSING,
                 ConnectionState.CLOSED
@@ -177,15 +178,18 @@ class ConnectCQG(Connect):
                 "Connect object not properly stopped.\
                 Procced to automatic connection shutdown."
                 )
-            try:
-                stop_is_success = await self.stop()
-            except Exception:
-                logger.warning("Unable to go through with standard stop() procedure to exit.")
+            return False
+        else:
+            stop_is_success = await self.stop()
+            
+            if not stop_is_success:
+                logger.warning(
+                    "Unable to go through with standard stop() procedure to exit."
+                    )
                 return False
             else:
-                return False #stop_is_success
+                return False
         
-        return False
         
     def __del__(self):
         # Guard against partial init

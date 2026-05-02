@@ -106,7 +106,8 @@ class MonitorDataCQG(Monitor):
     
     async def __aexit__(self, *args) -> bool:
         await self._cleanup()
-        await self._conn._aexit(*args)
+        await self._conn.__aexit__(*args)
+        return False
         
     # --- function calls ---
     async def stream(
@@ -236,7 +237,7 @@ class MonitorDataCQG(Monitor):
             return parse_market_data_subscription_statuses(confirm_msg)
 
     # --- internal tracking and cleanup ---
-    async def _tracker_loop():...
+    async def _tracker_loop(self): return #<-- WIP
     
     async def _cleanup(self) -> None:
         # Automatically unsubscirbe and destroy the queue copy of the 

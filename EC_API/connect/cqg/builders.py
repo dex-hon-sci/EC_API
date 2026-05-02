@@ -169,7 +169,7 @@ def build_resolve_symbol_msg(
     information_request.symbol_resolution_request.symbol = symbol_name
     
     if 'instrument_group_request' in kwargs:
-        information_request.instrument_group_request.instrument_group_id: str = \
+        information_request.instrument_group_request.instrument_group_id = \
             kwargs['instrument_group_request']
          
     return client_msg

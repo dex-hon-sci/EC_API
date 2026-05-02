@@ -29,5 +29,5 @@ def validate_sym_res_input_para(msg_info: dict[str, Any]) -> None:
                     following: ("F","C","P","S","T","U","X").')
                     
     if msg_info.get("preferred_countries") is not None:
-        ml: list[str] = msg_info['preferred_countries'].replace(" ","").split(",")
+        mll: list[str] = msg_info['preferred_countries'].replace(" ","").split(",")
         ...
