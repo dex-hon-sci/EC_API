@@ -50,7 +50,7 @@ class Payload:
         # import checking classes and func specific for CQG type orders
         try:
             self.risk_check.static_validate(self.order_info)
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError, AttributeError) as e:
             raise RiskViolationError(str(e))
 
 class ExecutePayload:

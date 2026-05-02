@@ -1,0 +1,14 @@
+[aliases]
+CLEV25  = "CL_GENERIC"
+
+[global_limits]
+qty_min = 0
+qty_max = 100
+
+[symbol_limits.CL_GENERIC]
+qty_max         = 10
+qty_min         = 1
+price_max       = 10000
+price_min       = 100
+stop_price_max  = 15000
+stop_price_min  = 100
