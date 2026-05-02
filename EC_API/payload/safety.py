@@ -5,69 +5,99 @@ Created on Mon Aug 11 20:40:59 2025
 
 @author: dexter
 """
-from typing import Protocol, Any
-from EC_API.ordering.enums import RequestType
+import tomllib
+from EC_API.payload.mapping import PRETRADE_RISKCHECK_VENDORS_MAP
+from EC_API.exceptions import MissingVendorError
 
-def isnot_null(reference_dict: dict[str, Any], 
-               target_dict: dict[str, Any]) -> None:
-    # Return nothing if value exist in target_dict, else raise key error
-    print("Check isnot null")
-    for key in list(reference_dict.keys()):
-        print(key, target_dict.get(key))
-        if target_dict.get(key) is None:
-            raise KeyError(f"Essential parameter(s): {key} is missing.")
-            
-def is_correct_type(reference_dict: dict[str, Any], 
-                    target_dict: dict[str, Any]) -> None:
-    # Return nothing if type exist in target_dict, else raise key error
-    print("Check correct type")
-    for key in reference_dict:
-        #print(type(target_dict[key]), reference_dict[key])
-        if type(target_dict[key]) != reference_dict[key]:
-            raise TypeError(f"Type Error, {key} must be: {reference_dict[key].__name__}.")
-            
-class RiskCheck:
-    def __init__(self): pass
-    
-    def validate(self): pass
-            
-class PayloadFormatCheck(Protocol):
-    """
-    Protocol class for checking Payload formats.
-    """
-    def __init__(self,                  
-                 order_request_type: RequestType, 
-                 order_info: dict):
-
-        self.order_request_type = order_request_type
-        self.order_info = order_info
+class PreTradeRiskCheck:
+    def __init__(self, vedor_name: str):
+        if not PRETRADE_RISKCHECK_VENDORS_MAP.get(vedor_name):
+            raise MissingVendorError(
+                f"Missing vendor parameter mapping for: {vedor_name}"
+                )
+        # From universal field name -> Vendor field name
+        self.field_map: dict[str, str] = PRETRADE_RISKCHECK_VENDORS_MAP[vedor_name]
+        self.global_limits: dict[str, dict] = dict()
+        self.symbol_limits: dict[str, dict] = dict()
+        self._aliases: dict[str, str] = dict()
         
-    def check_crendential(self):
-        """
-        Run null and type check on the global fields.
-        """
-        pass
-    
-    def check_request_specific_fields(self):
-        """
-        Run null, type, attr checks on request specific fields.
-        """
-        pass
-    
-    def check_order_specific_essential_fields(self):
-        """
-        Run null and type checks on order specific fields.
-        """
-        pass
-    
-    def check_valid_value(self):
-        """
-        Run checks to see if the input values are within the safety range.
-        """
-        pass
+    def load(self, path: str) -> None:
+        # Disk config loading
+        with open(path, mode='rb') as f:
+            para = tomllib.load(f)
+            self.global_limits = para.get("global_limits", {})
+            self._aliases = para.get("aliases", {})
+            self.symbol_limits = para.get("symbol_limits", {})
+            
+            # make sure aliases can translate from realname to itself
+            for sym in set(self._aliases.values()):
+                self._aliases[sym] = sym
+            
+    def reload(self, path: str) -> None:
+        self.load(path)
         
-    def run(self):
-        """
-        Run all checks.
-        """
-        pass
+    def update(self, symbol: str, para: dict) -> None:
+        # In-memory update
+        if not isinstance(para, dict):
+            raise ValueError(
+                f"Input: {para} has to be a dict to be a valid input."
+                )
+        if not self._aliases.get(symbol):
+            raise ValueError(f"{symbol} is not found in the aliases list.")
+            
+        sym = self._aliases[symbol]
+        if sym not in self.symbol_limits.keys():
+            raise ValueError(
+                f"Symbol: {symbol} is not found in the setting file."
+                )
+        
+        
+        self.symbol_limits[sym] = para
+        
+    def static_validate(self, order_info: dict) -> bool:
+        if not order_info.get("symbol_name"):
+            raise KeyError(
+                "symbol_name not found in the order_info."
+                )
+        
+        # check global limit first then symbol_limits
+        if self.global_limits:
+            for key, val in self.global_limits.items():
+                if self.field_map.get(key) is None:
+                    raise KeyError(
+                        f"Unknown Field in field_map: {key}"
+                        )
+                    
+                if key.endswith('_max'):
+                    if order_info[self.field_map[key]] > self.global_limits[key]:
+                        raise ValueError("")
+                elif key.endswith('_min'):
+                    if order_info[self.field_map[key]] < self.global_limits[key]:
+                        raise ValueError("")
+                                      
+        if not self._aliases.get(order_info['symbol_name']):
+            raise KeyError(
+                f"Symbol: {order_info['symbol_name']} is missing in the pre-trade\
+                    risk check list"
+                )
+            
+        sym = self._aliases[order_info['symbol_name']]
+        if self.symbol_limits.get(sym):
+            sym_table = self.symbol_limits[sym]
+            for key, val in sym_table.items():
+                if self.field_map.get(key) is None:
+                    raise KeyError(
+                        f"Unknown Field in field_map: {key}"
+                        )
+                    
+                if key.endswith('_max'):
+                    if order_info[self.field_map[key]] > sym_table[key]:
+                        raise ValueError("")
+                elif key.endswith('_min'):
+                    if order_info[self.field_map[key]] < sym_table[key]:
+                        raise ValueError("")
+                        
+            
+class InSessionRiskCheck:
+    def __init__(self): ...
+            

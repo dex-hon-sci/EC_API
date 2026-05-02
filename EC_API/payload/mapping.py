@@ -7,6 +7,7 @@ Created on Tue Sep  2 14:36:45 2025
 """
 from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import OrderStatus
+from EC_API.protocol.cqg.risk_field_mappings import CQG_RISK_FIELD_MAP
 # Map Server reponse order status to Payload status
   # Internal → Payload (in payload/mapping.py)
 ORDS2PAYLOAD_STATUS_MAP = {
@@ -20,6 +21,10 @@ ORDS2PAYLOAD_STATUS_MAP = {
     OrderStatus.ERROR:     PayloadStatus.VOID,
 }
 
+
+PRETRADE_RISKCHECK_VENDORS_MAP = {
+    'cqg': CQG_RISK_FIELD_MAP
+    }
 
 # =============================================================================
 #     CQG_OrdStatus.Status.IN_TRANSIT: OrderStatus.PENDING,
