@@ -39,7 +39,7 @@ from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
     TradeSubscriptionMissingError,
     MissingSymbolResolutionError,
-    OrderRequestError,
+    LiveOrderRequestError,
     LiveOrderTimeOutError,
     MissingOrderIDError
     )
@@ -77,7 +77,7 @@ class LiveOrderCQG(LiveOrder):
         ) -> ServerMsg:
         
         with msg_io_error_handler(
-                OrderRequestError,
+                LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
             ):
             client_msg = build_new_order_request_msg(**request_details)
@@ -100,7 +100,7 @@ class LiveOrderCQG(LiveOrder):
         # check if there is a chain_order_id in the chamber
         
         with msg_io_error_handler(
-                OrderRequestError,
+                LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
             ):
             client_msg = build_modify_order_request_msg(**request_details)
@@ -119,7 +119,7 @@ class LiveOrderCQG(LiveOrder):
         **kwargs
         ) -> ServerMsg:
         with msg_io_error_handler(
-                OrderRequestError,
+                LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
             ):
             client_msg = build_cancel_order_request_msg(**request_details)
@@ -136,7 +136,7 @@ class LiveOrderCQG(LiveOrder):
         request_details: dict[str, Any],
         ) -> ServerMsg:
         with msg_io_error_handler(
-                OrderRequestError,
+                LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
             ):
             client_msg = build_activate_order_request_msg(**request_details)
@@ -161,7 +161,7 @@ class LiveOrderCQG(LiveOrder):
         request_details: dict[str, Any],
         ) -> ServerMsg:
         with msg_io_error_handler(
-                OrderRequestError,
+                LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
             ):
             client_msg = build_goflat_order_request_msg(**request_details)
@@ -250,7 +250,7 @@ class LiveOrderCQG(LiveOrder):
 
             return server_msg, q
 
-        except OrderRequestError:
+        except LiveOrderRequestError:
             logger.warning(f'{request_type} request failed.')
             return 
 

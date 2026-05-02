@@ -17,7 +17,7 @@ class InvalidNextStateError(StateControlError):
         super().__init__(message)
     
 # --- Transport ---
-class TransportError(EC_APIError): pass
+class TransportError(EC_APIError): ...
 
 class TransportSendError(TransportError):
     def __init__(self, message: str):
@@ -107,6 +107,10 @@ class SubscriptionError(EC_APIError):...
 # --- Connect ---
 class ConnectError(EC_APIError):...
 
+class ConnectEnterError(ConnectError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class ConnectRequestError(ConnectError):
     def __init__(self, message: str):
         super().__init__(message)
@@ -182,7 +186,7 @@ class MissingOrderIDError(LiveOrderError):
     def __init__(self, message: str):
         super().__init__(message)
         
-class OrderRequestError(LiveOrderError):
+class LiveOrderRequestError(LiveOrderError):
     def __init__(self, message: str):
         super().__init__(message)
 
@@ -190,9 +194,18 @@ class OrderRequestError(LiveOrderError):
 class PayloadError(EC_APIError):...
 
 # Safety check error
+class MissingVendorError(EC_APIError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class PriceRangeViolationError(PayloadError):
     def __init__(self, message: str):
         super().__init__(message)
+        
+class ExecutePayloadError(PayloadError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 
 # --- OpStrategy
 class OpStrategyError(EC_APIError):...

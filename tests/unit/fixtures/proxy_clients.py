@@ -22,6 +22,7 @@ class FakeCQGClient:
         self.disconnected = False
         self.sent_messages: list[ClientMsgType] = []
         self._incoming = queue.Queue()
+        self._closed: bool = False
         
     def connect(self, host_name: str):
         self.connected = True
@@ -30,7 +31,8 @@ class FakeCQGClient:
         self.disconnected = True
         # Optionally unblock receive by putting a sentinel
         self._incoming.put(None)
-
+        self._closed = True
+        
     def send_client_message(self, msg: ClientMsgType):
         self.sent_messages.append(msg)
 
@@ -39,9 +41,9 @@ class FakeCQGClient:
         Blocking read. For tests, we simulate this with queue.get().
         """
         msg = self._incoming.get()
-        if msg is None:
+        if msg is None or self._closed:
             # Treat sentinel as "no more messages"
-            raise RuntimeError("Client closed.")
+            raise OSError("Client closed.")
         return msg
 
     def push_incoming(self, msg: ServerMsgType):

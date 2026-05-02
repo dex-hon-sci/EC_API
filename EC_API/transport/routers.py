@@ -85,9 +85,9 @@ class StreamRouter:
         return len(self._subs[sub_id])
     
     def subscribe(
-        self,
-        sub_id: int | str
-        ) -> asyncio.Queue[Any] | None:
+            self,
+            sub_id: int | str
+        ) -> asyncio.Queue[Any]:
         # Add a new Queue to the list in case there is a new subscriber who
         # calls subscribe
         if len(self._subs) >= self._max_num_sym:
@@ -152,11 +152,3 @@ class StreamRouter:
                         q.put_nowait(item)
                     elif self.drop_policy == "drop_latest":
                         pass
-                        #try:
-                        #    q.get_nowait()
-                        #    q.put_nowait(item)
-                        #except Exception:
-                        ##    msg =  f"[{self.__class__.__name__}] Publish unsuccessful at queue full: {item}."
-                        #    logger.warning(msg)
-                        #    continue
-

@@ -65,7 +65,7 @@ class TradeSessionCQG:
         self.symbol_registry: SymbolRegistry = SymbolRegistry()
 
         # Settings
-        self.order_statuses_TTL: int = 10
+        self.order_statuses_TTL: int = 10 #(Time-to-live)
         
     # --- Property --- 
     @property
@@ -84,10 +84,11 @@ class TradeSessionCQG:
         return self.conn.rid()
     
     # ---- Dunder meothos ---
+    async def __aenter__(self):
+        return self
+  
 # =============================================================================
-#     async def __aenter__(self):
-#         return self
-#     
+
 #     async def __aexit__(self, exc_type, exc_val, exc_tb):
 #         for sub_id, scopes in list(self._active_subs.items()):
 #             for scope in scopes:

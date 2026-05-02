@@ -29,7 +29,7 @@ type Extractor_func = Callable[[ServerMsgType, str], Any]
 # ------ Builders ------
 type Builder_func[ClientMsgType] = Callable[[Any, ClientMsgType], Any]
 
-_FieldSpec = dict[str, tuple[str, type | tuple[type, ...], Callable[..., Any] | None]]
+_FieldSpec = dict[str, tuple[str, type | tuple[type, ...] | Any, Callable[..., Any] | None]]
 
 # ------ Parsers ------
 type Parser_func[ServerMsgType] = Callable[[Any, ServerMsgType], Any]
