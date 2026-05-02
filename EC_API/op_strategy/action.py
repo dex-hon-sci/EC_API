@@ -14,11 +14,15 @@ import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 # EC_API imports
-from EC_API.op_strategy.enums import ActionStatus
+from EC_API.op_strategy.enums import (
+    ActionStatus, 
+    ACTION_STATUS_LIFECYCLE
+    )
 from EC_API.payload.base import Payload
 from EC_API.payload.enums import PayloadStatus
 from EC_API.monitor.data_feed import DataFeed
 from EC_API.ordering.base import LiveOrder
+from EC_API.utility.state_mgr import StateMgr
 
 class ActionContext:
     """ ActionContext is in charge of the DataFeed related operation"""
@@ -54,7 +58,7 @@ class ActionContext:
         return {
             symbol: feed.tick_buffer_stat(horizon, current_time)
             for symbol, feed in self.feeds.items()
-        }  
+            }  
 
 class ActionNode:
     """
@@ -100,11 +104,22 @@ class ActionNode:
                  to_db_table: str = "",
                  scan_db_tables: list[str] = [],
                  remark: str =""):
+        # Name of the Action Node
         self.label = label
-        self.payloads = payloads if payloads else []  # Each action can contain multiple Payloads
+        # Each action can contain multiple Payloads
+        self.payloads = payloads if payloads else []  
         self.trigger_cond = trigger_cond if trigger_cond else False
         self.transitions = transitions if transitions else {}
-        self.status: ActionStatus = ActionStatus.PENDING  
+                
+        # -------------
+        self._state_mgr: StateMgr = StateMgr(
+            ACTION_STATUS_LIFECYCLE, 
+            ActionStatus.PENDING,
+            ActionStatus.PENDING,
+            allowed_starts = [ActionStatus.PENDING]
+            )
+            
+        # -------------
         self.payloads_states = np.array([False for _ in range(len(self.payloads))]) 
         
         # Transition_rules 
@@ -112,9 +127,11 @@ class ActionNode:
         self.move_on_sent = True
         self.move_on_complete = False
         if not (self.move_on_sent ^ self.move_on_complete): # Check Validity
-            raise Exception("An Action Node can either be moved on SENT or\
-                            COMPLETED. Set either move_on_sent or move_on_complete\
-                            to True.")
+            raise Exception(
+                "An Action Node can either be moved on SENT or\
+                COMPLETED. Set either move_on_sent or move_on_complete\
+                to True."
+                )
         if self.move_on_sent:
             self.move_status = ActionStatus.SENT
         if self.move_on_complete:
@@ -127,7 +144,13 @@ class ActionNode:
         self.to_db_table = to_db_table
         self.scan_db_tables = scan_db_tables
         self.remark = remark
+        
+    # --- Internals ---
+    @property
+    def state(self) -> ActionStatus:
+        return self._state_mgr.cur
 
+    # -----------------
     async def insert_payload(self) -> None:
         # In the future we might want to change this into an event-driven msg bus
         async with self.db_session() as session:
@@ -149,7 +172,7 @@ class ActionNode:
     async def evaluate(self, ctx: dict) -> None:
         # Only evaluate nodes that are still pending
         # Status: PENDING -> SENT
-        if self.status != ActionStatus.PENDING:
+        if self.state != ActionStatus.PENDING:
             return None
         
         # Check Trigger condition and fire Payload
@@ -158,12 +181,12 @@ class ActionNode:
 
             for payload in self.payloads:             
                 await self.insert_payload()
-                self.status = ActionStatus.SENT
+                self.state = ActionStatus.SENT
         return 
     
     async def listen_for_conifrm(self) -> None:
         # Status: SENT -> COMPLETED/VOID
-        if self.status != ActionStatus.SENT:
+        if self.state != ActionStatus.SENT:
             return None
         
         for i, payload in enumerate(self.payloads):
@@ -177,7 +200,7 @@ class ActionNode:
                     break
                 
         if all(self.payloads_states):
-            self.status = ActionStatus.COMPLETED
+            self.state = ActionStatus.COMPLETED
             
         return 
     
@@ -209,7 +232,7 @@ class GoFlatNode(ActionNode): # Untested
         
         Status
         """
-        if self.status != ActionStatus.PENDING:
+        if self.state != ActionStatus.PENDING:
             return None
 
         print("[GoFlatNode] Emergency liquidation triggered")
@@ -220,16 +243,7 @@ class GoFlatNode(ActionNode): # Untested
         for symbol, qty in positions.items():
             if qty != 0:
                 action_type = "LIQUIDATE_LONG" if qty > 0 else "LIQUIDATE_SHORT"
-                payload = Payload(
-                    request_id=int(datetime.now(tz=timezone.utc)*1000),
-                    account_id=ctx.get("account_id", 0),
-                    cl_order_id=f"goflat-{symbol}-{datetime.now(tz=timezone.utc)}",
-                    status=PayloadStatus.PENDING,
-                    order_request_type=OrderRequestType.CANCEL_ORDER_REQUEST,
-                    start_time=datetime.utcnow(),
-                    end_time=datetime.utcnow(),
-                    order_info={} #{"symbol": symbol, "qty": -qty, "action": action_type}
-                )
+                payload = None
                 self.payloads.append(payload)
 
         # Insert liquidation payloads into DB
@@ -248,7 +262,7 @@ class GoFlatNode(ActionNode): # Untested
                 self.db_session.add(entry)
             await self.db_session.commit()
 
-        self.status = ActionStatus.COMPLETED
+        self.state = ActionStatus.COMPLETED
         return None
     
     

@@ -7,6 +7,11 @@ Created on Mon Sep  8 11:21:19 2025
 """
 from enum import Enum
 
+# --- Status Enum ---
+class OpStrategyStatus(Enum):
+    LIVE = "Live"
+    IDLE = "Idle"
+    
 class OpSignalStatus(Enum):
     INACTIVE = "Inactive" # OpSignal 
     ACTIVE = "Active" 
@@ -14,10 +19,37 @@ class OpSignalStatus(Enum):
     TERMINAL = "Terminated" # when action tree is exhausted
     EXPIRED = "Expired" # Terminated by time
 
-    
 class ActionStatus(Enum):
     PENDING = "Pending"
     SENT = "Sent" # Payloads have been sent to the database
     COMPLETED = "Completed" # Afrer receving a confirmation from the server
-    VOID = "Cancelled"
+    CANCELLED = "Cancelled"
 
+# --- Lifecycle ---
+OPSTRATEGY_STATUS_LIFECYCLE = {
+    OpStrategyStatus.LIVE: [OpStrategyStatus.LIVE, OpStrategyStatus.IDLE],
+    OpStrategyStatus.IDLE: [OpStrategyStatus.LIVE, OpStrategyStatus.IDLE]
+    }
+
+OPSIGNAL_STATUS_LIFECYCLE = { #Work on this later
+    OpSignalStatus.INACTIVE: [],
+    OpSignalStatus.ACTIVE: [],
+    OpSignalStatus.FREEZE: [],
+    OpSignalStatus.TERMINAL: [],
+    OpSignalStatus.EXPIRED: []
+    }
+
+ACTION_STATUS_LIFECYCLE = {
+    ActionStatus.PENDING: [
+        ActionStatus.PENDING, 
+        ActionStatus.SENT, 
+        ActionStatus.CANCELLED
+        ],
+    ActionStatus.SENT:[
+        ActionStatus.SENT,
+        ActionStatus.COMPLETED, 
+        ActionStatus.CANCELLED
+        ],
+    ActionStatus.COMPLETED: [],
+    ActionStatus.CANCELLED: []
+    }
