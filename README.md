@@ -39,7 +39,7 @@ over WebSocket.
 Currently supported vendors:
 
 | #  | Name | Folder Label | Protocol | Status | Docs |
-|----| ---- | ------------ | -------- | ------ | ---- |
+|:---|:----:|:------------:|:--------:|:------:| ----:|
 | 0. | Archive | `backtest` | Internal DB conncetion | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
 | 1. | CQG WebAPI | `cqg` | WebSocket TSL+protobuf message | ![Status](https://img.shields.io/badge/In_Progress-6030D9) | Docs |
 
@@ -97,7 +97,7 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 ## **Module Review**
 `EC_API` contains the following modules:
 | Module | Description |
-|-----------|-------------|
+|:-------|------------:|
 | `common`  | It contains the common object schema used across the EC<br>application system, such as: `Metrics`, `DataFeed`, etc.|
 | `connect` | The connection module is in charge of session state control<br> and message dispatching to the async callers. |
 | `ext` | External codes. Trade routing API codes live here. |
@@ -221,7 +221,17 @@ provided in the form of a static toml file, and (2) in-session risk check
 updated based on the session information. 
 
 Here is the format for static toml file for pre-trade check:
+```toml
+[global_limits]
+qty_max = 10
 
+[aliases]
+CLEV25  = "CL_GENERIC"
+
+[symbol_limits.CL_GENERIC]
+price_max = 120.0
+price_min = 70.0
+```
 To send orders with `Payload`, you can do the following:
 ```python 
 from EC_API.payload.base import Payload, ExecutePayload
@@ -233,7 +243,6 @@ PREC.load("risk_para.toml")
 
 # Construct Payload object
 PL1 = Payload(
-  status = PayloadStatus.PENDING,
   order_request_type = RequestType.NEW_ORDER,
   order_info = ORDER_INFO,
   check_method = PREC # Static risk check done upon creation
@@ -300,7 +309,6 @@ overtime_cond = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.buffers[timeframe][
 
 # Define Payloads for asset A
 TE_PL_A = Payload(  
-    status = PayloadStatus.PENDING,
     order_request_type = RequestType.NEW_ORDER,
     start_time = datetime.now(timezone.utc) +\
                  timedelta(minutes=5),
