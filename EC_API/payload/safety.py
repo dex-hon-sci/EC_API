@@ -54,8 +54,8 @@ class PreTradeRiskCheck:
         
         self.symbol_limits[sym] = para
         
-    def static_validate(self, order_info: dict) -> bool:
-        if not order_info.get("symbol_name"):
+    def static_validate(self, order_info: dict) -> None:
+        if "symbol_name" not in order_info:
             raise KeyError(
                 "symbol_name not found in the order_info."
                 )
@@ -67,13 +67,21 @@ class PreTradeRiskCheck:
                     raise KeyError(
                         f"Unknown Field in field_map: {key}"
                         )
+                order_value = order_info.get(self.field_map[key])
+                if order_value is None:
+                    continue
+
                     
                 if key.endswith('_max'):
-                    if order_info[self.field_map[key]] > self.global_limits[key]:
-                        raise ValueError("")
+                    if order_value > val:
+                        raise ValueError(
+                            f"{self.field_map[key]}={order_value} exceeds max {val}"
+                            )
                 elif key.endswith('_min'):
-                    if order_info[self.field_map[key]] < self.global_limits[key]:
-                        raise ValueError("")
+                    if order_value < val:
+                        raise ValueError(
+                            f"{self.field_map[key]}={order_value} below min {val}"
+                            )
                                       
         if not self._aliases.get(order_info['symbol_name']):
             raise KeyError(
@@ -90,12 +98,21 @@ class PreTradeRiskCheck:
                         f"Unknown Field in field_map: {key}"
                         )
                     
+                order_value = order_info.get(self.field_map[key])
+                if order_value is None:
+                    continue
+                    
                 if key.endswith('_max'):
-                    if order_info[self.field_map[key]] > sym_table[key]:
-                        raise ValueError("")
+                    if order_value > val:
+                        raise ValueError(
+                            f"{self.field_map[key]}={order_value} exceeds max {val}"
+                            )
                 elif key.endswith('_min'):
-                    if order_info[self.field_map[key]] < sym_table[key]:
-                        raise ValueError("")
+                    if order_value < val:
+                        raise ValueError(
+                            f"{self.field_map[key]}={order_value} below min {val}"
+                            )
+
                         
             
 class InSessionRiskCheck:

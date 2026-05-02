@@ -14,7 +14,11 @@ from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PreTradeRiskCheck
 from EC_API.ordering.trade_session import TradeSession
-from EC_API.exceptions import ExecutePayloadError, LiveOrderRequestError
+from EC_API.exceptions import (
+    ExecutePayloadError, 
+    LiveOrderRequestError,
+    RiskViolationError
+    )
 
 @dataclass(slots=True)
 class Payload:
@@ -35,7 +39,6 @@ class Payload:
     order_info: dict = field(default_factory=dict)
     
     status: PayloadStatus = PayloadStatus.PENDING
-
     start_time: datetime = datetime.now(timezone.utc)\
                                     + timedelta(days=1)# In long text format
     end_time: datetime = datetime.now(timezone.utc)\
@@ -45,8 +48,10 @@ class Payload:
     def __post_init__(self) -> None:
         # Check the order instructions based on the order type
         # import checking classes and func specific for CQG type orders
-        self.risk_check.static_validate(self.order_info)
-        
+        try:
+            self.risk_check.static_validate(self.order_info)
+        except (KeyError, ValueError) as e:
+            raise RiskViolationError(str(e))
 
 class ExecutePayload:
     """
@@ -82,7 +87,9 @@ class ExecutePayload:
             except LiveOrderRequestError as e:
                 raise ExecutePayloadError(str(e))
         else:
-            raise ExecutePayloadError("Only pending payloads can be unloaded.")
+            raise ExecutePayloadError(
+                "Only pending payloads can be unloaded."
+                )
         
 
     

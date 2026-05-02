@@ -198,7 +198,7 @@ class MissingVendorError(EC_APIError):
     def __init__(self, message: str):
         super().__init__(message)
 
-class PriceRangeViolationError(PayloadError):
+class RiskViolationError(PayloadError):
     def __init__(self, message: str):
         super().__init__(message)
         
