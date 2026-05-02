@@ -13,11 +13,11 @@ trades, real-time data monitoring, open positions tracking, etc.
 - [Installation Guide](#installation-guide)
 - [Modules Review](#module-reviews)
 - [Usage](#usage)
--[Interfacing with Exchanges](#Interface)
+- [Interfacing with Exchanges](#Interface)
   - [Establish Connection](#connection)
   - [Sending Orders](#sending-orders)
   - [Monitoring and Data Feed](#monitoring-and-data-feed)
-  - [Payload and Safety Parameters](#risk-and-safety)
+  - [Payload and Pre-Trade Risk Check](#risk-and-safety)
 - [Strategy Building](#strategy-building)
   - [Action Node](#action-node)
   - [Action Tree](#action-tree)
@@ -39,7 +39,7 @@ over WebSocket.
 Currently supported vendors:
 
 | #  | Name | Folder Label | Protocol | Status | Docs |
-|----| ---- |-------------| --------- | ---- | ---- |
+|----| ---- | ------------ | -------- | ------ | ---- |
 | 0. | Archive | `backtest` | Internal DB conncetion | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
 | 1. | CQG WebAPI | `cqg` | WebSocket TSL+protobuf message | ![Status](https://img.shields.io/badge/In_Progress-6030D9) | Docs |
 
@@ -114,9 +114,9 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 Here are some usage examples. 
 We use the CQG connection as an example in this demonstration.
 
-## **Interfacing with Exchanges**
+### **Interfacing with Exchanges**
 
-### **Establish Connection**
+#### **Establish Connection**
 To establish a connection and start running:
 ```python
 import asyncio
@@ -142,7 +142,7 @@ vendor's server. The recommended way to start/stop the service is via
 and async context manager. Alternatively, you may also start/stop the 
 service through `conn.start()` and `conn.stop()` function calls, respectively.
 
-### **Monitoring and Data Feed**
+#### **Monitoring and Data Feed**
 To stream real-time market Data:
 ```python
 from EC_API.monitor.cqg.realtime import MonitorDataCQG
@@ -170,7 +170,7 @@ where `QuotesValueTypeCQG`, `MarketValueTypeCQG` are also `tuple`s.
 For detail description of the field indexing, please refer to either 
 `_typing.py` file or the internal documentation.
 
-### **Trade Session and Live Orders**
+#### **Trade Session and Live Orders**
 To handle trade session and send orders to the exchanges, you need to
 use establish a `TradeSession` object and operate within the context code 
 block. Requests related to the trade account, such as order request, tracking
@@ -212,7 +212,7 @@ async with TradeSessionCQG(conn) as TS:
         request_details = ORDER_INFO
         )  
 ```
-### **Payload and Safety Parameters**
+#### **Payload and Safety Parameters**
 However, it is recommended to send order requests via a `Payload` object. 
 It is a vendor-agnostic dataclass that conduct safety checks upon creation.
 
@@ -246,7 +246,7 @@ async with TradeSessionCQG(conn) as TS:
     
 ```
 
-## **Strategy Building (WIP)**
+### **Strategy Building (WIP)**
 `EC_API` provide useful templates: `OpStrategy` and `OpSignal` 
 classes to aid writing your custom strategy logics by standardising common 
 utilities such as cool-down mechanism and data ingestion.
@@ -274,7 +274,7 @@ To illustrate the workflow, we can look at the following example that shows
 the schema of our operational strategy format.
 ![plot](./images/OpSignal_schema_v2.jpg)
 
-## Action Node
+#### Action Node
 First, we specify the trigger conditions and `Payload` objects to be sent.
 ```python
 from datetime import datetime, timedelta, timezone
