@@ -8,7 +8,6 @@ Created on Thu Apr  2 00:10:29 2026
 import pytest
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.WebAPI.order_2_pb2 import GoFlatStatus as GFltStatus
-
 from EC_API.ordering.enums import (Side)
 from EC_API.ordering.cqg.builders import (
     build_new_order_request_msg
@@ -31,8 +30,10 @@ from EC_API.ordering.cqg.parsers import (
     parse_order_statuses,
     parse_position_statuses,
     parse_account_summary_statuses,
-    parse_go_flat_statuses
+    parse_go_flat_statuses,
+    ordering_parsers
     )
+from EC_API.protocol.cqg.parser_util import parse_server_msg
 from EC_API.exceptions import (MsgParserError)
 
 def test_parse_order_request_rejects_server_msg_valid() -> None:
@@ -52,13 +53,13 @@ def test_parse_order_request_acks_server_msg_valid() -> None:
 
 def test_parse_trade_subscription_statuses_server_msg_valid() -> None:
     msg = build_trade_subscription_statuses_server_msg(ServerMsg())
-    res = parse_trade_subscription_statuses(msg)
+    res = parse_server_msg(msg, ordering_parsers)
     assert isinstance(res, list)
 
 
 def test_parse_trade_snapshot_completions_server_msg_valid() -> None:
     msg = build_trade_snapshot_completions_server_msg(ServerMsg(),sub_id = 3)
-    res = parse_trade_snapshot_completions(msg)
+    res = parse_server_msg(msg, ordering_parsers)
     assert isinstance(res, list)
     assert res[0]['sub_id'] == 3
     assert res[0]['sub_scopes'] == [1,2,3,4]

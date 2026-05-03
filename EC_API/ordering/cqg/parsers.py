@@ -56,32 +56,34 @@ def parse_trade_subscription_statuses(
         msg:ServerMsg
     ) -> list[dict[str, Any]]:
 
-    try:
-        res = []
-        for ele in msg.trade_subscription_statuses:
-            res.append(
-                {'sub_id': ele.id,
-                 'status_code': ele.status_code
-                 }
-                )
-        return res
-    except Exception:
-        raise MsgParserError("Failed to parse trade_subscription_statuses.")
+    try: 
+        res = [] 
+        for ele in msg.trade_subscription_statuses: 
+            res.append( 
+                {'sub_id': ele.id, 
+                 'status_code': ele.status_code 
+                 } 
+                ) 
+        return res 
+    except Exception: 
+        raise MsgParserError("Failed to parse trade_subscription_statuses.") 
         
 @register_parser('trade_snapshot_completions')
 def parse_trade_snapshot_completions(
         msg:ServerMsg
     ) -> list[dict[str, Any]]:
-    try:
-        res = []
-        for ele in msg.trade_snapshot_completions:
-            res.append({
-                "sub_id": ele.subscription_id,
-                "sub_scopes": list(ele.subscription_scopes)
-                })
-        return res
-    except Exception:
-        raise MsgParserError("Failed to parse trade_snapshot_completions.")
+    try: 
+        res = [] 
+        for ele in msg.trade_snapshot_completions: 
+            res.append({ 
+                "sub_id": ele.subscription_id, 
+                "sub_scopes": list(ele.subscription_scopes) 
+                }) 
+        return res 
+
+    except Exception: 
+        raise MsgParserError("Failed to parse trade_snapshot_completions.") 
+
 
 @register_parser('order_statuses')
 def parse_order_statuses(
