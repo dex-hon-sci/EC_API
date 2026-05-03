@@ -20,16 +20,22 @@ from EC_API.ordering.cqg.builders import (
     )
 from EC_API.ordering.cqg.parsers import (
     parse_trade_subscription_statuses,
-    parse_trade_snapshot_completions
+    parse_trade_snapshot_completions,
+    ordering_parsers
     )
 from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.utility.error_handlers import msg_io_error_handler
+from EC_API.protocol.cqg.parser_util import parse_server_msg
+
 from EC_API.exceptions import (
     TradeSessionRequestError,
     TradeSessionTimeOutError,
     TradeSubscriptionMissingError
     )
-from EC_API._typing import OrderStatusType
+from EC_API._typing import (
+    OrderStatusType, 
+    ContractMetaDataType
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +71,7 @@ class TradeSessionCQG:
         self.symbol_registry: SymbolRegistry = SymbolRegistry()
 
         # Settings
-        self.order_statuses_TTL: int = 10 #(Time-to-live)
+        self.order_statuses_TTL: int = 10 #(Time-to-live in Seconds)
         
     # --- Property --- 
     @property
@@ -86,33 +92,24 @@ class TradeSessionCQG:
     # ---- Dunder meothos ---
     async def __aenter__(self):
         return self
+    
+    async def __aexit__(self, *args) -> bool:
+        await self._cleanup()
+        await self._conn.__aexit__(*args)
+        return False
   
-# =============================================================================
-
-#     async def __aexit__(self, exc_type, exc_val, exc_tb):
-#         for sub_id, scopes in list(self._active_subs.items()):
-#             for scope in scopes:
-#                 try:
-#                     await self.unsubscribe_trade_request(sub_id, scope)
-#                 except Exception: # <-- fix this later
-#                     pass
-#         if self._tracker_task and not self._tracker_task.done():
-#             self._tracker_task.cancel()
-#             try:
-#                 await self._tracker_task
-#             except asyncio.CancelledError:
-#                 pass
-#         return False        
-# =============================================================================
-
     # --- Checks
     def has_orders_scope(self) -> bool:
-        return any(SubScope.ORDERS in scopes 
-                   for scopes in self._active_subs.values())
+        return any(
+            SubScope.ORDERS in scopes 
+            for scopes in self._active_subs.values()
+            )
     
     def has_positions_scope(self) -> bool:
-        return any(SubScope.POSITIONS in scopes 
-                   for scopes in self._active_subs.values())
+        return any(
+            SubScope.POSITIONS in scopes 
+            for scopes in self._active_subs.values()
+            )
     # --- Getters
     def get_order_status(self, order_id: str) -> dict:
         return self.order_statuses.get(order_id)
@@ -150,6 +147,27 @@ class TradeSessionCQG:
           
             
     # --- CQG function calls ---
+    async def resolve_symbol(self, symbol_name: str) -> ContractMetaDataType:
+        
+        metadatas = await self._conn.resolve_symbol(symbol_name)
+        print("[stream()] metadata", metadatas)
+        for metadata in metadatas:
+            print('entry', symbol_name, metadata['contract_metadata'],
+                  type(metadata['contract_metadata']))
+            self._symbol_registry.register(
+                symbol_name, 
+                metadata['contract_metadata']
+                )
+            print("[stream()] symbol registry", 
+                  self._symbol_registry.active_symbols,
+                  self._symbol_registry.metatdata)
+
+        return metadatas
+    
+    async def deresolve_symbol(self, symbol_name: str) -> ContractMetaDataType:
+        ...
+
+        
     async def trade_subscription_request(
             self,
             sub_id: int,
@@ -181,7 +199,8 @@ class TradeSessionCQG:
 
             sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self.timeout)
             snapshot_msg = await asyncio.wait_for(fut_snapshot, timeout=self.timeout)
-            return sub_status_msg, snapshot_msg
+            return parse_server_msg(sub_status_msg, ordering_parsers),\
+                   parse_server_msg(snapshot_msg, ordering_parsers)
                    
         # Fix this later. Need to refactor the parsers to parse JSON
             #return parse_trade_subscription_statuses(sub_status_msg),\
@@ -215,7 +234,7 @@ class TradeSessionCQG:
             await self._transport.send(msg)
 
             sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self.timeout)
-            return sub_status_msg
+            return parse_server_msg(sub_status_msg, ordering_parsers)
 
     async def request_historical_orders(
             self,
@@ -223,8 +242,8 @@ class TradeSessionCQG:
             to_date: datetime
         ) ->  dict[str, str]:
         
-        #from_date_timestamp = from_date.timestamp()
-        #to_date_timestamp = to_date.timestamp()
+        from_date_timestamp = from_date.timestamp()
+        to_date_timestamp = to_date.timestamp()
         rid = self.rid()
         with msg_io_error_handler(
                 TradeSessionRequestError,
@@ -233,8 +252,8 @@ class TradeSessionCQG:
             client_msg = build_trade_historical_orders_request_msg( 
                 self._conn._account_id, 
                 rid,
-                from_date,
-                to_date
+                from_date_timestamp,
+                to_date_timestamp
                 )
             key = ('info', 'information_reports:historical_orders_report', 'id', rid)
             fut = self._msg_router.register_key(key)
@@ -243,6 +262,8 @@ class TradeSessionCQG:
         
             return server_msg
         
+    # --- Lifecycle ---
+    async def _cleanup(self): pass
 # =============================================================================
 #         
 # ---

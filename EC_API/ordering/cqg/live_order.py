@@ -183,17 +183,15 @@ class LiveOrderCQG(LiveOrder):
 
         # Get the Inputs
         symbol = request_details['symbol']
-        account_id = self._trade_session._conn._account_id
-        contract_id = self._trade_session.symbol_registry.get_contract_ids(symbol)
-        rid = self._conn.rid()
         # Check State
-        
         # Check Symbol resolution
         if not self._trade_session.symbol_registry.has_symbol(symbol):
             raise MissingSymbolResolutionError(
                 f"Symbol: {symbol} is not in the registry."
                 )
             
+        contract_id = self._trade_session.symbol_registry.get_contract_ids(symbol)
+
         # Check Trade ID
         if not self._trade_session.has_orders_scope():
             raise TradeSubscriptionMissingError(
@@ -212,10 +210,11 @@ class LiveOrderCQG(LiveOrder):
                 raise MissingOrderIDError(
                     f"Order ID: {order_id} is not in active orders."
                     )
+        rid = self._conn.rid()
 
         try: # then send
             details = {
-                "account_id": account_id,
+                "account_id": self._trade_session._conn.account_id,
                 "request_id": rid,
                 "contract_id": contract_id,
                 **request_details,  
