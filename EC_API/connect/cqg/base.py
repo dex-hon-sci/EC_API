@@ -592,23 +592,18 @@ class ConnectCQG(Connect):
                 timeout_error = ConnectTimeOutError
             ):
             rid = self.rid()
-            print('[resolve_symbol] rid', rid)
             msg = build_resolve_symbol_msg(symbol, rid, subscribe=True)
-            print('[resolve_symbol] client_msg', msg)
 
             msg_key = ("info", "information_reports:symbol_resolution_report", "id", rid)
-            print("[resolve_symbol] msg_key", msg_key)
             fut = self._msg_router.register_key(msg_key)
             await self._transport.send(msg)
-            print('[resolve_symbol] fut', fut)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
-            print('[resolve_symbol] server_msg', server_msg)
             
             # walk through the second layer of the message, Find all info report,        
             # parse a list of info
             return parse_server_msg(server_msg, connect_parsers)
         
-    async def deresolve_symbol(
+    async def unsubcribe_symbol(
             self,
             symbol: str
         ) -> None:

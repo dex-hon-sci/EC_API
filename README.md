@@ -97,7 +97,7 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 ## **Module Review**
 `EC_API` contains the following modules:
 | Module | Description |
-|:-------|------------:|
+|:-------|:------------|
 | `common`  | It contains the common object schema used across the EC<br>application system, such as: `Metrics`, `DataFeed`, etc.|
 | `connect` | The connection module is in charge of session state control<br> and message dispatching to the async callers. |
 | `ext` | External codes. Trade routing API codes live here. |
@@ -196,9 +196,8 @@ ORDER_INFO =  {
     "order_type": OrderType.ORDER_TYPE_LMT,  # For Limit orders
     "duration": Duration.DURATION_GTC,      # With a Duration of Good-till-Cancel
     "side": Side.SIDE_BUY,              # Buy order
-    "qty_significant": 2,
-    "qty_exponent": 0, 
-    "scaled_limit_price": 1000,
+    "qty": 2,
+    "limit_price": 100,
     "good_thru_date": datetime(2025,9,9),
     "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
     }

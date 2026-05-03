@@ -23,6 +23,7 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_logged_off_server_msg,
     build_restore_or_join_session_result_server_msg,
     build_pong_server_msg,
+    build_symbol_resolution_report_server_msg
 )
 
 def make_conn() -> tuple[ConnectCQG, FakeTransport]:
@@ -314,20 +315,109 @@ async def test_ping_wrong_token_does_not_resolve() -> None:
     await conn.stop()
 
 
-# ============================================================================= 
-# @pytest.mark.asyncio
-# def test_resolve_symbol_success():...
-# 
+@pytest.mark.asyncio
+async def test_resolve_symbol_success() -> None:
+    conn, ft = make_conn()
+    conn.start()
+
+    rid = conn._rid + 1
+    response = build_symbol_resolution_report_server_msg(
+        ServerMsg(), report_id=rid, contract_symbol="CLE", cotract_id=3
+    )
+
+    result, _ = await asyncio.gather(
+        conn.resolve_symbol("CLE"),
+        _inject_after_send(ft, response),
+    )
+
+    assert result is not None
+    assert len(result) == 1
+    assert result[0]["contract_metadata"]["contract_symbol"] == "CLE"
+    assert result[0]["contract_metadata"]["contract_id"] == 3
+    assert result[0]["id"] == rid
+
+
+@pytest.mark.asyncio
+async def test_resolve_symbol_timeout() -> None:
+    conn, ft = make_conn()
+    conn.start()
+
+    with pytest.raises(ConnectTimeOutError):
+        await conn.resolve_symbol("CLE")  # no server response injected
+
+    await conn.stop()
+
+
+@pytest.mark.asyncio
+async def test_resolve_symbol_sends_correct_params() -> None:
+    conn, ft = make_conn()
+    conn.start()
+
+    async def grab_and_respond() -> None:
+        loop = asyncio.get_running_loop()
+        client_msg = await loop.run_in_executor(None, ft.out_q.get)
+        req = client_msg.information_requests[0]
+        assert req.symbol_resolution_request.symbol == "NGF"
+        assert req.subscribe == True
+        response = build_symbol_resolution_report_server_msg(
+            ServerMsg(), report_id=req.id, contract_symbol="NGF"
+        )
+        await ft.in_q.put(response)
+
+    await asyncio.gather(conn.resolve_symbol("NGF"), grab_and_respond())
+    await conn.stop()
+
+
 # =============================================================================
-# test_logon_failure_result_code
-# test_logon_timeout
-# test_logon_sends_correct_credentials
-# test_logoff_timeout
-# test_restore_request_timeout
-# test_restore_request_uses_stored_token
-# test_ping_token_matches_pong
-# test_ping_timeout
-# test_ping_wrong_token_does_not_resolve
-# 
+# --- unsub_symbol tests
 # =============================================================================
-# =============================================================================
+
+@pytest.mark.asyncio
+async def test_unsub_symbol_success() -> None:
+    conn, ft = make_conn()
+    conn.start()
+
+    rid = conn._rid + 1
+    response = build_symbol_resolution_report_server_msg(
+        ServerMsg(), report_id=rid, contract_symbol="CLE", cotract_id=3
+    )
+
+    result, _ = await asyncio.gather(
+        conn.unsubcribe_symbol("CLE"),
+        _inject_after_send(ft, response),
+    )
+
+    assert result is not None
+    assert len(result) == 1
+    assert result[0]["contract_metadata"]["contract_symbol"] == "CLE"
+
+
+@pytest.mark.asyncio
+async def test_unsub_symbol_timeout() -> None:
+    conn, ft = make_conn()
+    conn.start()
+
+    with pytest.raises(ConnectTimeOutError):
+        await conn.unsubcribe_symbol("CLE")  # no server response injected
+    await conn.stop()
+
+
+@pytest.mark.asyncio
+async def test_unsub_symbol_sends_subscribe_false() -> None:
+    conn, ft = make_conn()
+    conn.start()
+
+    async def grab_and_respond() -> None:
+        loop = asyncio.get_running_loop()
+        client_msg = await loop.run_in_executor(None, ft.out_q.get)
+        req = client_msg.information_requests[0]
+        assert req.symbol_resolution_request.symbol == "CLE"
+        assert req.subscribe == False
+        response = build_symbol_resolution_report_server_msg(
+            ServerMsg(), report_id=req.id, contract_symbol="CLE"
+        )
+        await ft.in_q.put(response)
+
+    await asyncio.gather(conn.unsubcribe_symbol("CLE"), grab_and_respond())
+    await conn.stop()
+     
