@@ -25,12 +25,14 @@ def test_new_order_injection_success() -> None:
         "order_type": OrderType.LMT, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        "scaled_limit_price": 1000,
+        "limit_price": 1000,
         "good_thru_date": int(datetime(2025,9,9).timestamp()),
         "exec_instructions": ExecInstruction.AON,
+        "scale_factor": 1.0
         }
     client_msg = build_new_order_request_msg(
         account_id = 0, 
@@ -45,7 +47,8 @@ def test_modify_order_injection_success() -> None:
         'order_id': '0',
         'orig_cl_order_id': "111", 
         'cl_order_id': "222",
-        'when_utc_timestamp': datetime.now(timezone.utc)
+        'when_utc_timestamp': datetime.now(timezone.utc),
+        "scale_factor": 1.0
         }
     client_msg = build_modify_order_request_msg(
         account_id=0, 
@@ -71,7 +74,7 @@ def test_activate_order_injection_success() -> None:
         'order_id': '0',
         'orig_cl_order_id': "111", 
         'cl_order_id': "222",
-        'when_utc_timestamp': datetime.now(timezone.utc)
+        'when_utc_timestamp': datetime.now(timezone.utc),
         }
     client_msg = build_activate_order_request_msg(
         account_id=0, 
@@ -119,13 +122,15 @@ def test_new_order_unknown_field_raises() -> None:
         "order_type": OrderType.LMT, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        "scaled_limit_price": 1000,
+        "limit_price": 1000,
         "good_thru_date": int(datetime(2025,9,9).timestamp()),
         "exec_instructions": ExecInstruction.AON,
-        "unknown_field": 123 # <---- Unkown Field
+        "unknown_field": 123, # <---- Unkown Field,
+        "scale_factor": 1.0
         }
     with pytest.raises(MsgBuilderError):
         build_new_order_request_msg(
@@ -140,6 +145,7 @@ def test_modify_order_unknown_field_raises() -> None:
         'orig_cl_order_id': "111", 
         'cl_order_id': "222",
         'when_utc_timestamp': datetime.now(timezone.utc),
+        "scale_factor": 1.0,
         "unknown_field": 123 # <---- Unkown Field
         }
     with pytest.raises(MsgBuilderError):
@@ -181,11 +187,13 @@ def test_check_crendential_fail_null() -> None:
         "order_type": OrderType.LMT, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        "scaled_limit_price": 1000,
+        "limit_price": 1000,
         "good_thru_date": datetime(2025,9,9),
+        "scale_factor": 1.0
         }
     with pytest.raises(MsgBuilderError):
         build_new_order_request_msg(          
@@ -204,12 +212,14 @@ def test_check_request_specific_fields_NEW_ORDER_fail_null() -> None:
         #"order_type": OrderType.ORDER_TYPE_LMT, 
         #"duration": Duration.DURATION_GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         #"is_manual": False,
-        "scaled_limit_price": 1000,
+        "limit_price": 1000,
         "good_thru_date": datetime(2025,9,9),
-        "exec_instructions": ExecInstruction.AON
+        "exec_instructions": ExecInstruction.AON,
+        "scale_factor": 1.0
         }
     
     with pytest.raises(MsgBuilderError):
@@ -242,10 +252,12 @@ def test_check_order_specific_essential_fields_LMT_fail_null()->None:
         "order_type": OrderType.LMT, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        #"scaled_limit_price": 1000, <-- missing stop price
+        "scale_factor": 1.0
+        #"limit_price": 1000, <-- missing stop price
         }
     
     with pytest.raises(MsgBuilderError):
@@ -263,10 +275,12 @@ def test_check_order_specific_essential_fields_STP_fail_null()->None:
         "order_type": OrderType.STP, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        #"scaled_stop_price": 1000, <-- missing stop price
+        "scale_factor": 1.0
+        #"stop_price": 1000, <-- missing stop price
         }
     
     with pytest.raises(MsgBuilderError):
@@ -283,11 +297,13 @@ def test_check_order_specific_essential_fields_STL_missing_both_limit_stop_price
         "order_type": OrderType.STL, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        #"scaled_limit_price": 1000, <-- missing limit price
-        #"scaled_stop_price": 1000, <-- missing stop price
+        "scale_factor": 1.0
+        #"limit_price": 1000, <-- missing limit price
+        #"stop_price": 1000, <-- missing stop price
         }
     
     with pytest.raises(MsgBuilderError):
@@ -305,11 +321,13 @@ def test_check_order_specific_essential_fields_STL_missing_both_limit_prices_fai
         "order_type": OrderType.STL, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        #"scaled_limit_price": 1000, <-- missing limit price
-        "scaled_stop_price": 1000, 
+        #"limit_price": 1000, <-- missing limit price
+        "stop_price": 1000, 
+        "scale_factor": 1.0
         }
     
     with pytest.raises(MsgBuilderError):
@@ -327,11 +345,13 @@ def test_check_order_specific_essential_fields_STL_missing_both_stop_prices_fail
         "order_type": OrderType.STL, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        "scaled_limit_price": 1000,
-        #"scaled_stop_price": 1000,  <-- missing limit price
+        "limit_price": 1000,
+        "scale_factor": 1.0
+        #"stop_price": 1000,  <-- missing limit price
         }
     
     with pytest.raises(MsgBuilderError):
@@ -349,10 +369,12 @@ def test_check_order_specific_essential_fields_GTD_fail_null()->None:
         "order_type": OrderType.LMT, 
         "duration": Duration.GTD, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        "scaled_limit_price": 1000, 
+        "limit_price": 1000, 
+        "scale_factor": 1.0
         #"good_thru_date": 10, <-- missing good_thru_date price
         }
     
@@ -371,12 +393,14 @@ def test_check_order_specific_essential_fields_Trail_fail_null()-> None:
         "order_type": OrderType.LMT, 
         "duration": Duration.GTC, 
         "side": Side.BUY,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        #"qty_significant": 2,
+        #"qty_exponent": 0, 
+        "qty": 2,
         "is_manual": False,
-        "scaled_limit_price": 1000, 
+        "limit_price": 1000, 
         "exec_instructions": ExecInstruction.TRAIL,
-        #"scaled_trail_offset": 10, <-- missing scaled_trail_offset price
+        "scale_factor": 1.0
+        #"trail_offset": 10, <-- missing trail_offset price
         }
     
     with pytest.raises(MsgBuilderError):
@@ -388,17 +412,18 @@ def test_check_order_specific_essential_fields_Trail_fail_null()-> None:
             )
         
 def test_stl_missing_only_stop_price_raises():
-    # STL with scaled_limit_price present but scaled_stop_price absent
+    # STL with limit_price present but stop_price absent
     with pytest.raises(MsgBuilderError):
         build_new_order_request_msg(
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.STL,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant = 1,
-            qty_exponent = 10,
+            qty = 1,
             is_manual=False,
-            scaled_limit_price = 10,
-            #scaled_stop_price = 11 <--- missing
+            limit_price = 10,
+            scale_factor= 1.0
+            #stop_price = 11 <--- missing
+            
             )
         
 # ---- Value validation tests ----
@@ -408,8 +433,9 @@ def test_qty_significant_zero_raises():
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.MKT,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant=0,   # <-- zero
-            qty_exponent=0, is_manual=False)
+            qty=0,   # <-- zero
+            scale_factor= 1,
+            is_manual=False)
 
 def test_qty_significant_negative_raises():
     # same but qty_significant=-1
@@ -417,47 +443,49 @@ def test_qty_significant_negative_raises():
         build_new_order_request_msg(
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.MKT,
-            duration=Duration.DAY, side=Side.BUY,
-            qty_significant=-1,   # <-- negative
-            qty_exponent=0, is_manual=False)
+            duration=Duration.DAY, 
+            side=Side.BUY,
+            scale_factor= 1.0,
+            qty=-1,   # <-- negative
+            is_manual=False)
         
-def test_scaled_limit_price_zero_raises():
-    # LMT order with scaled_limit_price=0
+def test_limit_price_zero_raises():
+    # LMT order with limit_price=0
     with pytest.raises(MsgBuilderError):
         build_new_order_request_msg(
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.LMT,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant=1,
-            qty_exponent=0, 
+            qty=1,
+            scale_factor= 1.0,
             is_manual=False,
-            scaled_limit_price = 0 # <---
+            limit_price = 0 # <---
             )
         
-def test_scaled_limit_price_negative_raises():
-    # LMT order with scaled_limit_price=-100
+def test_limit_price_negative_raises():
+    # LMT order with limit_price=-100
     with pytest.raises(MsgBuilderError):
         build_new_order_request_msg(
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.LMT,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant=1,
-            qty_exponent=0, 
+            qty=1,
+            scale_factor= 1.0,
             is_manual=False,
-            scaled_limit_price = -100 # <---
+            limit_price = -100 # <---
             )
         
-def test_scaled_stop_price_zero_raises():
-    # STP order with scaled_stop_price=0
+def test_stop_price_zero_raises():
+    # STP order with stop_price=0
     with pytest.raises(MsgBuilderError):
         build_new_order_request_msg(
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.STP,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant=1,
-            qty_exponent=0, 
+            qty=1,
+            scale_factor= 1.0,
             is_manual=False,
-            scaled_stop_price = 0 # <--- no zero
+            stop_price = 0 # <--- no zero
             )
         
 def test_qty_exponent_out_of_range_raises():
@@ -467,10 +495,10 @@ def test_qty_exponent_out_of_range_raises():
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.STP,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant=1,
-            qty_exponent=0, 
+            qty=1,
+            scale_factor= 1.0,
             is_manual=False,
-            scaled_stop_price = 0 # <--- no zero
+            stop_price = 0 # <--- no zero
             )
         
 def test_qty_exponent_boundary_invalid():
@@ -480,8 +508,8 @@ def test_qty_exponent_boundary_invalid():
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.MKT,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant = 1,
-            qty_exponent = 21,# <--- exceed boundary
+            scale_factor= 1.0,
+            qty = 1000000,# <--- exceed boundary
             is_manual=False,
             )
         
@@ -492,10 +520,10 @@ def test_mkt_with_limit_price_raises():
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.MKT,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant = 1,
-            qty_exponent = 0,
+            scale_factor= 1.0,
+            qty = 1,
             is_manual=False,
-            scaled_limit_price=1000 # <--- contradiction
+            limit_price=1000 # <--- contradiction
             )
         
 def test_mkt_with_stop_price_raises():
@@ -504,10 +532,10 @@ def test_mkt_with_stop_price_raises():
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.MKT,
             duration=Duration.DAY, side=Side.BUY,
-            qty_significant = 1,
-            qty_exponent = 0,
+            scale_factor= 1.0,
+            qty = 1,
             is_manual=False,
-            scaled_stop_price=1000 # <--- contradiction
+            stop_price=1000 # <--- contradiction
             )
 
 def test_fok_with_good_thru_date_raises():
@@ -516,8 +544,8 @@ def test_fok_with_good_thru_date_raises():
             account_id=0, request_id=0, contract_id=0,
             cl_order_id="123", order_type=OrderType.MKT,
             duration=Duration.FOK, side=Side.BUY,
-            qty_significant = 1,
-            qty_exponent = 0,
+            qty = 1,
+            scale_factor= 1.0,
             is_manual=False,
             good_thru_date = 20251231 # <--- contradiction
             )

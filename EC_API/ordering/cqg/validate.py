@@ -71,7 +71,7 @@ def validate_input_para(order_info: dict[str, Any]) -> None:
             raise ValueError("qty_significant cannot be negative.")
             
     if order_info.get("qty_exponent") is not None:
-        lower_limit, upper_limit = -20, 20
+        lower_limit, upper_limit = -5, 5
         if order_info["qty_exponent"] < lower_limit or \
            order_info["qty_exponent"] > upper_limit:
             raise ValueError(f"qty_exponent is outside of the range [{lower_limit}, {upper_limit}].")

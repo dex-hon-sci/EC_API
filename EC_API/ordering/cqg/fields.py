@@ -36,21 +36,26 @@ NEW_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'order_type': ('order_type', Union[OrderType, OrderTypeCQG], None), 
     'duration': ('duration', Union[Duration, DurationCQG], None),
     'side': ('side', Side, None),
+    'qty': ('qty', int, int),
     'qty_significant': ('qty_significant', int, int),
     'qty_exponent': ('qty_exponent', int, int), 
-    'is_manual': ('is_manual', bool, None)
+    'is_manual': ('is_manual', bool, None),
+    'scale_factor': ('scale_factor', float, None)
     }
 
 NEW_ORDER_OPTIONAL_FIELDS: _FieldSpec = { #(key, type, transform_func)
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
     'good_thru_date': ('good_thru_date', int, None),
+    'limit_price': ('limit_price', int, None),
+    'stop_price': ('stop_price', int, None),
     'scaled_limit_price': ('scaled_limit_price', int, None),
     'scaled_stop_price': ('scaled_stop_price', int, None),
     'scaled_trail_offset': ('scaled_trail_offset', int, None),
     'good_thru_utc_timestamp': ('good_thru_utc_timestamp', datetime, None),
     'exec_instructions': ('exec_instructions', Union[ExecInstruction, ExecInstructionCQG], None),
     'suspend': ('suspend', bool, None),
-    "algo_strategy": ("algo_strategy", str, str)
+    "algo_strategy": ("algo_strategy", str, str),
+    'scale_factor': ('scale_factor', float, None)
     }
 
 MODIFY_ORDER_REQUIRED_FIELDS: _FieldSpec = {
@@ -60,12 +65,17 @@ MODIFY_ORDER_REQUIRED_FIELDS: _FieldSpec = {
     'orig_cl_order_id': ('orig_cl_order_id', str, str), 
     'cl_order_id': ('cl_order_id', str, str), 
     'when_utc_timestamp': ('when_utc_timestamp', datetime, None),
+    'scale_factor': ('scale_factor', float, None)
     }
     
 MODIFY_ORDER_OPTIONAL_FIELDS: _FieldSpec = {
-    'scaled_limit_price': ('scaled_limit_price', int, None), 
+    'limit_price': ('limit_price', int, None), 
+    'stop_price': ('stop_price', int, None),
+    'scaled_limit_price': ('scaled_limit_price', int, None),
     'scaled_stop_price': ('scaled_stop_price', int, None),
     'qty': ('qty', int, None), # Sensitive fields only take exact types and no transform func
+    'qty_significand': ('qty_significand', int, int),
+    'qty_exponent': ('qty_exponent', int, int), 
     'remove_activation_time': ('remove_activation_time', bool, None), 
     'remove_suspension_utc_time': ('remove_suspension_utc_time', bool, None), 
     'duration': ('duration', Union[Duration, DurationCQG], None), 

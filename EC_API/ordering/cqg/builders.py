@@ -93,18 +93,22 @@ def build_new_order_request_msg(
     contract_id: int,
     cl_order_id: str, 
     side: Side, # Delibrate choice here to return error msg if no side is provided
-    qty_significant: int, # make sure qty are in Decimal (int) not float
-    qty_exponent: int, 
+    qty: int,
+    #qty_significant: int, # make sure qty are in Decimal (int) not float
+    #qty_exponent: int, 
     order_type: OrderType | OrderTypeCQG = OrderType.MKT, 
     duration: Duration | DurationCQG = Duration.DAY, 
     is_manual: bool = False,
+    scale_factor: float = 1.0,
     **kwargs
     ) -> ClientMsg:
-    
+    #-- Change qty into significand and exponent
     defaults = {
     'exec_instructions': None,
     'good_thru_date': None,
-    'scaled_limit_price': None, 
+    'limit_price': None, 
+    'stop_price': None,
+    'scaled_limit_price': None,
     'scaled_stop_price': None,
     'when_utc_timestamp': None,
     'suspend': None,
@@ -113,8 +117,25 @@ def build_new_order_request_msg(
     'suspend': None,
     'algo_strategy': None
     }
-    kwargs = dict(defaults, **kwargs)    
+    kwargs = dict(defaults, **kwargs)   
     params = locals().copy()
+    
+    qty_significant, qty_exponent =  to_significand_sint64_exponent_sint32(params['qty'])
+    params['qty_significant'] = int(qty_significant)
+    params['qty_exponent'] = int(qty_exponent)
+    #params.pop('qty')
+    
+    if kwargs.get('limit_price'):
+        kwargs['scaled_limit_price'] = int(params['scale_factor']*kwargs['limit_price'])
+        kwargs.pop('limit_price')
+
+    if kwargs.get('stop_price'):
+        kwargs['scaled_stop_price'] = int(params['scale_factor']*kwargs['stop_price'])
+        kwargs.pop('stop_price')
+
+    
+
+    #params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
     full = {**params, **kwargs}
@@ -141,8 +162,8 @@ def build_new_order_request_msg(
     order_requests.new_order.order.side = Side_MAP_INT2CQG[side]
     order_requests.new_order.order.is_manual = is_manual
     
-    order_requests.new_order.order.qty.significand = qty_significant
-    order_requests.new_order.order.qty.exponent = qty_exponent
+    order_requests.new_order.order.qty.significand = full['qty_significant']
+    order_requests.new_order.order.qty.exponent = full['qty_exponent']
 
     if kwargs.get('exec_instructions') is not None:
         order_requests.new_order.order.exec_instructions.append(
@@ -165,13 +186,19 @@ def build_modify_order_request_msg(
     orig_cl_order_id: str, 
     cl_order_id: str, 
     when_utc_timestamp: datetime = datetime.now(timezone.utc),
+    scale_factor: float = 1.0,
     **kwargs
     ) -> ClientMsg:
-
+    
+    #-- Change qty into significand and exponent
     defaults = {
+    'limit_price': None,
+    'stop_price': None,
     'scaled_limit_price': None,
     'scaled_stop_price': None,
     'qty': None,
+    'qty_significand': None,
+    'qty_exponent': None, 
     'remove_activation_time': None,
     'remove_suspension_utc_time': None,
     'duration': None, 
@@ -182,6 +209,22 @@ def build_modify_order_request_msg(
     }
     kwargs = dict(defaults, **kwargs)
     params = locals().copy()
+    
+    if kwargs.get('qty'):
+        qty_significand, qty_exponent = to_significand_sint64_exponent_sint32(kwargs['qty'])
+        kwargs['qty_significand'] = int(qty_significand)
+        kwargs['qty_exponent'] = int(qty_exponent)
+        kwargs.pop('qty')
+    
+    if kwargs.get('limit_price'):
+        kwargs['scaled_limit_price'] = int(params['scale_factor']*kwargs['limit_price'])
+        kwargs.pop('limit_price')
+
+    if kwargs.get('stop_price'):
+        kwargs['scaled_stop_price'] = int(params['scale_factor']*kwargs['stop_price'])
+        kwargs.pop('stop_price')
+
+    #params = locals().copy()
     params.pop('kwargs')
     params.pop('defaults')
     full = {**params, **kwargs}
@@ -205,11 +248,13 @@ def build_modify_order_request_msg(
     order_requests.modify_order.cl_order_id = cl_order_id
     order_requests.modify_order.when_utc_timestamp = when_utc_timestamp
     
-    if kwargs.get('qty') is not None:        
-        significand, exponent = to_significand_sint64_exponent_sint32(kwargs['qty'])
-        order_requests.modify_order.qty.significand = int(significand)
-        order_requests.modify_order.qty.exponent = int(exponent)
-        kwargs.pop('qty')
+    if kwargs.get('qty_significand') is not None:        
+        order_requests.modify_order.qty.significand = int(kwargs['qty_significand'])
+        kwargs.pop('qty_significand')
+        
+    if  kwargs.get('qty_exponent') is not None:
+        order_requests.modify_order.qty.exponent = int(kwargs['qty_exponent'])
+        kwargs.pop('qty_exponent')
         
     if kwargs.get('duration') is not None:
         order_requests.modify_order.duration = Duration_MAP_INT2CQG[kwargs['duration']]
@@ -231,7 +276,7 @@ def build_cancel_order_request_msg(
     order_id: int, # server
     orig_cl_order_id: str, 
     cl_order_id: str,
-    when_utc_timestamp: datetime = datetime.now(timezone.utc)
+    when_utc_timestamp: datetime = datetime.now(timezone.utc),
     ) -> ClientMsg:
     
     params = locals().copy()

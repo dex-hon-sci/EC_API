@@ -65,18 +65,21 @@ def test_build_new_order_request_msg_valid() -> None:
         order_type = OrderType.STP, 
         duration =  Duration.GTC, 
         side = Side.SELL, # Delibrate choice here to return error msg if no side is provided
-        qty_significant = 111, # make sure qty are in Decimal (int) not float
-        qty_exponent = 2, 
+        qty = 11100,
+        #qty_significant = 111, # make sure qty are in Decimal (int) not float
+        #qty_exponent = 2, 
         is_manual = True,
         exec_instructions = ExecInstructionCQG.MLM,
         good_thru_date = 90000,
-        scaled_limit_price = 10121, 
-        scaled_stop_price = 10235,
+        limit_price = 10121, 
+        stop_price = 10235,
         when_utc_timestamp = DT,
         suspend = True,
         scaled_trail_offset = 50,
         good_thru_utc_timestamp =  GTD,
-        algo_strategy = "Kaka")
+        algo_strategy = "Kaka",
+        scale_factor = 1.0
+        )
     assert msg.order_requests[0].request_id == REQUEST_ID
     assert msg.order_requests[0].new_order.order.account_id == ACCOUNT_ID
     assert msg.order_requests[0].new_order.order.contract_id == 10
@@ -112,8 +115,8 @@ def test_build_modify_order_request_msg_valid() -> None:
         cl_order_id = "400",
         when_utc_timestamp = mod_datetime,
         qty = 27, 
-        scaled_limit_price = 12300,
-        scaled_stop_price = 12400,
+        limit_price = 12300,
+        stop_price = 12400,
         remove_activation_time = True,
         remove_suspension_utc_time = True,
         duration = DurationCQG.ATC, 
@@ -121,6 +124,7 @@ def test_build_modify_order_request_msg_valid() -> None:
         good_thru_utc_timestamp = goodthru_datetime, 
         activation_utc_timestamp = activation_datetime,
         extra_attributes = None,
+        scale_factor = 1.0
         )
     assert msg.order_requests[0].request_id == REQUEST_ID
     assert msg.order_requests[0].modify_order.account_id == ACCOUNT_ID
