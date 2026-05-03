@@ -48,6 +48,7 @@ NEW_ORDER_OPTIONAL_FIELDS: _FieldSpec = { #(key, type, transform_func)
     'good_thru_date': ('good_thru_date', int, None),
     'limit_price': ('limit_price', int, None),
     'stop_price': ('stop_price', int, None),
+    'trail_offset': ('trail_offset', int, None),
     'scaled_limit_price': ('scaled_limit_price', int, None),
     'scaled_stop_price': ('scaled_stop_price', int, None),
     'scaled_trail_offset': ('scaled_trail_offset', int, None),

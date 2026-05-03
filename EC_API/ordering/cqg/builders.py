@@ -112,6 +112,7 @@ def build_new_order_request_msg(
     'scaled_stop_price': None,
     'when_utc_timestamp': None,
     'suspend': None,
+    'trail_offset' : None,
     'scaled_trail_offset' : None,
     'good_thru_utc_timestamp': None,
     'suspend': None,
@@ -133,7 +134,9 @@ def build_new_order_request_msg(
         kwargs['scaled_stop_price'] = int(params['scale_factor']*kwargs['stop_price'])
         kwargs.pop('stop_price')
 
-    
+    if kwargs.get('trail_offset'):
+        kwargs['scaled_trail_offset'] = int(params['scale_factor']*kwargs['trail_offset'])
+        kwargs.pop('trail_offset') 
 
     #params = locals().copy()
     params.pop('kwargs')

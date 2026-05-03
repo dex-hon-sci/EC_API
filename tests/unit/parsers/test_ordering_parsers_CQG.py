@@ -66,18 +66,18 @@ def test_parse_trade_snapshot_completions_server_msg_valid() -> None:
 
 def test_parse_order_statuses_server_msg_valid() -> None:
     client_msg = build_new_order_request_msg(
-        123466,
-        10, # request_id
-        10, # contract_id
-        "cl_order_1", 
-        Side.SELL, 
-        111, 
-        2)
+        account_id=123466,
+        request_id=10,
+        contract_id=10,
+        cl_order_id="cl_order_1",
+        side=Side.SELL,
+        qty=111
+        )
+
     msg = build_order_statuses_server_msg(
         ServerMsg(),
         order = client_msg.order_requests[0].new_order.order)
-    res = parse_order_statuses(msg)
-    
+    res = parse_order_statuses(msg)   
     assert isinstance(res, list)
     assert len(res) == 1
     assert res[0]['sub_ids'] == [1]
@@ -94,7 +94,7 @@ def test_parse_order_statuses_server_msg_valid() -> None:
     assert res[0]['order']['cl_order_id'] == 'cl_order_1'
     assert res[0]['order']['side'] == 2
     assert res[0]['order']['qty']['significand'] == 111
-    assert res[0]['order']['qty']['exponent'] == 2
+    assert res[0]['order']['qty']['exponent'] == 0
     
 def test_parse_position_statuses_server_msg_valid() -> None:
     msg = build_position_statuses_server_msg(ServerMsg())
