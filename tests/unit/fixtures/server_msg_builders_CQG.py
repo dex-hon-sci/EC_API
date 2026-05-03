@@ -76,7 +76,7 @@ def build_logged_off_server_msg(
 def build_ping_server_msg(
         server_msg: ServerMsg,
         token: str,
-        ping_time: int = int(datetime.now().timestamp()),
+        ping_time: int = int(datetime.now().timestamp()*1000),
         ) -> ServerMsg:
     ping = server_msg.ping
     ping.token = token

@@ -383,7 +383,7 @@ class ConnectCQG(Connect):
                         continue
                     
                     if is_account_summary_statuses_stream(top_unique_field):
-                        for acc_summ in msg.ccount_summary_statuses:
+                        for acc_summ in msg.account_summary_statuses:
                             await self._acc_summary_stream_router.publish(
                                 acc_summ.account_id, msg
                                 )

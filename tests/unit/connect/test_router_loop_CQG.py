@@ -37,6 +37,8 @@ from tests.unit.fixtures.server_msg_streams_CQG import (
     dummy_info_stream,
     dummy_realtime_data_stream,
     dummy_order_update_stream,
+    dummy_position_update_stream,
+    dummy_account_summary_stream,
     dummy_composite_mkt_data_stream,
     dummy_composite_order_statuses_stream,
     dummy_mixed_full_stream
@@ -61,7 +63,11 @@ async def _drain_all_stream_data(
         for expected_msg in msgs:
             received = await q.get()
             assert id_func(received) == id_func(expected_msg)
-        
+            
+    await asyncio.sleep(0)  # let router flush any in-flight publishes
+    for rid, q in queues.items():
+        assert q.empty(), f"Queue {rid} has {q.qsize()} unexpected extra message(s)"
+    
         
 @pytest.mark.asyncio
 async def test_bench_stream_router_publish() -> None:
@@ -137,10 +143,10 @@ async def test_starvation_check() -> None:
                     print(f"drained {drained} at {time.perf_counter():.4f}")
     
     await asyncio.wait_for(counting_drain(), timeout=0.2)
+    await conn.stop()
     
 @pytest.mark.asyncio
 async def test_router_loop_realtime_mkt_stream_valid() -> None:
-    total_contract_sub = 20
     total_msg_number = 10_000
     # Insert a Fake transport layer to siulate send/recv
     conn = ConnectCQG(
@@ -179,6 +185,8 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
     # Function call transport and call send/recv loop
     start = time.perf_counter()
     conn.start()
+    await asyncio.sleep(0)
+
     try:
         rtmd_stream = [rtmd for msg in msg_stream for rtmd in msg.real_time_market_data]
         await asyncio.wait_for(_drain_all_stream_data(
@@ -192,7 +200,6 @@ async def test_router_loop_realtime_mkt_stream_valid() -> None:
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")
         pytest.fail("Asyncio Time out")
-    
     await conn.stop()
   
     
@@ -244,6 +251,91 @@ async def test_router_loop_orderstatus_updates_stream_valid() -> None:
     
     await conn.stop()
     
+        
+@pytest.mark.asyncio
+async def test_router_loop_positionstatus_updates_stream_valid() -> None:
+    # Insert a Fake transport layer to siulate send/recv
+    conn = ConnectCQG(
+        host_name = "",
+        user_name = "", 
+        password = "",
+        immediate_connect=False,
+        client=object()
+        )
+    conn._timeout = 0.1
+
+    fake_transport = FakeTransport()    
+    conn._transport = fake_transport
+    
+    msg_stream = dummy_position_update_stream(10, 1000)
+    
+    start = time.perf_counter()
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+    #await fake_transport.in_q.put(None)  # sentinel to signal end of stream
+    elapsed = time.perf_counter() - start
+    print(f"Feed time: {elapsed:4f}s")
+    
+    # Define StreamRouter, put it in the Connect object
+    stream_router = StreamRouter()
+    conn._pos_status_stream_router = stream_router
+    
+    # Subscirbe to symbol contract_id
+    chain_order_ids = {m.position_statuses[0].contract_id for m in msg_stream}
+    queues = {cid: stream_router.subscribe(cid) for cid in chain_order_ids}
+
+
+    def _pos_status_id(server_msg):
+        return server_msg.position_statuses[0].contract_id
+    # start router loop
+    start = time.perf_counter()
+    conn.start()
+    try:
+        await asyncio.wait_for(_drain_all_stream_data(
+            queues, msg_stream, _pos_status_id
+            ), timeout=0.2)
+    except asyncio.TimeoutError:
+        elapsed = time.perf_counter() - start
+        print(f"Drain time: {elapsed:.4f}s")
+        pytest.fail("Asyncio Time out")
+    
+    await conn.stop()
+  
+@pytest.mark.asyncio
+async def test_router_loop_acc_summary_updates_stream_valid() -> None:
+    conn = ConnectCQG(
+        host_name="", user_name="", password="",
+        immediate_connect=False, client=object()
+    )
+    conn._timeout = 0.1
+
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+
+    msg_stream = dummy_account_summary_stream(total_msg_number=100)
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+
+    stream_router = StreamRouter()
+    conn._acc_summary_stream_router = stream_router
+
+    account_ids = {m.account_summary_statuses[0].account_id for m in msg_stream}
+    queues = {aid: stream_router.subscribe(aid) for aid in account_ids}
+
+    def _acc_summary_id(msg: ServerMsg) -> int:
+        return msg.account_summary_statuses[0].account_id
+
+    conn.start()
+    try:
+        await asyncio.wait_for(
+            _drain_all_stream_data(queues, msg_stream, _acc_summary_id),
+            timeout=0.2
+        )
+    except asyncio.TimeoutError:
+        pytest.fail("Account summary messages not routed in time")
+
+    await conn.stop()
+  
 @pytest.mark.asyncio
 async def test_router_loop_session_msg_routing_valid():
     # Insert a Fake transport layer to siulate send/recv
@@ -290,14 +382,14 @@ async def test_router_loop_session_msg_routing_valid():
     keys = [logon_key] + pong_keys + [restore_key, logoff_key]
     
     conn.start()
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0)
 
     for fut, msg, key in zip(futs, msg_stream, keys):
         assert fut.done()
         assert fut.result() is msg
         assert key not in conn._msg_router.pending
         
-    await conn.stop()
+    await conn.stop() 
     
 @pytest.mark.asyncio
 async def test_router_loop_rpc_msg_routing_valid() -> None:
@@ -341,9 +433,9 @@ async def test_router_loop_rpc_msg_routing_valid() -> None:
             order_reqest_acks_fut, 
             go_flat_status_fut]
     
-    conn.start()
-    await asyncio.sleep(0.5)
-    
+    conn.start()    
+    await asyncio.sleep(0.1)
+
     for fut, msg, key in zip(futs, msg_stream, keys):
         assert fut.done()
         assert fut.result() is msg
@@ -373,11 +465,11 @@ async def test_router_loop_ping_msg_routing_valid():
         
     # Start the test
     conn.start()
-    await asyncio.sleep(0.6)
+    await asyncio.sleep(0)
     
     assert fake_transport.out_q.qsize() == len(msg_stream)
     for in_msg in msg_stream:
-        out_msg = fake_transport.out_q.get()
+        out_msg = fake_transport.out_q.get_nowait()
         assert in_msg.ping is not None        
         assert out_msg.pong is not None
         assert in_msg.ping.token == out_msg.pong.token
@@ -496,8 +588,8 @@ async def test_router_loop_composite_msg() -> None:
     def _build_key_answers_mkt_data() -> list[RouterKey]:
         mkt_keys = []
         for i in range(num_comp_mkt_data):
-            mkt_keys.append(('md', 'market_data_subscription_statuses', 'contract_id',  i*10 + 0))
-            mkt_keys.append(('md', 'real_time_market_data', 'contract_id',  i*10 + 1))
+            mkt_keys.append(('sub', 'market_data_subscription_statuses', 'contract_id',  i*10 + 0))
+            #mkt_keys.append(('md', 'real_time_market_data', 'contract_id',  i*10 + 1))
         return mkt_keys
     
 
@@ -505,10 +597,9 @@ async def test_router_loop_composite_msg() -> None:
     rpc_keys = _build_key_answers_order_statuses()
     rpc_futs = [conn._msg_router.register_key(key) for key in rpc_keys]
     
-    # Subscribe to the right chain_order_id for order status
-    print('msg_stream_comp_ord_statuses_stream', len(msg_stream_comp_ord_statuses_stream))
-    for m in msg_stream_comp_ord_statuses_stream:
-        print(m.order_statuses)
+    mkt_keys = _build_key_answers_mkt_data()                                   
+    mkt_futs = [conn._msg_router.register_key(key) for key in mkt_keys]        
+
     chain_order_ids = {m.order_statuses[0].chain_order_id for m in msg_stream_comp_ord_statuses_stream}
     queues = {cid: conn._exec_stream_router.subscribe(cid) for cid in chain_order_ids}
 
@@ -523,6 +614,12 @@ async def test_router_loop_composite_msg() -> None:
     # Check RPC message. Both Trade session and Data channel uses the same
     # MessageRouter
     for msg, key, fut in zip(msg_stream_comp_ord_statuses_rpc, rpc_keys, rpc_futs):
+        assert fut.done()
+        assert key not in conn._msg_router.pending
+        assert fut.result() == msg
+        
+    # Check market data subscription status messages
+    for msg, key, fut in zip(msg_stream_comp_mkt_data_rpc, mkt_keys, mkt_futs):
         assert fut.done()
         assert key not in conn._msg_router.pending
         assert fut.result() == msg
@@ -547,6 +644,8 @@ async def test_router_loop_composite_msg() -> None:
         elapsed = time.perf_counter() - start
         print(f"Drain time: {elapsed:.4f}s")
         pytest.fail("Asyncio Time out")
+    await conn.stop() 
+
     
 @pytest.mark.asyncio
 async def test_router_loop_empty_msg(caplog):
@@ -573,6 +672,42 @@ async def test_router_loop_empty_msg(caplog):
     
     assert any("Empty ServerMsg" in r.message for r in caplog.records)
     await conn.stop()
+    
+@pytest.mark.asyncio
+async def test_router_loop_multi_rtmd_per_msg() -> None:
+    conn = ConnectCQG(
+        host_name="", user_name="", password="",
+        immediate_connect=False, client=object()
+    )
+    conn._timeout = 0.1
+
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+
+    # One ServerMsg carrying two rtmd entries with distinct contract_ids
+    msg = ServerMsg()
+    build_real_time_market_data_server_msg(msg, contract_id=101)
+    build_real_time_market_data_server_msg(msg, contract_id=202)
+    await fake_transport.in_q.put(msg)
+
+    stream_router = StreamRouter()
+    conn._mkt_data_stream_router = stream_router
+    q101 = stream_router.subscribe(101)
+    q202 = stream_router.subscribe(202)
+
+    conn.start()
+
+    try:
+        async def check():
+            r101 = await q101.get()
+            r202 = await q202.get()
+            assert r101.contract_id == 101
+            assert r202.contract_id == 202
+        await asyncio.wait_for(check(), timeout=0.1)
+    except asyncio.TimeoutError:
+        pytest.fail("Multi-rtmd routing timed out")
+
+    await conn.stop()
 
 @pytest.mark.asyncio
 async def test_router_loop_invalid_msg_logs_warning_empty_msg(caplog):
@@ -594,8 +729,92 @@ async def test_router_loop_invalid_msg_logs_warning_empty_msg(caplog):
     assert any("Invalid Message Type" in r.message for r in caplog.records)
     await conn.stop()
     
-    
-
 @pytest.mark.asyncio
-async def test_router_loop_transport_dies():...
+async def test_router_loop_transport_dies(caplog) -> None:
+    from EC_API.exceptions import TransportConnectError as TCE
 
+    conn = ConnectCQG(
+        host_name="", user_name="", password="",
+        immediate_connect=False, client=object()
+    )
+    conn._timeout = 0.1
+
+    class _BlippingTransport(FakeTransport):
+        async def recv(self):
+            item = await self.in_q.get()
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+    transport = _BlippingTransport()
+    conn._transport = transport
+
+    msg_before = build_pong_server_msg(ServerMsg(), "tok_a")
+    msg_after  = build_pong_server_msg(ServerMsg(), "tok_b")
+    await transport.in_q.put(msg_before)
+    await transport.in_q.put(TCE("transport blip"))
+    await transport.in_q.put(msg_after)
+
+    msg_router = MessageRouter()
+    conn._msg_router = msg_router
+    fut_before = msg_router.register_key(('session', 'pong', 'token', 'tok_a'))
+    fut_after  = msg_router.register_key(('session', 'pong', 'token', 'tok_b'))
+
+    with caplog.at_level(logging.ERROR, logger="EC_API.connect.cqg.base"):
+        conn.start()
+        await asyncio.sleep(0)
+
+    assert any("TransportConnectError" in r.message for r in caplog.records)
+    assert fut_before.done(), "message before error was not routed"
+    assert fut_after.done(),  "loop did not resume after TransportConnectError"
+
+    await conn.stop()
+    
+@pytest.mark.asyncio
+async def test_router_loop_orderstatus_fifo_ordering() -> None:
+    conn = ConnectCQG(
+        host_name="", user_name="", password="",
+        immediate_connect=False, client=object()
+    )
+    conn._timeout = 0.1
+
+    fake_transport = FakeTransport()
+    conn._transport = fake_transport
+
+    msg_stream = dummy_order_update_stream()
+    for msg in msg_stream:
+        await fake_transport.in_q.put(msg)
+
+    stream_router = StreamRouter()
+    conn._exec_stream_router = stream_router
+
+    chain_order_ids = {m.order_statuses[0].chain_order_id for m in msg_stream}
+    queues = {cid: stream_router.subscribe(cid) for cid in chain_order_ids}
+
+    # Capture expected status sequence per order before routing starts
+    expected_sequences: dict[str, list] = {}
+    for msg in msg_stream:
+        cid = msg.order_statuses[0].chain_order_id
+        expected_sequences.setdefault(cid, []).append(msg.order_statuses[0].status)
+
+    conn.start()
+
+    async def drain_and_verify_fifo():
+        for cid, statuses in expected_sequences.items():
+            for expected_status in statuses:
+                received = await queues[cid].get()
+                assert received.order_statuses[0].status == expected_status, (
+                    f"FIFO violated for order {cid}: "
+                    f"expected {expected_status!r}, got {received.order_statuses[0].status!r}"
+                )
+
+    try:
+        await asyncio.wait_for(drain_and_verify_fifo(), timeout=0.2)
+    except asyncio.TimeoutError:
+        pytest.fail("FIFO drain timed out")
+        
+    await asyncio.sleep(0)
+    for cid, q in queues.items():
+        assert q.empty(), f"Queue {cid} has {q.qsize()} unexpected extras"
+
+    await conn.stop()

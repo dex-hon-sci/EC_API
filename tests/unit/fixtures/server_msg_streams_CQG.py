@@ -30,6 +30,7 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_trade_subscription_statuses_server_msg,
     build_trade_snapshot_completions_server_msg,
     build_order_statuses_server_msg,
+    build_position_statuses_server_msg,
     build_order_request_rejects_server_msg,
     build_order_request_acks_server_msg,
     build_account_summary_statuses_server_msg,
@@ -112,6 +113,27 @@ def dummy_order_update_stream(
     res = mixer(inputs)    
     return res
 
+
+def dummy_position_update_stream(
+        total_sym_subbed: int,
+        total_msg_number: int,
+        seed: int = 100
+    ) -> list[ServerMsg]:
+    rng = random.Random(seed)
+    msgs = [
+        build_position_statuses_server_msg(
+            ServerMsg(), contract_id=rng.randrange(0, total_sym_subbed))
+        for _ in range(total_msg_number)
+        ]
+    return msgs
+
+def dummy_account_summary_stream(
+        total_msg_number: int,
+    ) -> list[ServerMsg]:
+    msgs = [
+        build_account_summary_statuses_server_msg(ServerMsg())
+        ]
+    return msgs
 
 def dummy_rpc_stream() -> list[ServerMsg]:
     order_request_rejects_msg = build_order_request_rejects_server_msg(ServerMsg())
@@ -223,8 +245,12 @@ def dummy_composite_mkt_data_stream(num: int = 10) -> list[ServerMsg]:
     def _composite_mkt_data_msg(
             server_msg: ServerMsg,
             composite_ids: list[int]) -> ServerMsg: 
-        server_msg = build_market_data_subscription_statuses_server_msg(server_msg)
-        server_msg = build_real_time_market_data_server_msg(server_msg)
+        server_msg = build_market_data_subscription_statuses_server_msg(
+            server_msg, contract_id = composite_ids[0]
+            )
+        server_msg = build_real_time_market_data_server_msg(
+            server_msg, contract_id = composite_ids[1]
+            )
 
         return server_msg
     
@@ -275,10 +301,3 @@ def dummy_mixed_full_stream(seed: int = 500) -> list[ServerMsg]:
     total_stream.append(session_stream[-1]) # logoff message
     
     return total_stream
-
-
-
-def stream_generator(stream: list[ServerMsg]):
-    q = deque(stream)
-    while q:
-        yield q.popleft()#dummy_mixed_full_stream()
