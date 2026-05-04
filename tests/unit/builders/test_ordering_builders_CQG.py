@@ -75,7 +75,7 @@ def test_build_new_order_request_msg_valid() -> None:
         stop_price = 10235,
         when_utc_timestamp = DT,
         suspend = True,
-        scaled_trail_offset = 50,
+        trail_offset = 50,
         good_thru_utc_timestamp =  GTD,
         algo_strategy = "Kaka",
         scale_factor = 1.0

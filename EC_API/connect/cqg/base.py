@@ -547,7 +547,6 @@ class ConnectCQG(Connect):
         if not token:
             token = str(self.rid())
         utc_time = int(datetime.now(tz=timezone.utc).timestamp()*1000)
-        print(token, utc_time)
         
         with msg_io_error_handler(
                 ConnectRequestError, 
@@ -599,11 +598,9 @@ class ConnectCQG(Connect):
             await self._transport.send(msg)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
             
-            # walk through the second layer of the message, Find all info report,        
-            # parse a list of info
             return parse_server_msg(server_msg, connect_parsers)
         
-    async def unsubcribe_symbol(
+    async def unsubscribe_symbol(
             self,
             symbol: str
         ) -> None:

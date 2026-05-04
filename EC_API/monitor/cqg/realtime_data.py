@@ -42,7 +42,9 @@ from EC_API.exceptions import (
     MaxSymbolsExceededError,
     MaxSubscribersExceededError,
     UnknownSubscriptionError, 
-    SubscriptionQueueMismatchError
+    SubscriptionQueueMismatchError,
+    SymbolNotInRegistryError, 
+    MetaDataMissingError
     )
 from EC_API._typing import (
     ParsedRTMDCQG
@@ -105,8 +107,10 @@ class MonitorDataCQG(Monitor):
         return self
     
     async def __aexit__(self, *args) -> bool:
-        await self._cleanup()
-        await self._conn.__aexit__(*args)
+        try:
+            await self._cleanup()
+        finally:
+            await self._conn.__aexit__(*args)
         return False
         
     # --- function calls ---
@@ -187,7 +191,8 @@ class MonitorDataCQG(Monitor):
             finally:
                 try:
                     self._stream_router.unsubscribe(contract_id, q)
-                except (UnknownSubscriptionError, SubscriptionQueueMismatchError) as e:
+                except (UnknownSubscriptionError, 
+                        SubscriptionQueueMismatchError) as e:
                     logger.warning(str(e))
     
     # --- CQG function calls
@@ -246,11 +251,14 @@ class MonitorDataCQG(Monitor):
         if not active_symbols:
             return 
         
-        for sym in active_symbols:
+        for sym in list(active_symbols):
             try:
-                metadatas = await self._conn.deresolve_symbol(sym)
-            except ConnectTimeOutError as e:
+                await self._conn.unsubscribe_symbol(sym)
+                self._symbol_registry.remove_symbol(sym)
+                self._symbol_registry.remove_metadata(sym)
+            except (SymbolNotInRegistryError, 
+                    MetaDataMissingError, 
+                    ConnectTimeOutError) as e:
                 logger.warning(str(e))
-                return
  
             

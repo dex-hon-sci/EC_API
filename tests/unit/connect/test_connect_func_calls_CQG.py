@@ -383,7 +383,7 @@ async def test_unsub_symbol_success() -> None:
     )
 
     result, _ = await asyncio.gather(
-        conn.unsubcribe_symbol("CLE"),
+        conn.unsubscribe_symbol("CLE"),
         _inject_after_send(ft, response),
     )
 
@@ -398,7 +398,7 @@ async def test_unsub_symbol_timeout() -> None:
     conn.start()
 
     with pytest.raises(ConnectTimeOutError):
-        await conn.unsubcribe_symbol("CLE")  # no server response injected
+        await conn.unsubscribe_symbol("CLE")  # no server response injected
     await conn.stop()
 
 
@@ -418,6 +418,6 @@ async def test_unsub_symbol_sends_subscribe_false() -> None:
         )
         await ft.in_q.put(response)
 
-    await asyncio.gather(conn.unsubcribe_symbol("CLE"), grab_and_respond())
+    await asyncio.gather(conn.unsubscribe_symbol("CLE"), grab_and_respond())
     await conn.stop()
      
