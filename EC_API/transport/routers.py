@@ -38,6 +38,32 @@ class MessageRouter:
         
         fut.add_done_callback(_cleanup)
         return fut
+    
+    def register_racing_keys(self, keys: list[RouterKey]) -> asyncio.Future:
+        # Automatically resolve racing keys for async task. 
+        # One winner future, cancel the rest.
+        final_fut = asyncio.get_running_loop().create_future()
+        
+        sub_futs = []
+        for key in keys:
+            if key in self.pending.keys():
+                msg = f"[{self.__class__.__name__}] Router register key failed: key '{key}' already exist."
+                raise DuplicateRouterKeyError(msg)
+
+            sub_fut = self.register_key(key)
+            sub_futs.append(sub_fut)
+            
+            def _on_sub_fut_done(this_fut: asyncio.Future):
+                if this_fut.cancelled() or final_fut.done():
+                    return 
+                final_fut.set_result(this_fut.result())
+                
+                for fut in sub_futs:
+                    if not fut.done:
+                        fut.cancel()
+                    
+            sub_futs.add_done_callback(_on_sub_fut_done)
+        return final_fut
 
     def on_message(self, key: RouterKey, msg: Any) -> bool:
         fut = self.pending.pop(key, None)
