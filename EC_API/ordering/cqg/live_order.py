@@ -225,7 +225,7 @@ class LiveOrderCQG(LiveOrder):
             request_type: RequestType,
             request_details: dict,
             **kwargs
-        ) -> Optional[tuple[str, asyncio.Queue]]:
+        ) -> Optional[tuple[str, asyncio.Queue]] | dict | None:
 
         # Get the Inputs
         symbol = request_details['symbol']
@@ -268,20 +268,30 @@ class LiveOrderCQG(LiveOrder):
                 case RequestType.NEW_ORDER:
                     parsed_server_msg = await self._new_order_request(details)       
                     if parsed_server_msg.get('chain_order_id'):
-                        self._trade_session.cl_order_id[request_details['cl_order_id']] =\
+                        self._trade_session.cl_to_chain[request_details['cl_order_id']] =\
                             parsed_server_msg['chain_order_id']
                         q = self.stream_router.subscribe(parsed_server_msg['chain_order_id'])
                         return (parsed_server_msg['chain_order_id'], q)
                     
                     elif parsed_server_msg.get('reject_code'):
                         raise LiveOrderRequestError(f'{request_type} request failed.')
-                        
-                case RequestType.MODIFY_ORDER:
+# =============================================================================
+#                         # inside send(), after confirm future resolves
+#   chain_order_id = parsed['chain_order_id']
+#   self._trade_session.latest_order_state_by_chain[chain_order_id] = parsed  # first msg
+#   q = self.stream_router.subscribe(chain_order_id)                           # no gap
+#   await self._trade_session._new_chain_q.put((chain_order_id, q))            # notify
+#   tracker_loop
+#   return chain_order_id                                                       # caller
+#   gets ID only  
+#                 case RequestType.MODIFY_ORDER:
+# =============================================================================
                     parsed_server_msg = await self._modify_order_request(details)        
                 case RequestType.CANCEL_ORDER:
                     parsed_server_msg = await self._cancel_order_request(details)
                 case RequestType.ACTIVATE_ORDER:
                     parsed_server_msg = await self._activate_order_request(details)
+                    
                 case RequestType.CANCELALL_ORDER:
                     parsed_server_msg = await self._cancel_all_order_request(details)
                     return parsed_server_msg

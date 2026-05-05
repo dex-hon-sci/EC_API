@@ -59,7 +59,7 @@ class MessageRouter:
                 final_fut.set_result(this_fut.result())
                 
                 for fut in sub_futs:
-                    if not fut.done:
+                    if not fut.done():
                         fut.cancel()
                     
             sub_futs.add_done_callback(_on_sub_fut_done)

@@ -23,6 +23,7 @@ trades, real-time data monitoring, open positions tracking, etc.
   - [Action Tree](#action-tree)
   - [OpSignal](#op-signal)
   - [OpStrategy](#op-strategy)
+- [Communications](#IPC)
     
 ## **Project Description**
 `EC_API` is a trading API that handles message relays 
@@ -97,7 +98,8 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 ## **Module Review**
 `EC_API` contains the following modules:
 | Module | Description |
-|:-------|:------------|
+|--------|-------------|
+| `channel` | Communication Channels for cross-process operation. |
 | `common`  | It contains the common object schema used across the EC<br>application system, such as: `Metrics`, `DataFeed`, etc.|
 | `connect` | The connection module is in charge of session state control<br> and message dispatching to the async callers. |
 | `ext` | External codes. Trade routing API codes live here. |

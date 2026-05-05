@@ -212,16 +212,12 @@ class MonitorDataCQG(Monitor):
                 timeout_error = MonitorTimeOutError
             ):
             msg = build_realtime_data_request_msg(contract_id, self.rid(), level)
-            print('[realtime request] msg', msg)
         
             key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
             fut = self._msg_router.register_key(key)
-            print('[realtime request] key', key)
 
             await self._transport.send(msg)  
             confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
-            
-            print('[realtime request] confirm_msg', confirm_msg)
 
             return parse_market_data_subscription_statuses(confirm_msg)
     

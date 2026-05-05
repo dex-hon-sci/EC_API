@@ -373,7 +373,12 @@ class ConnectCQG(Connect):
                             await self._exec_stream_router.publish(
                                 ord_sts.chain_order_id, msg
                                 )
+                            # one-shot future resolution — silent no-op if nobody registered
+                            cl_order_id = ord_sts.order.cl_order_id
+                            key = ('order_confirm', 'order_statuses', 'cl_order_id', cl_order_id)
+                            self._msg_router.on_message(key, msg)
                         continue
+
                     
                     if is_position_statuses_stream(top_unique_field):
                         for pos_sts in msg.position_statuses:

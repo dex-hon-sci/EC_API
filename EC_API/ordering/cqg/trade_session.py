@@ -77,9 +77,12 @@ class TradeSessionCQG:
         self._active_trade_subs: dict[int, set[SubScope]] = dict() # trade_sub_id -> scope
 
         # Logging event pairing 
-        self.first_cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID]] = dict() 
+        self.cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID]] = dict() 
         
         # --- Containers --- 
+        
+        #self._pending_cl: set[OS_CL_ORDER_ID] = set()
+        #self._pending_cl_to_rid: dict[OS_CL_ORDER_ID, int] = dict()
         # Snapshots for the latest order_state. overwrite on every event
         self.latest_order_state_by_chain: dict[OS_CHAIN_ORDER_ID, OrderStatusTypeCQG] = dict() # latest status, overwritten everytime
         self.latest_pos_status_by_contract_id: dict[PS_CONTRACT_ID, PositionStatusTypeCQG] = dict()
@@ -122,13 +125,13 @@ class TradeSessionCQG:
     def has_orders_scope(self) -> bool:
         return any(
             SubScope.ORDERS in scopes 
-            for scopes in self._active_subs.values()
+            for scopes in self._active_trade_subs.values()
             )
     
     def has_positions_scope(self) -> bool:
         return any(
             SubScope.POSITIONS in scopes 
-            for scopes in self._active_subs.values()
+            for scopes in self._active_trade_subs.values()
             )
     
     # --- Getters
@@ -153,6 +156,10 @@ class TradeSessionCQG:
         # subscribes to exec_stream_router, updates _order_state
         while not self._stop_evt.is_set():
             
+            # consume _exec_queue
+            
+            if not self._pending_cl_to_rid():
+                ...
             # If There are new order_id added
             for chain_order_id in self.active_orders:
                 queues = self._stream_router._subs.get(chain_order_id, [])
@@ -369,4 +376,190 @@ class TradeSessionCQG:
 #   asyncio.sleep(0) instead of a timed sleep — it yields control back to the event loop
 #   every cycle without adding artificial latency. The loop only does real work when
 #   queues are non-empty.
+# =============================================================================
+# =============================================================================
+# 
+# ● Exactly — a hand-off by reference. send() creates the queue, passes the reference,
+#   tracker_loop owns it from there. One object, two holders temporarily, then
+#   tracker_loop holds it alone.
+# 
+#   And yes, tracker_loop can unsubscribe cleanly because StreamRouter.unsubscribe() takes
+#    the exact queue object:
+# 
+#   # tracker_loop, on terminal state detected
+#   self._conn._exec_stream_router.unsubscribe(chain_order_id, q)
+# 
+#   Same q reference that was handed off — StreamRouter identifies it by object identity,
+#   removes it from the subscriber list, deletes the key if empty.
+# 
+#   So the full lifecycle:
+# 
+#   send()          → subscribe(chain_order_id) → q created
+#                   → _new_chain_q.put((chain_order_id, q))
+#                   → returns chain_order_id
+# 
+#   tracker_loop    → reads (chain_order_id, q) from _new_chain_q
+#                   → drains q, updates state
+#                   → terminal state hit
+#                   → unsubscribe(chain_order_id, q)  ← same reference
+#                   → q gone, key cleaned up if no other subscribers
+# 
+#   tracker_loop never touches _exec_stream_router.subscribe() directly — it only ever
+#   unsubscribes. send() is the sole creator of subscriptions for order tracking.
+# =============================================================================
+# =============================================================================
+#   routers.py lines 62-65:
+#   def _on_sub_fut_done(this_fut: asyncio.Future):
+#       if this_fut.cancelled() or final_fut.done():
+#           return
+#       final_fut.set_result(this_fut.result())
+# 
+#       for fut in sub_futs:
+#           if not fut.done:          # ← bug 1: checks method object, not calling it
+#               fut.cancel()
+# 
+#   sub_futs.add_done_callback(_on_sub_fut_done)  # ← bug 2: list has no
+#   .add_done_callback
+# 
+#   Both need to be:
+#   for fut in sub_futs:
+#       if not fut.done():           # call it
+#           fut.cancel()
+# 
+#   sub_fut.add_done_callback(_on_sub_fut_done)   # on the future, not the list
+# 
+#   ---
+#   Now, the tracker_loop. There are a few prerequisite changes needed first.
+# 
+#   parse_order_statuses needs status_code — it currently doesn't extract ele.status at
+#   all, which tracker_loop needs for terminal detection. Add to the D dict:
+# 
+#   from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_CQG2INT
+# 
+#   # inside parse_order_statuses loop:
+#   D['status_code'] = OrderStatus_MAP_CQG2INT.get(ele.status, OrderStatus.PENDING).value
+# 
+#   TradeSessionCQG.__init__ needs _new_chain_q:
+#   self._new_chain_q: asyncio.Queue[tuple[str, asyncio.Queue]] = asyncio.Queue()
+# 
+#   send() in live_order.py — the current NEW_ORDER block is broken (calls .get() on a
+#   list). The correct hand-off shape:
+# 
+#   case RequestType.NEW_ORDER:
+#       parsed_list = await self._new_order_request(details)
+#       first = parsed_list[0] if parsed_list else {}
+# 
+#       if 'chain_order_id' in first:
+#           chain_order_id = first['chain_order_id']
+#           self._trade_session.latest_order_state_by_chain[chain_order_id] = first
+#           q = self.stream_router.subscribe(chain_order_id)
+#           await self._trade_session._new_chain_q.put((chain_order_id, q))
+#           self._trade_session.cl_to_chain[request_details['cl_order_id']] =
+#   chain_order_id
+#           return chain_order_id
+#       elif first.get('reject_code'):
+#           raise LiveOrderRequestError(
+#               f"NEW_ORDER rejected: code={first['reject_code']}"
+#           )
+# 
+#   tracker_loop implementation:
+# 
+#   async def _tracker_loop(self):
+#       from EC_API.ordering.cqg.parsers import parse_order_statuses
+#       TERMINAL = {
+#           OrderStatus.FILLED, OrderStatus.CANCELLED,
+#           OrderStatus.REJECTED, OrderStatus.EXPIRED
+#       }
+#       active: dict[str, asyncio.Queue] = {}
+# 
+#       while not self._stop_evt.is_set():
+#           # intake new chain registrations
+#           while not self._new_chain_q.empty():
+#               chain_order_id, q = self._new_chain_q.get_nowait()
+#               active[chain_order_id] = q
+# 
+#           done: set[str] = set()
+#           for chain_order_id, q in active.items():
+#               while not q.empty():
+#                   server_msg = q.get_nowait()
+#                   all_statuses = parse_order_statuses(server_msg)
+#                   # stream_router publishes full ServerMsg keyed by chain_order_id
+#                   # — find the one matching this subscription
+#                   parsed = next(
+#                       (s for s in all_statuses if s['chain_order_id'] ==
+#   chain_order_id),
+#                       None
+#                   )
+#                   if parsed is None:
+#                       continue
+# 
+#                   # cl_order_id only present when 'order' sub-field populated
+#                   if parsed.get('order', {}).get('cl_order_id'):
+#                       self.cl_to_chain[parsed['order']['cl_order_id']] = chain_order_id
+# 
+#                   self.latest_order_state_by_chain[chain_order_id] = parsed
+# 
+#                   if parsed.get('status_code') in TERMINAL:
+#                       done.add(chain_order_id)
+#                       break   # stop draining — terminal is final
+# 
+#           for chain_order_id in done:
+#               q = active.pop(chain_order_id)
+#               self._stream_router.unsubscribe(chain_order_id, q)
+#               logger.info("Order %s reached terminal state", chain_order_id)
+# 
+#           await asyncio.sleep(0)
+# 
+#   One subtle note on the break: once terminal is detected, we stop draining that queue.
+#   Any remaining messages are stale — the order is done. unsubscribe removes the queue
+#   from _stream_router._subs, so the queue reference goes away.
+# 
+#   Also fix the _active_subs vs _active_trade_subs inconsistency in trade_session.py —
+#   the methods (has_orders_scope, has_positions_scope, trade_subscription_request,
+#   unsubscribe_trade_request) all reference _active_subs but __init__ defines
+#   _active_trade_subs. Pick one name (the longer one is more explicit) and update all
+#   references.
+# 
+#   ---
+#   Production-level assessment
+# 
+#   You're at solid prototype / demo-ready, ~4–6 weeks of focused work from
+#   production-grade. The gap isn't the core transport layer (that's clean) — it's
+#   everything downstream:
+# 
+#   ┌───────────────┬───────────────────────────────────┬────────────────────────────┐
+#   │       Gap       │          What's missing          │           Effort           │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ Integration     │ Real CQG sandbox round-trip: new │ Medium — need sandbox      │
+#   │ tests           │  → fill, modify, cancel          │ credentials and a test     │
+#   │                 │ lifecycle                        │ harness                    │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ Stress / load   │ StreamRouter under 10k msg/s;    │ Small — just a benchmark   │
+#   │                 │ tracker_loop drift under load    │ script + asyncio profiling │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ Latency         │ End-to-end send() → first        │ Small once integration     │
+#   │ profiling       │ order_statuses latency (p50/p99) │ harness exists             │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ Strategy layer  │ ActionTree / ActionNode fully    │ Large                      │
+#   │                 │ implemented + tested             │                            │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ IPC channel     │ Redis Streams + msgpack bridge   │ Medium                     │
+#   │                 │ for cross-process deploy         │                            │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ common/         │ Rework adjacent to strategy      │ Medium                     │
+#   │ datafeed        │ layer                            │                            │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ tracker_loop    │ What you're implementing now     │ Small (you know the        │
+#   │                 │                                  │ design)                    │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ op_strategy     │ Currently 0% coverage            │ Medium                     │
+#   │ tests           │                                  │                            │
+#   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
+#   │ live_order.py   │ Currently 25%                    │ Small — just missing mock  │
+#   │ tests           │                                  │ for transport              │
+#   └─────────────────┴──────────────────────────────────┴────────────────────────────┘
+# 
+#   The tracker_loop fix + the two routers.py bugs + send() rewrite are the blocking items
+#    right now — everything above that is blocked on those being correct.
+# 
 # =============================================================================
