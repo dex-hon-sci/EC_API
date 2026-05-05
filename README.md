@@ -275,29 +275,22 @@ a top-to-down perspective, we have:
 2. `OpSignal` reads the `DataFeed` and controls xxx;
 3. `ActionTree` controls the traversal along the `ActionNode` chain and the
     sequence of execution of the `ActionNode` objects;
-4. `ActionNode` controls when the `Payload` insertion is triggered;
-5. `Payload` controls how the desired orders are sent to an Exchange (`LiveOrder`
-    type objects), and what format checking policy (via `FormatCheck` type 
-    objects) is used to validate our orders.
+4. `ActionNode` controls when the execution is triggered and sent to the trade 
+    engine;
 
 To illustrate the workflow, we can look at the following example that shows
 the schema of our operational strategy format.
 ![plot](./images/OpSignal_schema_v2.jpg)
 
 #### Action Node
-First, we specify the trigger conditions and `Payload` objects to be sent.
+First, we specify the trigger conditions and instructions to carry out orders.
 ```python
 from datetime import datetime, timedelta, timezone
 from EC_API.op_strategy.action import ActionNode, ActionTree
 from EC_API.op_strategy.signal import OpSignal
-from EC_API.payload.cqg.safety import CQGFormatCheck
-from EC_API.payload.base import Payload
-from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 
 # Global variables
-account_id = 1000
-checks = CQGFormatCheck #Define checking schema for Payloads
 
 # Trigger Conditions
 price_a, price_b, price_c, price_d, price_a2 = 100, 50, 60, 70, 80
@@ -308,14 +301,10 @@ TP_trigger_2 = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close']  <= 
 cancel_trigger = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.ohlc()['Close'] < price_b
 overtime_cond = lambda ctx: ctx.feeds['Asset_A'].tick_buffer.buffers[timeframe][-1].timestamp >= (datetime.now(tz=timezone.utc) + timedelta(seconds=5)).timestamp()
 
-# Define Payloads for asset A
-TE_PL_A = Payload(  
-    order_request_type = RequestType.NEW_ORDER,
-    start_time = datetime.now(timezone.utc) +\
-                 timedelta(minutes=5),
-    end_time = datetime.now(timezone.utc) +\
-               timedelta(days=1),
-    order_info = {
+# ActionNodes take in a 2-tuple as instruction: (request_type, order_info)
+TE_PL_A = (  
+    RequestType.NEW_ORDER,
+    {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
         "order_type": OrderType.ORDER_TYPE_LMT, 
@@ -327,64 +316,47 @@ TE_PL_A = Payload(
         "scaled_limit_price": 100,
         "good_thru_date": datetime(2025,9,9),
         "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
-        },
-    check_method = checks
-    )
-TE_mod_PL_A = Payload(
-    status = PayloadStatus.PENDING,
-    order_request_type = RequestType.MODIFY_ORDER,
-    order_info = {
+        })
+TE_mod_PL_A = (
+    RequestType.MODIFY_ORDER,
+    {
         "symbol_name": "Asset_A",
         "orig_cl_order_id" : "1231314",
         "cl_order_id" : "1231315",
         "scaled_limit_price": 80, 
-        },
-    check_method = checks
-    )
-TP_PL1_A = Payload(
-    status = PayloadStatus.PENDING,
-    order_request_type = RequestType.NEW_ORDER,
-    order_info = {
+        })
+TP_PL1_A = (
+    RequestType.NEW_ORDER,
+    {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
         "order_type": OrderType.ORDER_TYPE_LMT, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "scaled_limit_price": 60,
-        },
-    check_method = checks
-    )
-TP_PL2_A = Payload(
-    status = PayloadStatus.PENDING,
-    order_request_type = RequestType.NEW_ORDER,
-    order_info = {
+        })
+TP_PL2_A = (
+    RequestType.NEW_ORDER,
+    {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
         "order_type": OrderType.ORDER_TYPE_LMT, 
         "side": Side.SIDE_BUY,
         "qty_significant": 2,
         "scaled_limit_price": 70,
-        },
-    check_method = checks
-    )
-cancel_PL_A = Payload(
-    status = PayloadStatus.PENDING,
-    order_request_type = RequestType.CANCEL_ORDER,
-    order_info = {
+        })
+cancel_PL_A = (
+    RequestType.CANCEL_ORDER,
+    {
         "symbol_name": "Asset_A",
         "orig_cl_order_id": "1231314", 
         "cl_order_id": "1231315",
-        },
-    check_method = checks
-    )
-overtime_PL_A = Payload(
-    status = PayloadStatus.PENDING,
-    order_request_type = RequestType.LIQUIDATEALL_ORDER,
-    order_info = {
+    })   
+overtime_PL_A = (
+    RequestType.LIQUIDATEALL_ORDER,
+    {
         "symbol_name": "Asset_A",
-        },
-    check_method = checks
-    )
+    })
 
 ```
 After that we have to define `ActionNode` and `ActionTree`. The `ActionTree` is 
