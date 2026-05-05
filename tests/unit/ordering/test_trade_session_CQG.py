@@ -13,7 +13,8 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_trade_subscription_statuses_server_msg,
     build_trade_snapshot_completions_server_msg,
     build_real_time_market_data_server_msg,
-    build_historical_orders_report_server_msg
+    build_historical_orders_report_server_msg,
+    build_symbol_resolution_report_server_msg
     )
 from EC_API.exceptions import (
     TradeSessionRequestError, 
@@ -44,11 +45,135 @@ def make_conn():
 # --- utility functions
 def test_has_orders_scope() -> None:...
 
+# --- CQG resolve symbol and unsubscribe symbol function calls
+@pytest.mark.asyncio
+async def test_resolve_symbol_success() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+
+    conn.start()
+
+    rid = conn._rid + 1
+    response = build_symbol_resolution_report_server_msg(
+        ServerMsg(), report_id=rid, contract_symbol="CLE", cotract_id=3
+    )
+
+    result, _ = await asyncio.gather(
+        TS.resolve_symbol("CLE"),
+        _inject_after_send(ft, response),
+    )
+
+    assert result is not None
+    assert len(result) == 1
+    assert result[0]["contract_metadata"]["contract_symbol"] == "CLE"
+    assert result[0]["contract_metadata"]["contract_id"] == 3
+    assert result[0]["id"] == rid
+
+
+@pytest.mark.asyncio
+async def test_resolve_symbol_timeout() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+
+    conn.start()
+
+    with pytest.raises(TradeSessionRequestError):
+        await TS.resolve_symbol("CLE")  # no server response injected
+
+    await conn.stop()
+
+
+@pytest.mark.asyncio
+async def test_resolve_symbol_sends_correct_params() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+
+    conn.start()
+
+    async def grab_and_respond() -> None:
+        loop = asyncio.get_running_loop()
+        client_msg = await loop.run_in_executor(None, ft.out_q.get)
+        req = client_msg.information_requests[0]
+        assert req.symbol_resolution_request.symbol == "NGF"
+        assert req.subscribe == True
+        response = build_symbol_resolution_report_server_msg(
+            ServerMsg(), report_id=req.id, contract_symbol="NGF"
+        )
+        await ft.in_q.put(response)
+
+    await asyncio.gather(TS.resolve_symbol("NGF"), grab_and_respond())
+    await conn.stop()
+
+
+# =============================================================================
+# --- unsub_symbol tests
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_unsub_symbol_success() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    TS._symbol_registry.register("CLE", {'contract_id': 3})
+
+    conn.start()
+
+    rid = conn._rid + 1
+    response = build_symbol_resolution_report_server_msg(
+        ServerMsg(), report_id=rid, contract_symbol="CLE", cotract_id=3
+    )
+
+    result, _ = await asyncio.gather(
+        TS.unsubscribe_symbol("CLE"),
+        _inject_after_send(ft, response),
+    )
+
+    assert result is not None
+    assert len(result) == 1
+    assert result[0]["contract_metadata"]["contract_symbol"] == "CLE"
+
+
+@pytest.mark.asyncio
+async def test_unsub_symbol_timeout() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    TS._symbol_registry.register("CLE", {'contract_id': 3})
+
+    conn.start()
+
+    with pytest.raises(TradeSessionRequestError):
+        await TS.unsubscribe_symbol("CLE")  # no server response injected
+    await conn.stop()
+
+
+@pytest.mark.asyncio
+async def test_unsub_symbol_sends_subscribe_false() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    TS._symbol_registry.register("CLE", {'contract_id': 3})
+
+    conn.start()
+
+    async def grab_and_respond() -> None:
+        loop = asyncio.get_running_loop()
+        client_msg = await loop.run_in_executor(None, ft.out_q.get)
+        req = client_msg.information_requests[0]
+        assert req.symbol_resolution_request.symbol == "CLE"
+        assert req.subscribe == False
+        response = build_symbol_resolution_report_server_msg(
+            ServerMsg(), report_id=req.id, contract_symbol="CLE"
+        )
+        await ft.in_q.put(response)
+
+    await asyncio.gather(TS.unsubscribe_symbol("CLE"), grab_and_respond())
+    await conn.stop()
+     
+
 # --- CQG trade subscription function calls
 @pytest.mark.asyncio
 async def test_trade_subscription_request_valid()->None:
     conn,ft = make_conn()
     TS = TradeSessionCQG(conn)
+    
     conn.start()
     conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
 
@@ -100,7 +225,7 @@ async def test_trade_subscription_request_timeout_invalid()->None:
 async def test_unsubscribe_trade_request_valid()->None: 
     conn,ft = make_conn()
     TS = TradeSessionCQG(conn)
-    TS._active_subs[2] = {SubScope.ORDERS}
+    TS._active_trade_subs[2] = {SubScope.ORDERS}
 
     conn.start()
     conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
@@ -123,7 +248,7 @@ async def test_unsubscribe_trade_request_valid()->None:
 async def test_unsubscribe_trade_request_builder_invalid() -> None:
     conn, ft = make_conn()
     TS = TradeSessionCQG(conn)
-    TS._active_subs[2] = {SubScope.ORDERS}
+    TS._active_trade_subs[2] = {SubScope.ORDERS}
 
     conn.start()
     conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
@@ -136,7 +261,7 @@ async def test_unsubscribe_trade_request_builder_invalid() -> None:
 async def test_unsubscribe_trade_request_timeout_invalid() -> None:
     conn, ft = make_conn()
     TS = TradeSessionCQG(conn)
-    TS._active_subs[2] = {SubScope.ORDERS}
+    TS._active_trade_subs[2] = {SubScope.ORDERS}
     
     conn.start()
     conn._state_mgr.transition_to(ConnectionState.CONNECTED_LOGON)
@@ -149,7 +274,7 @@ async def test_unsubscribe_trade_request_timeout_invalid() -> None:
 async def test_trade_subscription_request_sub_id_already_in_use_invalid(caplog) -> None:
     conn, ft = make_conn()
     TS = TradeSessionCQG(conn)
-    TS._active_subs[2] = {SubScope.ORDERS}
+    TS._active_trade_subs[2] = {SubScope.ORDERS}
     
     conn.start()
     with caplog.at_level(logging.WARNING, logger="EC_API.ordering.cqg.trade_session"):
