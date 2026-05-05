@@ -336,7 +336,7 @@ async def test_resolve_symbol_success() -> None:
     assert result[0]["contract_metadata"]["contract_id"] == 3
     assert result[0]["id"] == rid
 
-
+# --- Resolve Symbol tests
 @pytest.mark.asyncio
 async def test_resolve_symbol_timeout() -> None:
     conn, ft = make_conn()

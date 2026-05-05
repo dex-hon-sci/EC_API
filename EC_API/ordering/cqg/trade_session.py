@@ -7,6 +7,7 @@ Created on Tue Mar 31 05:01:41 2026
 """
 import asyncio
 import logging
+from typing import Optional
 from datetime import datetime
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.transport.cqg.base import TransportCQG
@@ -23,18 +24,31 @@ from EC_API.ordering.cqg.parsers import (
     parse_trade_snapshot_completions,
     ordering_parsers
     )
+from EC_API.protocol.cqg.parser_util import parse_server_msg
 from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.utility.error_handlers import msg_io_error_handler
-from EC_API.protocol.cqg.parser_util import parse_server_msg
-
+from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
     TradeSessionRequestError,
     TradeSessionTimeOutError,
-    TradeSubscriptionMissingError
+    TradeSubscriptionMissingError,
+    SymbolNotInRegistryError,
+    MetaDataMissingError, 
+    ConnectTimeOutError,
+    SymbolResolutionError
     )
 from EC_API._typing import (
-    OrderStatusType, 
-    ContractMetaDataType
+    OrderStatusTypeCQG,
+    PositionStatusTypeCQG,
+    AccountSummaryTypeCQG,
+    ContractMetaDataType,
+    )
+from EC_API._typing import (
+    OS_CL_ORDER_ID,
+    OS_ORDER_ID,
+    OS_CHAIN_ORDER_ID,
+    PS_CONTRACT_ID
+
     )
 
 logger = logging.getLogger(__name__)
@@ -44,31 +58,32 @@ class TradeSessionCQG:
             self,
             conn: ConnectCQG,
         ):
-        # Connect
+        # --- Connect ---
         self._conn = conn
         self._transport: TransportCQG = self._conn.transport
         
-        # Event Loop
-        self._tracker_task: asyncio.Task | None = None
+        # --- Event Loop ---
+        self._tracker_task: Optional[asyncio.Task] = None
         self._stop_evt: asyncio.Event = self._conn._stop_evt
         
-        # Routers
+        # --- Routers ---
         self._stream_router = self._conn._exec_stream_router
         self._msg_router = self._conn._msg_router
-                
-        # Containers - Subs
-        self._active_subs: dict[int, set[SubScope]] = {}
         
-        # Containers - orders
-        self.active_orders: set[str] = set()
-        self.order_statuses: dict[str, OrderStatusType] = dict() # order_id to status
-        self.order_details: dict[str, dict] = dict()
+        # --- Symbol Registry --- 
+        self._symbol_registry: SymbolRegistry = SymbolRegistry()
 
-        self._account_summaries: dict[str, None] = dict()
-        #self._order_futures: dict[str, asyncio.Future] = {}  # for awaiting terminal state
+        # --- Lookup Dictionary ---
+        self._active_trade_subs: dict[int, set[SubScope]] = dict() # trade_sub_id -> scope
 
-        # symbol registry 
-        self.symbol_registry: SymbolRegistry = SymbolRegistry()
+        # Logging event pairing 
+        self.first_cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID]] = dict() 
+        
+        # --- Containers --- 
+        # Snapshots for the latest order_state. overwrite on every event
+        self.latest_order_state_by_chain: dict[OS_CHAIN_ORDER_ID, OrderStatusTypeCQG] = dict() # latest status, overwritten everytime
+        self.latest_pos_status_by_contract_id: dict[PS_CONTRACT_ID, PositionStatusTypeCQG] = dict()
+        self.latest_account_summaries: dict[str, AccountSummaryTypeCQG] = dict()
 
         # Settings
         self.order_statuses_TTL: int = 10 #(Time-to-live in Seconds)
@@ -91,11 +106,16 @@ class TradeSessionCQG:
     
     # ---- Dunder meothos ---
     async def __aenter__(self):
+        await self._conn.__aenter__()   # starts the connection
+        self._tracker_task = asyncio.create_task(self._tracker_loop())
+
         return self
     
     async def __aexit__(self, *args) -> bool:
-        await self._cleanup()
-        await self._conn.__aexit__(*args)
+        try:
+            await self._cleanup()
+        finally:
+            await self._conn.__aexit__(*args)
         return False
   
     # --- Checks
@@ -110,18 +130,19 @@ class TradeSessionCQG:
             SubScope.POSITIONS in scopes 
             for scopes in self._active_subs.values()
             )
+    
     # --- Getters
-    def get_order_status(self, order_id: str) -> dict:
-        return self.order_statuses.get(order_id)
+    def get_order_status(self, chain_order_id: str) -> dict:
+        return #self.order_statuses.get(chain_order_id)
     
     # --- function calls
-    async def wait_for_ack(self) -> None: 
-        return 
-    
-    async def wait_for_terminal(self, order_id: str) -> dict:
-        # blocks until filled/cancelled/rejected
-        ...
-        return dict()
+    #async def wait_for_ack(self) -> None: 
+    #    return 
+    #
+    #async def wait_for_terminal(self, order_id: str) -> dict:
+    #    # blocks until filled/cancelled/rejected
+    #    ...
+    #    return dict()
     
     # --- status tracker 
     async def _tracker_loop(self):
@@ -148,33 +169,44 @@ class TradeSessionCQG:
             
     # --- CQG function calls ---
     async def resolve_symbol(self, symbol_name: str) -> ContractMetaDataType:
-        
-        metadatas = await self._conn.resolve_symbol(symbol_name)
-        print("[stream()] metadata", metadatas)
-        for metadata in metadatas:
-            print('entry', symbol_name, metadata['contract_metadata'],
-                  type(metadata['contract_metadata']))
-            self._symbol_registry.register(
-                symbol_name, 
-                metadata['contract_metadata']
-                )
-            print("[stream()] symbol registry", 
-                  self._symbol_registry.active_symbols,
-                  self._symbol_registry.metatdata)
-
-        return metadatas
+        try:
+            if symbol_name not in self._symbol_registry.sym_to_contract_ids.keys():
     
-    async def deresolve_symbol(self, symbol_name: str) -> ContractMetaDataType:
-        ...
+                metadatas = await self._conn.resolve_symbol(symbol_name)
+                for metadata in metadatas:
+                    self._symbol_registry.register(
+                        symbol_name, 
+                        metadata['contract_metadata']
+                        )
+                return metadatas
 
-        
+            else: 
+                metadatas = self._symbol_registry.get_metadata(symbol_name)
+        except (SymbolResolutionError, ConnectTimeOutError) as e :
+            raise TradeSessionRequestError(str(e))
+
+    
+    async def unsubscribe_symbol(self, symbol_name: str) -> ContractMetaDataType:
+        try:
+            if symbol_name not in self._symbol_registry.sym_to_contract_ids.keys():
+                raise SymbolNotInRegistryError(
+                    f"Symbol: {symbol_name} is not in the registry."
+                    )
+                
+            result = await self._conn.unsubscribe_symbol(symbol_name)
+            self._symbol_registry.remove_symbol(symbol_name)
+            
+            return result
+        except (SymbolResolutionError, ConnectTimeOutError) as e :
+            raise TradeSessionRequestError(str(e))
+
     async def trade_subscription_request(
             self,
             sub_id: int,
             sub_scope: SubScope | SubScopeCQG                           
         ) -> ServerMsg | None:
         
-        if sub_id in self._active_subs.keys():
+        if sub_id in self._active_trade_subs.keys():
             logger.warning("Sub_id: {sub_id} is already in-use.")
             return
         
@@ -202,10 +234,6 @@ class TradeSessionCQG:
             return parse_server_msg(sub_status_msg, ordering_parsers),\
                    parse_server_msg(snapshot_msg, ordering_parsers)
                    
-        # Fix this later. Need to refactor the parsers to parse JSON
-            #return parse_trade_subscription_statuses(sub_status_msg),\
-            #       parse_trade_snapshot_completions(snapshot_msg)
-    
     async def unsubscribe_trade_request(
             self, 
             sub_id: int, 
@@ -217,7 +245,7 @@ class TradeSessionCQG:
                 TradeSessionRequestError,                               
                 timeout_error = TradeSessionTimeOutError
             ):
-            if sub_id not in self._active_subs.keys():
+            if sub_id not in self._active_trade_subs.keys():
                 raise TradeSubscriptionMissingError(
                     f"sub_id: {sub_id} is not in the active subscription list"
                     )
@@ -263,8 +291,35 @@ class TradeSessionCQG:
             return server_msg
         
     # --- Lifecycle ---
-    async def _cleanup(self): pass
-# =============================================================================
+    def start(self) -> bool:
+        self._conn.start()
+        self._tracker_task = asyncio.create_task(self._tracker_loop())
+
+    async def stop(self) -> bool:
+        self._tracker_task.cancel()
+        self._conn.stop()
+        
+    async def _cleanup(self) -> None:
+        # Automatically unsubscirbe and destroy the queue copy of the 
+        # symbol in stream
+        active_symbols = self._symbol_registry.active_symbols
+        if not active_symbols:
+            return 
+        
+        for sym in list(active_symbols):
+            try:
+                await self._conn.unsubscribe_symbol(sym)
+                self._symbol_registry.remove_symbol(sym)
+                self._symbol_registry.remove_metadata(sym)
+            except (SymbolNotInRegistryError, 
+                    MetaDataMissingError, 
+                    ConnectTimeOutError) as e:
+                logger.warning(str(e))
+            
+            
+    
+
+ # =============================================================================
 #         
 # ---
 #   Proposed Structure
