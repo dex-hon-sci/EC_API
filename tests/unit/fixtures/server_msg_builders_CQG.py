@@ -287,16 +287,18 @@ def build_order_statuses_server_msg(
         server_msg: ServerMsg,
         res: OrderStatus.Status = OrderStatus.Status.IN_TRANSIT,
         contract_id: int = 0,
-        sub_id: int = 1,
+        sub_ids: list[int] = [1],
         order_id: str = "order_id_1",
         chain_order_id: str = "chain_order_id_1",
-        order = None
+        order = None,
+        account_id: int = 123466
     ) -> ServerMsg:
     
     order_statuses = server_msg.order_statuses.add()
     
     # ----
-    order_statuses.subscription_ids.append(sub_id)
+    for sub_id in sub_ids:
+        order_statuses.subscription_ids.append(sub_id)
     order_statuses.status = res
     order_statuses.order_id = order_id
     order_statuses.chain_order_id = chain_order_id
@@ -345,7 +347,7 @@ def build_order_statuses_server_msg(
     contract_metadata.instrument_group_description = "instrument_group_description"
     contract_metadata.country_code = "US"
     # ----
-    order_statuses.account_id = 123466    
+    order_statuses.account_id =     account_id
     return server_msg
 
 
@@ -390,14 +392,15 @@ def build_position_statuses_server_msg(
 
 
 def build_account_summary_statuses_server_msg(
-        server_msg: ServerMsg,        
+        server_msg: ServerMsg, 
+        account_id: int = 1210221
         ) -> ServerMsg:
     account_summary_statuses = server_msg.account_summary_statuses.add()
     account_summary_statuses.subscription_ids.append(1)
     account_summary_statuses.subscription_ids.append(2)
     account_summary_statuses.subscription_ids.append(3)
     
-    account_summary_statuses.account_id = 1210221
+    account_summary_statuses.account_id = account_id
     account_summary_statuses.currency = "USD"
     account_summary_statuses.purchasing_power = 1_000_000
     

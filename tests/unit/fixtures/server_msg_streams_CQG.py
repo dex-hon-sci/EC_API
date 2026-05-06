@@ -101,7 +101,7 @@ def dummy_order_update_stream(
                        ServerMsg(),
                        res = val,
                        contract_id = key,
-                       sub_id = key,
+                       sub_ids = [key],
                        order_id= f"order_id_{key}",
                        chain_order_id = f"chain_order_id_{key}")
                        ]
