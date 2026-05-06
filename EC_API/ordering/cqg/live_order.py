@@ -268,10 +268,13 @@ class LiveOrderCQG(LiveOrder):
                 case RequestType.NEW_ORDER:
                     parsed_server_msg = await self._new_order_request(details)       
                     if parsed_server_msg.get('chain_order_id'):
-                        self._trade_session.cl_to_chain[request_details['cl_order_id']] =\
-                            parsed_server_msg['chain_order_id']
-                        q = self.stream_router.subscribe(parsed_server_msg['chain_order_id'])
-                        return (parsed_server_msg['chain_order_id'], q)
+                        chain_order_id =  parsed_server_msg['chain_order_id']
+                        self._trade_session.cl_to_chain[request_details['cl_order_id']] = chain_order_id
+                           
+                        q = self.stream_router.subscribe(chain_order_id)
+                        
+                        await self._trade_session._pending_chain_q.put((chain_order_id, q))
+                        return chain_order_id
                     
                     elif parsed_server_msg.get('reject_code'):
                         raise LiveOrderRequestError(f'{request_type} request failed.')

@@ -77,11 +77,10 @@ class TradeSessionCQG:
         self._active_trade_subs: dict[int, set[SubScope]] = dict() # trade_sub_id -> scope
 
         # Logging event pairing 
-        self.cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID]] = dict() 
+        self.cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID, int]] = dict() 
         
         # --- Containers --- 
-        
-        #self._pending_cl: set[OS_CL_ORDER_ID] = set()
+        self._pending_chain_q: list[OS_CHAIN_ORDER_ID, asyncio.Queue] = list()
         #self._pending_cl_to_rid: dict[OS_CL_ORDER_ID, int] = dict()
         # Snapshots for the latest order_state. overwrite on every event
         self.latest_order_state_by_chain: dict[OS_CHAIN_ORDER_ID, OrderStatusTypeCQG] = dict() # latest status, overwritten everytime
@@ -137,15 +136,6 @@ class TradeSessionCQG:
     # --- Getters
     def get_order_status(self, chain_order_id: str) -> dict:
         return #self.order_statuses.get(chain_order_id)
-    
-    # --- function calls
-    #async def wait_for_ack(self) -> None: 
-    #    return 
-    #
-    #async def wait_for_terminal(self, order_id: str) -> dict:
-    #    # blocks until filled/cancelled/rejected
-    #    ...
-    #    return dict()
     
     # --- status tracker 
     async def _tracker_loop(self):
