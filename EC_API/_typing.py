@@ -34,6 +34,12 @@ _FieldSpec = dict[str, tuple[str, type | tuple[type, ...] | Any, Callable[..., A
 # ------ Parsers ------
 type Parser_func[ServerMsgType] = Callable[[Any, ServerMsgType], Any]
 
+# ----- OrderStatuses ---
+OrderStatusType: TypeAlias = tuple
+PositionStatusType: TypeAlias = tuple
+AccountSummaryType: TypeAlias = tuple
+
+
 
 # ====== Vendor-Specific Types ======
 # ------------- CQG -----------------
