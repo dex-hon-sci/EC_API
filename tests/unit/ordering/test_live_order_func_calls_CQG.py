@@ -24,9 +24,6 @@ from EC_API.exceptions import (
     )
 from tests.unit.fixtures.proxy_clients import FakeCQGClient, FakeTransport
 from tests.unit.fixtures.dummy_server_CQG import FakeDataServerCQG
-from tests.unit.fixtures.server_msg_builders_CQG import (
-    build_order_statuses_server_msg
-    )
 
 # --- Happy Path 1: success ---
 @pytest.mark.asyncio

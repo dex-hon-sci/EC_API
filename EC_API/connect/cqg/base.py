@@ -114,6 +114,7 @@ class ConnectCQG(Connect):
         self._loop = asyncio.get_running_loop()
         self._router_task: Optional[asyncio.Task] = None
         self._stop_evt = asyncio.Event()
+        self._trade_work_evt = asyncio.Event()
         self._timeout: float | int = 1.0 # make make this a ping based decision
 
         # State Control
@@ -138,9 +139,9 @@ class ConnectCQG(Connect):
         # Routers. Use queues inside for message storage
         self._mkt_data_stream_router = StreamRouter()
         
-        self._exec_stream_router = StreamRouter()
-        self._pos_status_stream_router = StreamRouter()
-        self._acc_summary_stream_router = StreamRouter()
+        self._exec_stream_router = StreamRouter(on_publish = self._trade_work_evt.set)
+        self._pos_status_stream_router = StreamRouter(on_publish = self._trade_work_evt.set)
+        self._acc_summary_stream_router = StreamRouter(on_publish = self._trade_work_evt.set)
         
         self._msg_router = MessageRouter()
         

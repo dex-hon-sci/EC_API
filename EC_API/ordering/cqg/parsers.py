@@ -7,6 +7,7 @@ Created on Sat Apr 11 03:05:48 2026
 """
 from typing import Any, Callable
 from google.protobuf.json_format import MessageToDict
+from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_CQG2INT
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import PositionStatus
 from EC_API.exceptions import MsgParserError
@@ -96,6 +97,7 @@ def parse_order_statuses(
             # parsing required fields
             D = {
                 "sub_ids": list(ele.subscription_ids),
+                "status": OrderStatus_MAP_CQG2INT[ele.status],
                 "order_id": ele.order_id,
                 "chain_order_id": ele.chain_order_id,
                 "status_utc_timestamp": ele.status_utc_timestamp,

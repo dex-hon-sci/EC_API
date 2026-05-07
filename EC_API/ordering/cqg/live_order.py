@@ -284,7 +284,7 @@ class LiveOrderCQG(LiveOrder):
                            
                         q = self.stream_router.subscribe(chain_order_id)
                         
-                        await self._trade_session._pending_chain_q.put((chain_order_id, q))
+                        self._trade_session._pending_chain_q.append((chain_order_id, q))
                         return chain_order_id
                     
                     elif parsed_server_msg.get('reject_code'):

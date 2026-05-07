@@ -67,7 +67,10 @@ class TradeSessionCQG:
         self._stop_evt: asyncio.Event = self._conn._stop_evt
         
         # --- Routers ---
-        self._stream_router = self._conn._exec_stream_router
+        self._exec_stream_router = self._conn._exec_stream_router
+        self._pos_status_stream_router = self._conn._pos_status_stream_router
+        self._acc_summary_stream_router = self._conn._acc_summary_stream_router
+
         self._msg_router = self._conn._msg_router
         
         # --- Symbol Registry --- 
@@ -80,8 +83,12 @@ class TradeSessionCQG:
         self.cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID, int]] = dict() 
         
         # --- Containers --- 
-        self._pending_chain_q: list[OS_CHAIN_ORDER_ID, asyncio.Queue] = list()
-        #self._pending_cl_to_rid: dict[OS_CL_ORDER_ID, int] = dict()
+        self._pending_chain_q: list[tuple[OS_CHAIN_ORDER_ID, asyncio.Queue]] = list()
+        
+        self._active_order_q: dict[OS_CHAIN_ORDER_ID, asyncio.Queue] = dict()
+        self._active_pos_q: dict[PS_CONTRACT_ID, asyncio.Queue] = dict()
+        self._active_acc_summary_q: dict[str, asyncio.Queue] = dict()
+
         # Snapshots for the latest order_state. overwrite on every event
         self.latest_order_state_by_chain: dict[OS_CHAIN_ORDER_ID, OrderStatusTypeCQG] = dict() # latest status, overwritten everytime
         self.latest_pos_status_by_contract_id: dict[PS_CONTRACT_ID, PositionStatusTypeCQG] = dict()
@@ -134,8 +141,15 @@ class TradeSessionCQG:
             )
     
     # --- Getters
-    def get_order_status(self, chain_order_id: str) -> dict:
-        return #self.order_statuses.get(chain_order_id)
+    def get_order_status(self, chain_order_id: str) -> OrderStatusTypeCQG:
+        return self.latest_order_state_by_chain.get(chain_order_id)
+    
+    def get_position_status(self, symbol_name: str) -> PositionStatusTypeCQG:
+        contract_id = self._symbol_registry.get_contract_ids(symbol_name)
+        return self.latest_pos_status_by_contract_id.get(contract_id)
+
+    def get_account_summay(self) -> AccountSummaryTypeCQG:
+        return self.latest_account_summaries.get(self._conn._account_id)
     
     # --- status tracker 
     async def _tracker_loop(self):
@@ -146,24 +160,61 @@ class TradeSessionCQG:
         # subscribes to exec_stream_router, updates _order_state
         while not self._stop_evt.is_set():
             
-            # consume _exec_queue
+            await self._conn._trade_work_evt.wait()
+            self._conn._trade_work_evt.clear()
             
-            if not self._pending_chain_q:
-                continue
-            else:
-                # If There are new order_id added
-                for chain_order_id in self.active_orders:
-                    queues = self._stream_router._subs.get(chain_order_id, [])
+            done_ord, done_pos = set(), set()
 
-             # Look at the order status stream (By Level) using the chain_order_id
-             #self._active_subs.get()
-                          
-             # Check the status and see if there is any changes
-             # update the trackers
-          
-            # check if the it is at the end state, if so, log then pop
-          
-          
+            # ---- Order Statuses ----
+            while self._pending_chain_q:
+                chain_order_id, q = self._pending_chain_q.pop(0)
+                self._active_order_q[chain_order_id] = q
+
+            # flush updates in queues
+            for chain_order_id, ord_q in self._active_order_q.items():
+                while not ord_q.empty():
+                    parsed_ord_sts = parse_server_msg(ord_q.get_nowait(), ordering_parsers)
+                    
+                    if parsed_ord_sts.get('order', {}).get('cl_order_id'):
+                        # update cl_order_id for order changes
+                        chain_order_id = self.cl_to_chain[parsed_ord_sts['order']['cl_order_id']]
+    
+                    self.latest_order_state_by_chain[chain_order_id] = parsed_ord_sts
+    
+                    if parsed_ord_sts['status'] in TERMINAL_STATES:
+                        done_ord.add(chain_order_id)
+                        
+
+            # ---- Position Statuses ----
+            for contract_id, pos_q in self._active_pos_q.items():
+                while not pos_q.empty():
+                    parsed_pos_sts = parse_server_msg(pos_q.get_nowait(), ordering_parsers)
+                    
+                    self.latest_pos_status_by_contract_id[contract_id] = parsed_pos_sts
+                    
+                    if parsed_pos_sts['open_positions']:
+                        all_done = all(op_pos['qty'] == 0 for op_pos in 
+                                       parsed_pos_sts['open_positions'])
+                        if all_done:
+                            done_pos.add(contract_id)
+                            
+                            
+            # ---- Account Summary ----
+            for account_id, acc_summary_q in self._active_acc_summary_q.items():
+                while not acc_summary_q.empty():
+                    acc_summary = parse_server_msg(acc_summary_q.get_nowait(), ordering_parsers)
+                    self.latest_account_summaries[account_id] = acc_summary
+                    
+            # ---- Cleanup ----
+            for chain_order_id in done_ord:
+                q = self._active_order_q.pop(chain_order_id)
+                self._exec_stream_router.unsubscribe(chain_order_id, q)
+                logger.info("Order %s reached terminal state", chain_order_id)
+                
+            for contract_id in done_pos:
+                q = self._active_pos_q.pop(contract_id)
+                self._pos_status_stream_router.unsubscribe(contract_id, q)
+                logger.info("Position for contract_id: %s reached terminal state", contract_id)
             
     # --- CQG function calls ---
     async def resolve_symbol(self, symbol_name: str) -> ContractMetaDataType:
@@ -546,7 +597,7 @@ class TradeSessionCQG:
 #   │ op_strategy     │ Currently 0% coverage            │ Medium                     │
 #   │ tests           │                                  │                            │
 #   ├─────────────────┼──────────────────────────────────┼────────────────────────────┤
-#   │ live_order.py   │ Currently 25%                    │ Small — just missing mock  │
+#   │ live_order.py   │ Currently 25%     (DONE)         │ Small — just missing mock  │
 #   │ tests           │                                  │ for transport              │
 #   └─────────────────┴──────────────────────────────────┴────────────────────────────┘
 # 

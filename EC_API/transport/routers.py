@@ -6,7 +6,7 @@ Created on Wed Nov 26 16:40:57 2025
 @author: dexter
 """
 import asyncio
-from typing import Any  # Hashable, Optional
+from typing import Any, Callable, Optional  # Hashable, Optional
 from EC_API._typing import RouterKey
 from EC_API.exceptions import (
     DuplicateRouterKeyError,
@@ -87,14 +87,18 @@ class StreamRouter:
         max_sub_size: int = 5, # max number of subs per symbol
         max_num_sym: int = 50, # max number of symbols
         drop_if_full: bool = True,
-        drop_policy: str = "drop_oldest"
+        drop_policy: str = "drop_oldest",
+        on_publish: Optional[Callable] = None
         ):
         # we assume one Stream Router per vendor
         self._subs: dict[int|str, list[asyncio.Queue]] = {}
+        
         self._max_queue_size = max_queue_size
         self._max_subs_size = max_sub_size
         self._max_num_sym = max_num_sym
         self._drop_if_full = drop_if_full
+        
+        self.on_publish: Callable = on_publish
         
         if drop_policy not in {"drop_oldest", "drop_latest"}:
             raise InvalidDroppingPolicy("Invalid dropping policy. It must be either:'drp_oldest' or 'drop_latest'.")
@@ -171,6 +175,10 @@ class StreamRouter:
             
             try:
                 q.put_nowait(item)
+                
+                if self.on_publish:
+                    self.on_publish()
+                
             except asyncio.QueueFull:
                 if self._drop_if_full:
                     if self.drop_policy == "drop_oldest": 
