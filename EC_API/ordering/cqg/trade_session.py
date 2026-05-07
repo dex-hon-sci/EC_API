@@ -20,13 +20,10 @@ from EC_API.ordering.cqg.builders import (
     build_trade_historical_orders_request_msg
     )
 from EC_API.ordering.cqg.parsers import (
-    parse_trade_subscription_statuses,
-    parse_trade_snapshot_completions,
     ordering_parsers
     )
 from EC_API.protocol.cqg.parser_util import parse_server_msg
 from EC_API.utility.symbol_registry import SymbolRegistry
-from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
     TradeSessionRequestError,
@@ -35,7 +32,8 @@ from EC_API.exceptions import (
     SymbolNotInRegistryError,
     MetaDataMissingError, 
     ConnectTimeOutError,
-    SymbolResolutionError
+    SymbolResolutionError,
+    TransportConnectError
     )
 from EC_API._typing import (
     OrderStatusTypeCQG,
@@ -48,7 +46,6 @@ from EC_API._typing import (
     OS_ORDER_ID,
     OS_CHAIN_ORDER_ID,
     PS_CONTRACT_ID
-
     )
 
 logger = logging.getLogger(__name__)
@@ -121,6 +118,13 @@ class TradeSessionCQG:
         return self
     
     async def __aexit__(self, *args) -> bool:
+        tracker_task = getattr(self, '_tracker_task', None)
+        if tracker_task and not tracker_task.done():
+            tracker_task.cancel()
+            try:
+                await tracker_task
+            except asyncio.CancelledError:
+                pass
         try:
             await self._cleanup()
         finally:
@@ -159,63 +163,79 @@ class TradeSessionCQG:
             }
         # subscribes to exec_stream_router, updates _order_state
         while not self._stop_evt.is_set():
-            
-            await self._conn._trade_work_evt.wait()
-            self._conn._trade_work_evt.clear()
-            
-            done_ord, done_pos = set(), set()
-
-            # ---- Order Statuses ----
-            while self._pending_chain_q:
-                chain_order_id, q = self._pending_chain_q.pop(0)
-                self._active_order_q[chain_order_id] = q
-
-            # flush updates in queues
-            for chain_order_id, ord_q in self._active_order_q.items():
-                while not ord_q.empty():
-                    parsed_ord_sts = parse_server_msg(ord_q.get_nowait(), ordering_parsers)
-                    
-                    if parsed_ord_sts.get('order', {}).get('cl_order_id'):
-                        # update cl_order_id for order changes
-                        chain_order_id = self.cl_to_chain[parsed_ord_sts['order']['cl_order_id']]
+            try:
+                await self._conn._trade_work_evt.wait()
+                self._conn._trade_work_evt.clear()
+                print('tracker_loop: start')
     
-                    self.latest_order_state_by_chain[chain_order_id] = parsed_ord_sts
+                # ---- Order Statuses ----
+                while self._pending_chain_q:
+                    chain_order_id, q = self._pending_chain_q.pop(0)
+                    self._active_order_q[chain_order_id] = q
     
-                    if parsed_ord_sts['status'] in TERMINAL_STATES:
-                        done_ord.add(chain_order_id)
+                # flush updates in queues
+                done_ord = set()
+                for chain_order_id, ord_q in self._active_order_q.items():
+                    while not ord_q.empty():
+                        parsed_ord_sts = parse_server_msg(ord_q.get_nowait(), ordering_parsers)
                         
-
-            # ---- Position Statuses ----
-            for contract_id, pos_q in self._active_pos_q.items():
-                while not pos_q.empty():
-                    parsed_pos_sts = parse_server_msg(pos_q.get_nowait(), ordering_parsers)
-                    
-                    self.latest_pos_status_by_contract_id[contract_id] = parsed_pos_sts
-                    
-                    if parsed_pos_sts['open_positions']:
-                        all_done = all(op_pos['qty'] == 0 for op_pos in 
-                                       parsed_pos_sts['open_positions'])
-                        if all_done:
-                            done_pos.add(contract_id)
+                        for p_ord_sts in parsed_ord_sts:
+                            # update cl_order_id for order changes
+                            if p_ord_sts.get('order', {}).get('cl_order_id'):
+                                chain_order_id = self.cl_to_chain[p_ord_sts['order']['cl_order_id']]
                             
+                            self.latest_order_state_by_chain[chain_order_id] = p_ord_sts
+                            if p_ord_sts.get('status') in TERMINAL_STATES:
+                                done_ord.add(chain_order_id)
+                                break
                             
-            # ---- Account Summary ----
-            for account_id, acc_summary_q in self._active_acc_summary_q.items():
-                while not acc_summary_q.empty():
-                    acc_summary = parse_server_msg(acc_summary_q.get_nowait(), ordering_parsers)
-                    self.latest_account_summaries[account_id] = acc_summary
+    
+                # ---- Position Statuses ----
+                done_pos = set()
+                for contract_id, pos_q in self._active_pos_q.items():
+                    while not pos_q.empty():
+                        parsed_pos_sts = parse_server_msg(pos_q.get_nowait(), ordering_parsers)
+                        
+                        for p_pos_sts in parsed_pos_sts:
+                            self.latest_pos_status_by_contract_id[contract_id] = p_pos_sts
+                            
+                            if p_pos_sts['open_positions']:
+                                all_done = all(op_pos['qty'] == 0 for op_pos in 
+                                               p_pos_sts['open_positions'])
+                                if all_done:
+                                    done_pos.add(contract_id)
+                                    break
+                                
+                # ---- Account Summary ----
+                for account_id, acc_summary_q in self._active_acc_summary_q.items():
+                    while not acc_summary_q.empty():
+                        acc_summary = parse_server_msg(acc_summary_q.get_nowait(), ordering_parsers)
+                        print('acc_summary', acc_summary)
+                        for p_acc_summ in acc_summary:
+                            self.latest_account_summaries[account_id] = p_acc_summ
+                        
+                # ---- Cleanup ----
+                for chain_order_id in done_ord:
+                    q = self._active_order_q.pop(chain_order_id)
+                    self._exec_stream_router.unsubscribe(chain_order_id, q)
+                    logger.info("Order %s reached terminal state", chain_order_id)
                     
-            # ---- Cleanup ----
-            for chain_order_id in done_ord:
-                q = self._active_order_q.pop(chain_order_id)
-                self._exec_stream_router.unsubscribe(chain_order_id, q)
-                logger.info("Order %s reached terminal state", chain_order_id)
-                
-            for contract_id in done_pos:
-                q = self._active_pos_q.pop(contract_id)
-                self._pos_status_stream_router.unsubscribe(contract_id, q)
-                logger.info("Position for contract_id: %s reached terminal state", contract_id)
+                for contract_id in done_pos:
+                    q = self._active_pos_q.pop(contract_id)
+                    self._pos_status_stream_router.unsubscribe(contract_id, q)
+                    logger.info("Position for contract_id: %s reached terminal state", contract_id)
             
+                # TODO: TTL retirement for snapshots if scale demands it
+            
+            except asyncio.CancelledError as e:
+                logger.error("")
+                raise
+            except TransportConnectError as e:
+                logger.error("TransportConnectError, reconenction initiated.")
+                #await asyncio.create_task(self._reconnect_loop)
+            except Exception as e:
+                logger.error("tracker_loop error: %s", e, exc_info=True)
+
     # --- CQG function calls ---
     async def resolve_symbol(self, symbol_name: str) -> ContractMetaDataType:
         try:
@@ -233,7 +253,6 @@ class TradeSessionCQG:
                 metadatas = self._symbol_registry.get_metadata(symbol_name)
         except (SymbolResolutionError, ConnectTimeOutError) as e :
             raise TradeSessionRequestError(str(e))
-
     
     async def unsubscribe_symbol(self, symbol_name: str) -> ContractMetaDataType:
         try:
@@ -345,7 +364,12 @@ class TradeSessionCQG:
         self._tracker_task = asyncio.create_task(self._tracker_loop())
 
     async def stop(self) -> bool:
-        self._tracker_task.cancel()
+        if self._tracker_task and not self._tracker_task.done():
+            self._tracker_task.cancel()
+            try:
+                await self._tracker_task
+            except asyncio.CancelledError:
+                pass
         self._conn.stop()
         
     async def _cleanup(self) -> None:

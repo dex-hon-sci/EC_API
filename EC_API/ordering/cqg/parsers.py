@@ -169,7 +169,7 @@ def parse_position_statuses(
     except Exception as e:
         raise MsgParserError(f"Failed to parse position_statuses: {e}") from e
     
-def parse_open_position(msg: PositionStatus): # special helper for fast execution
+def parse_open_position(msg: PositionStatus) -> list: # special helper for fast execution
     poss = []
     for pos in msg.open_positions:
         poss.append({
@@ -178,7 +178,8 @@ def parse_open_position(msg: PositionStatus): # special helper for fast executio
             'trade_date': pos.trade_date,
             'statement_date': pos.statement_date,
             'is_aggregated': pos.is_aggregated,
-            'is_short': pos.is_short
+            'is_short': pos.is_short,
+            'qty': pos.qty.significand
             })
     return poss
     
