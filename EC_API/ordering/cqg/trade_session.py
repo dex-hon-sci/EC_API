@@ -148,7 +148,7 @@ class TradeSessionCQG:
             
             # consume _exec_queue
             
-            if not self._pending_chain_q():
+            if not self._pending_chain_q:
                 continue
             else:
                 # If There are new order_id added

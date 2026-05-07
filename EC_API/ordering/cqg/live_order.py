@@ -94,20 +94,6 @@ class LiveOrderCQG(LiveOrder):
             
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return parse_server_msg(server_msg, ordering_parsers)
-
-            ## Multi-key responses
-            #ack_key    = ('rpc_reqid', 'order_request_acks',    'request_id', request_details['request_id'])
-            #reject_key = ('rpc_reqid', 'order_request_rejects', 'request_id', request_details['request_id'])
-            #status_key = ('substream', 'order_statuses', 'cl_order_id', request_details['cl_order_id'])#
-            #
-            #fut = self.msg_router.register_key(status_key)
-            #await self._transport.send(client_msg)
-            #server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
-            #
-            ## update trade session trackers for order's initial state 
-            #self._trade_session.active_orders.add(server_msg.order_statuses[0].chain_order_id)
-            #self._trade_session.order_statuses[server_msg.chain_order_id] = OrderStatus_MAP_CQG2INT[server_msg.result_code]
-            #return server_msg
     
     async def _modify_order_request(
             self, 
@@ -283,12 +269,13 @@ class LiveOrderCQG(LiveOrder):
         try:
             details = {
                 "account_id": self._trade_session._conn.account_id,
-                "request_id": self._conn.rid(),
+                "request_id": self.rid(),
                 "contract_id": contract_id,
                 **request_details,  
                 }
         
             match request_type:
+                # ---
                 case RequestType.NEW_ORDER:
                     parsed_server_msg = await self._new_order_request(details)       
                     if parsed_server_msg.get('chain_order_id'):
@@ -302,23 +289,14 @@ class LiveOrderCQG(LiveOrder):
                     
                     elif parsed_server_msg.get('reject_code'):
                         raise LiveOrderRequestError(f'{request_type} request failed.')
-# =============================================================================
-#                         # inside send(), after confirm future resolves
-#   chain_order_id = parsed['chain_order_id']
-#   self._trade_session.latest_order_state_by_chain[chain_order_id] = parsed  # first msg
-#   q = self.stream_router.subscribe(chain_order_id)                           # no gap
-#   await self._trade_session._new_chain_q.put((chain_order_id, q))            # notify
-#   tracker_loop
-#   return chain_order_id                                                       # caller
-#   gets ID only  
-#                 case RequestType.MODIFY_ORDER:
-# =============================================================================
+                # ---
+                case RequestType.MODIFY_ORDER:
                     parsed_server_msg = await self._modify_order_request(details)        
                 case RequestType.CANCEL_ORDER:
                     parsed_server_msg = await self._cancel_order_request(details)
                 case RequestType.ACTIVATE_ORDER:
                     parsed_server_msg = await self._activate_order_request(details)
-                    
+                # ---
                 case RequestType.CANCELALL_ORDER:
                     parsed_server_msg = await self._cancel_all_order_request(details)
                     return parsed_server_msg
@@ -332,3 +310,14 @@ class LiveOrderCQG(LiveOrder):
         except LiveOrderRequestError as e:
             logger.warning(str(e))
             return 
+# =============================================================================
+#                         # inside send(), after confirm future resolves
+#   chain_order_id = parsed['chain_order_id']
+#   self._trade_session.latest_order_state_by_chain[chain_order_id] = parsed  # first msg
+#   q = self.stream_router.subscribe(chain_order_id)                           # no gap
+#   await self._trade_session._new_chain_q.put((chain_order_id, q))            # notify
+#   tracker_loop
+#   return chain_order_id                                                       # caller
+#   gets ID only  
+#                 case RequestType.MODIFY_ORDER:
+# =============================================================================

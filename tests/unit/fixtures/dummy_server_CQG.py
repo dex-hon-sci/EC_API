@@ -198,7 +198,7 @@ class FakeDataServerCQG:
                 if self.extra_instructions['new_order_request_reject']:
                     server_msg = build_order_request_rejects_server_msg(
                         ServerMsg(),
-                        request_id = client_msg.request_id
+                        request_id = order.request_id
                         )
                         
             else:
@@ -226,7 +226,7 @@ class FakeDataServerCQG:
                 if self.extra_instructions['modify_order_request_reject']:
                     server_msg = build_order_request_rejects_server_msg(
                         ServerMsg(),
-                        request_id = client_msg.request_id
+                        request_id = ore.request_id
                         )
             else:
                 server_msg = build_order_statuses_server_msg(
@@ -251,7 +251,7 @@ class FakeDataServerCQG:
                 if self.extra_instructions['cancel_order_request_reject']:
                     server_msg = build_order_request_rejects_server_msg(
                         ServerMsg(),
-                        request_id = client_msg.request_id
+                        request_id = ore.request_id
                         )
             else:                
                 server_msg = build_order_statuses_server_msg(
@@ -276,7 +276,7 @@ class FakeDataServerCQG:
                 if self.extra_instructions['activate_order_request_reject']:
                     server_msg = build_order_request_rejects_server_msg(
                         ServerMsg(),
-                        request_id = client_msg.request_id
+                        request_id = ore.request_id
                         )
             else:
                 server_msg = build_order_statuses_server_msg(
@@ -301,7 +301,7 @@ class FakeDataServerCQG:
                 if self.extra_instructions['cancelall_order_request_reject']:
                     server_msg = build_order_request_rejects_server_msg(
                         ServerMsg(),
-                        request_id = client_msg.request_id
+                        request_id = ore.request_id
                         )
             else:
                 server_msg = build_order_request_acks_server_msg(

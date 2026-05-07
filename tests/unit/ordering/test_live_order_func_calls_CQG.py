@@ -301,7 +301,7 @@ async def test_goflat_order_request_valid() -> None:
     order_info = {
         'account_id': conn._account_id,
         'request_id': 111,
-        'when_utc_timestamp': datetime.now(tz=timezone.utc),
+        'when_utc_timestamp': datetime.now(tz=timezone.utc)
         }
     async def run_order():
         async with TradeSessionCQG(conn) as TS:
@@ -311,6 +311,313 @@ async def test_goflat_order_request_valid() -> None:
     assert isinstance(result, list)
     assert result[0]['request_id'] == 111
     assert result[0]['account_id'] == conn._account_id
+    
+
+# --- Happy Path 2: success ---
+@pytest.mark.asyncio
+async def test_new_order_request_valid_reject() -> None:
+    # --- Setup Connection
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        account_id = 10000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport
+        )
+    # --- Setup fake Server
+    success_decisions = {
+        "new_order_request": True
+        }
+    extra_instructions = {
+        "new_order_request_reject": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions 
+        )
+    # --- Setup input parameter
+    order_info = {
+        "account_id": conn._account_id, # <--- only here for internal live_order test.
+        "request_id": 111, # <--- only here for internal live_order test.
+        "contract_id": 0, # <--- only here for internal live_order test.
+        "cl_order_id": "1231314",
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
+        "qty": 2,
+        "is_manual": False,
+        "limit_price": 150,
+        "exec_instructions": ExecInstruction.NONE
+        }
+    
+    async def run_order():
+        async with TradeSessionCQG(conn) as TS:
+            return await LiveOrderCQG(TS, timeout = 0.01)._new_order_request(order_info)
+            
+    result, _ = await asyncio.gather(run_order(), fake_server.run())
+    assert result 
+    assert isinstance(result, list)
+    assert result[0]['request_id'] == 111
+    
+@pytest.mark.asyncio
+async def test_modify_order_request_valid_reject() -> None:
+    # --- Setup Connection
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        account_id = 100000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport 
+        )
+    # --- Setup fake Server
+    success_decisions = {
+        "modify_order_request": True
+        }
+    extra_instructions = {
+        "modify_order_request_reject": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions 
+        )
+    # --- Setup input parameter
+    order_info = {
+        "account_id": conn._account_id, # <--- only here for internal live_order test.
+        "request_id": 111, # <--- only here for internal live_order test.
+        'order_id': "1122", # <--- only here for internal live_order test.
+        "cl_order_id": "1231314",
+        "orig_cl_order_id" : "1313",
+        "qty": 12
+        }
+    
+    async def run_order():
+        async with TradeSessionCQG(conn) as TS:
+            return await LiveOrderCQG(TS, timeout = 0.01)._modify_order_request(order_info)
+    # --- run test ---
+    result, _ = await asyncio.gather(run_order(), fake_server.run())
+    
+    assert result 
+    assert isinstance(result, list)
+    assert result[0]['request_id'] == 111
+    
+@pytest.mark.asyncio
+async def test_cancel_order_request_valid_reject() -> None:
+    # --- Setup Connection
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        account_id = 10000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport
+        )
+    # --- Setup fake Server
+    success_decisions = {
+        "cancel_order_request": True
+        }
+    extra_instructions = {
+        "cancel_order_request_reject": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions 
+        )
+    # --- Setup input parameter
+    order_info = {
+        'account_id': conn._account_id,
+        'request_id': 111,
+        'order_id': "1122",
+        'orig_cl_order_id': "1231314",
+        'cl_order_id': "1313"
+        }
+    
+    async def run_order():
+        async with TradeSessionCQG(conn) as TS:
+            return await LiveOrderCQG(TS, timeout = 0.01)._cancel_order_request(order_info)
+    # --- run test ---
+    result, _ = await asyncio.gather(run_order(), fake_server.run())
+    assert result 
+    assert isinstance(result, list)
+    assert result[0]['request_id'] == 111
+    
+@pytest.mark.asyncio
+async def test_activate_order_request_valid_reject() -> None:
+    # --- Setup Connection
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        account_id = 10000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport
+        )
+    # --- Setup fake Server
+    success_decisions = {
+        "activate_order_request": True
+        }
+    extra_instructions = {
+        "activate_order_request_reject": True
+        }
+
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions 
+        )    
+    # --- Setup input parameter
+    order_info = {
+        'account_id': conn._account_id,
+        'request_id': 111,
+        'order_id': "1122",
+        'orig_cl_order_id':"1231314",
+        'cl_order_id':  "1313",
+        "when_utc_timestamp": datetime.now(tz=timezone.utc) + timedelta(minutes=10)
+        }
+    
+    async def run_order():
+        async with TradeSessionCQG(conn) as TS:
+            return await LiveOrderCQG(TS, timeout = 0.01)._activate_order_request(order_info)
+        
+    result, _ = await asyncio.gather(run_order(), fake_server.run())
+    assert result 
+    assert isinstance(result, list)
+    assert result[0]['request_id'] == 111
+    
+@pytest.mark.asyncio
+async def test_cancelall_order_request_valid_reject() -> None:
+    # --- Setup Connection
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        account_id = 10000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport
+        )
+    # --- Setup fake Server
+    success_decisions = {
+        "cancelall_order_request": True
+        }
+    extra_instructions = {
+        "cancelall_order_request_reject": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions 
+        )    
+    # --- Setup input parameter
+    order_info = {
+        'account_id': conn._account_id,
+        'request_id': 111,
+        'cl_order_id': "1313",
+        'when_utc_timestamp': datetime.now(tz=timezone.utc)
+        }
+
+    async def run_order():
+        async with TradeSessionCQG(conn) as TS:
+            return await LiveOrderCQG(TS, timeout = 0.01)._cancelall_order_request(order_info)
+        
+    result, _ = await asyncio.gather(run_order(), fake_server.run())
+    assert result 
+    assert isinstance(result, list)
+    assert result[0]['request_id'] == 111
+    
+@pytest.mark.asyncio
+async def test_liquidateall_order_request_valid_reject() -> None:
+    # --- Setup Connection
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        account_id = 10000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport
+        )
+    # --- Setup fake Server
+    success_decisions = {
+        "liquidateall_order_request": True
+        }
+    extra_instructions = {
+        "liquidateall_order_request_reject": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions 
+        )    
+    # --- Setup input parameter
+    order_info = {
+        'account_id': conn._account_id,
+        'request_id': 111,
+        'contract_id': 0
+        }
+
+    async def run_order():
+        async with TradeSessionCQG(conn) as TS:
+            return await LiveOrderCQG(TS, timeout = 0.01)._liquidateall_order_request(order_info)
+
+    result, _ = await asyncio.gather(run_order(), fake_server.run())
+    assert result 
+    assert isinstance(result, list)
+    assert result[0]['request_id'] == 111
+    
+@pytest.mark.asyncio
+async def test_goflat_order_request_valid_reject() -> None:
+    # --- Setup Connection
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password", 
+        account_id = 10000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport
+        )
+    # --- Setup fake Server
+    success_decisions = {
+        "goflat_order_request": True
+        }
+    extra_instructions = {
+        "goflat_order_request_reject": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions 
+        )    
+    # --- Setup input parameter
+    order_info = {
+        'account_id': conn._account_id,
+        'request_id': 111,
+        'when_utc_timestamp': datetime.now(tz=timezone.utc),
+        }
+    async def run_order():
+        async with TradeSessionCQG(conn) as TS:
+            return await LiveOrderCQG(TS, timeout = 0.01)._goflat_order_request(order_info)
+        
+    result, _ = await asyncio.gather(run_order(), fake_server.run())
+    assert result 
+    assert isinstance(result, list)
+    assert result[0]['request_id'] == 111
     
 # --- Sad Path ---
 @pytest.mark.asyncio
