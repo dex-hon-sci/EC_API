@@ -370,7 +370,7 @@ class TradeSessionCQG:
                 await self._tracker_task
             except asyncio.CancelledError:
                 pass
-        self._conn.stop()
+        await self._conn.stop()
         
     async def _cleanup(self) -> None:
         # Automatically unsubscirbe and destroy the queue copy of the 

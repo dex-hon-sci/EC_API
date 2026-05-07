@@ -152,3 +152,32 @@ async def test_context_manager_automatic_cleanup_upon_exit_fail_timeout(caplog) 
     with caplog.at_level(logging.ERROR, logger="EC_API.connect.cqg.base"):
         await run_TS() # no response message -> timeout
         await asyncio.sleep(0)
+        
+#--- start()/stop()
+@pytest.mark.asyncio
+async def test_trade_session_start_stop_lifecycle() -> None:
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name",
+        "user_name",
+        "password",
+        account_id=10000,
+        immediate_connect=False,
+        client=FakeCQGClient(),
+        transport=fake_transport
+        )
+
+    TS = TradeSessionCQG(conn)
+
+    # --- start()
+    TS.start()
+
+    assert TS.state == ConnectionState.CONNECTED_DEFAULT
+    assert TS._tracker_task is not None
+    assert not TS._tracker_task.done()
+
+    # --- stop()
+    await TS.stop()
+
+    assert TS._tracker_task.done()
+    assert TS.state == ConnectionState.CLOSED
