@@ -113,3 +113,145 @@ async def test_fail_all_ignores_cancelled_futures() -> None:
 
     # Cancelled future should stay cancelled
     assert fut.cancelled()
+    
+# --- Register racing keys tests
+@pytest.mark.asyncio
+async def test_register_racing_keys_returns_future() -> None:
+    keys = [("fam", "type", "rid", 1), ("fam", "type", "rid", 2)]
+
+    mr = MessageRouter()
+    final_fut = mr.register_racing_keys(keys)
+
+    assert isinstance(final_fut, asyncio.Future)
+    assert not final_fut.done()
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_all_sub_keys_in_pending() -> None:
+    key1 = ("fam", "type", "rid", 1)
+    key2 = ("fam", "type", "rid", 2)
+    key3 = ("fam", "type", "rid", 3)
+
+    mr = MessageRouter()
+    mr.register_racing_keys([key1, key2, key3])
+
+    assert mr.pending_count == 3
+    assert key1 in mr.pending
+    assert key2 in mr.pending
+    assert key3 in mr.pending
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_winner_sets_final_result() -> None:
+    key1 = ("fam", "type", "rid", 1)
+    key2 = ("fam", "type", "rid", 2)
+    key3 = ("fam", "type", "rid", 3)
+
+    mr = MessageRouter()
+    final_fut = mr.register_racing_keys([key1, key2, key3])
+
+    mr.on_message(key2, {"winner": "key2"})
+
+    result = await asyncio.wait_for(final_fut, timeout=1.0)
+    assert result == {"winner": "key2"}
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_only_first_winner_counts() -> None:
+    key1 = ("fam", "type", "rid", 1)
+    key2 = ("fam", "type", "rid", 2)
+
+    mr = MessageRouter()
+    final_fut = mr.register_racing_keys([key1, key2])
+
+    mr.on_message(key1, "first")
+    mr.on_message(key2, "second")  # should be a no-op; key2 was cancelled
+
+    result = await asyncio.wait_for(final_fut, timeout=1.0)
+    assert result == "first"
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_losers_cancelled_after_win() -> None:
+    key1 = ("fam", "type", "rid", 1)
+    key2 = ("fam", "type", "rid", 2)
+    key3 = ("fam", "type", "rid", 3)
+
+    mr = MessageRouter()
+    sub_futs = {k: mr.pending.get(k) for k in []}  # capture after registration
+    mr.register_racing_keys([key1, key2, key3])
+    loser_fut2 = mr.pending[key2]
+    loser_fut3 = mr.pending[key3]
+
+    mr.on_message(key1, "winner")
+
+    # give the event loop a tick to process callbacks
+    await asyncio.sleep(0)
+
+    assert loser_fut2.cancelled()
+    assert loser_fut3.cancelled()
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_losers_cancelled_and_pending_cleared() -> None:
+    key1 = ("fam", "type", "rid", 1)
+    key2 = ("fam", "type", "rid", 2)
+
+    mr = MessageRouter()
+    mr.register_racing_keys([key1, key2])
+    loser = mr.pending[key2]
+
+    mr.on_message(key1, "winner")
+    await asyncio.sleep(0)  # runs _on_sub_fut_done → cancels key2
+    await asyncio.sleep(0)  # runs key2's _cleanup → pops from pending
+
+    assert loser.cancelled()
+    assert mr.pending_count == 0
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_single_key() -> None:
+    key1 = ("fam", "type", "rid", 1)
+
+    mr = MessageRouter()
+    final_fut = mr.register_racing_keys([key1])
+
+    mr.on_message(key1, "only")
+
+    result = await asyncio.wait_for(final_fut, timeout=1.0)
+    assert result == "only"
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_empty_list() -> None:
+    mr = MessageRouter()
+    final_fut = mr.register_racing_keys([])
+
+    assert isinstance(final_fut, asyncio.Future)
+    assert not final_fut.done()
+    assert mr.pending_count == 0
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_duplicate_pre_existing_key_raises() -> None:
+    key1 = ("fam", "type", "rid", 1)
+
+    mr = MessageRouter()
+    mr.register_key(key1)  # pre-register key1
+
+    with pytest.raises(DuplicateRouterKeyError):
+        mr.register_racing_keys([key1, ("fam", "type", "rid", 2)])
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_duplicate_within_list_raises() -> None:
+    key1 = ("fam", "type", "rid", 1)
+
+    mr = MessageRouter()
+    with pytest.raises(DuplicateRouterKeyError):
+        mr.register_racing_keys([key1, key1])
+
+@pytest.mark.asyncio
+async def test_register_racing_keys_external_cancel_of_sub_does_not_set_final() -> None:
+    key1 = ("fam", "type", "rid", 1)
+    key2 = ("fam", "type", "rid", 2)
+
+    mr = MessageRouter()
+    final_fut = mr.register_racing_keys([key1, key2])
+    sub_fut1 = mr.pending[key1]
+
+    sub_fut1.cancel()  # cancel sub externally, not via on_message
+    await asyncio.sleep(0)
+
+    assert not final_fut.done()  # external cancel should not propagate to final_fut
