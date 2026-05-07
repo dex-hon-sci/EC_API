@@ -5,79 +5,42 @@ Created on Wed Jul 30 10:23:04 2025
 
 @author: dexter
 """
-# Native Python imports
-import asyncio
-from typing import Protocol
-from abc import ABC, abstractmethod
-from EC_API.transport.base import Transport
-from EC_API.transport.routers import MessageRouter
+from typing import Protocol, Any
 from EC_API.connect.enums import ConnectionState
 
 class Connect(Protocol):
-    # Base class for websocket-like connection
-    def __init__(self, 
-                 host_name: str, 
-                 user_name: str, 
-                 password: str):
-        """
-        Instantiation can immediately create connection to the server.
-        One set of user_name + password for one Connect Object.
-        """
-        self._host_name = host_name
-        self._user_name = user_name
-        self._password = password       
-        
-        # State Control
-        self.state = ConnectionState.UNKNOWN
-        
-        # Transport layer for async adaptation
-        self._loop = asyncio.get_running_loop()
-        self._transport = Transport()
-        self._router = MessageRouter()
 
-    # ---- Getter methods for class attributes ----
+    # --- Properties ---
     @property
-    def client(self):
-        """
-        Getter method for client connection object.
-        """
-        return self._client
-    
-    # ---- Life Cycle ----
-    def start(self):
+    def state(self) -> ConnectionState:
+        ...
+
+    @property
+    def client(self): ...
+
+    @property
+    def transport(self): ...
+
+    # --- Context manager ---
+    async def __aenter__(self) -> "Connect": ...
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool: ...
+
+    # --- Lifecycle ---
+    def rid(self) -> int: ...
+    def start(self) -> bool:
         """
         Set up and start connection via the Transport layer's method.
         Usually setting up router loop as well
         """
         ...
-    
-    async def stop(self):
+    async def stop(self) -> bool:
         """
         Stop connection via the Transport layer's method.
         """
         ...
-        
-    # ---- Vendor specific functions templates ----
-    async def connect(self):
-        """
-        Create connection to the server.
-        State: UKNOWN -> CONNECTING/
-        if it is successful, State: CONNECTING -> CONNECTED
-        if it is not, State: CONNECTING -> DISCONNECTED
-        """
-        pass
-        
-    async def disconnect(self):
-        """
-        User initiated Disconnection sequence.
-        State: CONNECTED/CONNECTED_LOGON/CONNECTED_LOGOFF -> DISCONNECTING
-        if it is successful, State: DISCONNECTING -> DISCONNECTED
-        if it is not, State: DISCONNECTING -> CONNECTED/CONNECTED_LOGON/CONNECTED_LOGOFF
 
-        """
-        ...
-
-    async def logon(self):
+    # --- Session ---
+    async def logon(self, **kwargs) -> dict[str, Any] | None: 
         """
         User initiated Logon sequence. 
         if it is successful, State: CONNECTED -> CONNECTED_LOGON
@@ -85,8 +48,7 @@ class Connect(Protocol):
 
         """
         ...
-    
-    async def logoff(self):
+    async def logoff(self) -> dict[str, Any] | None:
         """
         User initiated Logoff sequence.
         if it is successful, State: CONNECTED_LOGON -> CONNECTED_LOGOFF
@@ -94,8 +56,7 @@ class Connect(Protocol):
 
         """
         ...
-    
-    def restore_request(self):
+    async def restore_request(self, **kwargs) -> dict[str, Any] | None: 
         """
         A Necessary restore connection method. Usually it take in a 
         session_token as an input to restore connection.
@@ -105,8 +66,9 @@ class Connect(Protocol):
 
         """
         ...
-    
-    async def ping(self):
+
+    # --- Heartbeat ---
+    async def ping(self, token: str | None = None) -> dict[str, Any] | None: 
         """
         Used for Connection health check. Expect a Pong response message from
         server and calculate the time between send and recieve.
@@ -116,4 +78,8 @@ class Connect(Protocol):
         restore_request can then be called to attempt restoring connections.
         """
         ...
+    async def pong(self, token: str, ping_utc_time: int, pong_utc_time: int) -> None: ...
 
+    # --- Symbol ---
+    async def resolve_symbol(self, symbol: str) -> dict[str, Any] | None: ...
+    async def unsubscribe_symbol(self, symbol: str) -> None: ...

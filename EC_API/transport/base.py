@@ -5,10 +5,7 @@ Created on Thu Nov 27 21:55:11 2025
 
 @author: dexter
 """
-import logging
 from typing import Protocol, Any
-
-logger = logging.getLogger(__name__)
 
 class Transport(Protocol):
     """
@@ -22,7 +19,10 @@ class Transport(Protocol):
       - manage their own connection lifecycle
       - expose async send/recv for higher layers
     """
-    # ----
+    # --- Lifecycle ---
+    def connect(self) -> bool: ...
+    def disconnect(self) -> bool: ...
+
     def start(self) -> None:
         """
         Start any background IO machinery (threads, tasks, etc.).
@@ -41,12 +41,7 @@ class Transport(Protocol):
         """
         ...
         
-    # ----
-    def _send_loop(self): ...
-
-    def _recv_loop(self): ...
-
-    # ----
+    # ---- I/O
     async def send(self, msg: Any) -> None:
         """
         Asynchronously enqueue or send an outbound message.
