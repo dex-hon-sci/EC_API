@@ -86,7 +86,7 @@ def build_ping_server_msg(
 def build_pong_server_msg(
         server_msg: ServerMsg,
         token: str,
-        ping_time: int = int(datetime.now().timestamp()),
+        ping_time: int = int(datetime.now().timestamp()*1000),
         delay: int = 5
     ) -> ServerMsg:
     pong = server_msg.pong
@@ -254,7 +254,7 @@ def build_order_request_acks_server_msg(
     
     order_request_acks = server_msg.order_request_acks.add()
     order_request_acks.request_id = request_id
-    order_request_acks.when = datetime.now()
+    order_request_acks.when.FromDatetime(datetime.now())
     return server_msg
 
 def build_trade_subscription_statuses_server_msg(
@@ -302,8 +302,8 @@ def build_order_statuses_server_msg(
     order_statuses.status = res
     order_statuses.order_id = order_id
     order_statuses.chain_order_id = chain_order_id
-    order_statuses.status_utc_timestamp = datetime.now()
-    order_statuses.submission_utc_timestamp = datetime.now()
+    order_statuses.status_utc_timestamp.FromDatetime(datetime.now())
+    order_statuses.submission_utc_timestamp.FromDatetime(datetime.now())
     order_statuses.fill_cnt = 0
     order_statuses.scaled_avg_fill_price = -200
     order_statuses.avg_fill_price_correct = 10
@@ -311,14 +311,14 @@ def build_order_statuses_server_msg(
     transaction_statuses = order_statuses.transaction_statuses.add()
     transaction_statuses.status = TransactionStatus.Status.IN_TRANSIT
     transaction_statuses.trans_id = 2
-    transaction_statuses.trans_utc_timestamp = datetime.now()
+    transaction_statuses.trans_utc_timestamp.FromDatetime(datetime.now())
     transaction_statuses.cl_order_id = "cl_order_id_1"
     
     trades = transaction_statuses.trades.add()
     trades.trade_id = "trade_id_1"
-    trades.contract_id = 0
+    trades.contract_id = contract_id
     trades.statement_date = int(datetime.now().timestamp())
-    trades.trade_utc_timestamp = datetime.now()
+    trades.trade_utc_timestamp.FromDatetime(datetime.now())
     
     trades.scaled_price = 1000 #price = round(price_correct / correct_price_scale)
     trades.price_correct = 100100
@@ -331,7 +331,7 @@ def build_order_statuses_server_msg(
         order_statuses.order.CopyFrom(order)
     # ----
     contract_metadata = order_statuses.contract_metadata.add()
-    contract_metadata.contract_id = 0
+    contract_metadata.contract_id = contract_id
     contract_metadata.contract_symbol = "Symbol_1"
     contract_metadata.correct_price_scale = 0.01
     contract_metadata.display_price_scale = 202
@@ -347,7 +347,7 @@ def build_order_statuses_server_msg(
     contract_metadata.instrument_group_description = "instrument_group_description"
     contract_metadata.country_code = "US"
     # ----
-    order_statuses.account_id =     account_id
+    order_statuses.account_id = account_id
     return server_msg
 
 
@@ -409,12 +409,14 @@ def build_account_summary_statuses_server_msg(
 
 def build_go_flat_statuses_server_msg(
         server_msg: ServerMsg,
-        res: GFltStatus.StatusCode = GFltStatus.StatusCode.STATUS_CODE_COMPLETED
+        res: GFltStatus.StatusCode = GFltStatus.StatusCode.STATUS_CODE_COMPLETED,
+        request_id: int = 1,
+        account_id: int = 1210221
     ) -> ServerMsg:
     
     go_flat_statuses = server_msg.go_flat_statuses.add()
-    go_flat_statuses.request_id = 1 
-    go_flat_statuses.account_id = 1210221
+    go_flat_statuses.request_id = request_id
+    go_flat_statuses.account_id = account_id
     go_flat_statuses.status_code = res
     return server_msg
 

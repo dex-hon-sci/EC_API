@@ -6,8 +6,11 @@ Created on Wed Feb 18 06:34:47 2026
 @author: dexter
 """
 import asyncio
+import functools
+import queue
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg, ClientMsg
 from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as MktDSub
+from EC_API.ext.common.shared_1_pb2 import OrderStatus
 from EC_API.ext.WebAPI.user_session_2_pb2 import LoggedOff as LOff
 from EC_API.ext.WebAPI.webapi_2_pb2 import InformationReport as InfoRp
 from EC_API.connect.cqg.base import ConnectCQG
@@ -15,7 +18,11 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
     build_logged_off_server_msg,
     build_symbol_resolution_report_server_msg,
     build_market_data_subscription_statuses_server_msg,
-    build_real_time_market_data_server_msg
+    build_real_time_market_data_server_msg,
+    build_order_statuses_server_msg,
+    build_order_request_rejects_server_msg,
+    build_order_request_acks_server_msg,
+    build_go_flat_statuses_server_msg
     )
 
 def client_msg_type(client_msg: ClientMsg) -> list[str]:
@@ -60,6 +67,23 @@ class FakeDataServerCQG:
                     while count < 100:
                         await self._mkt_data_stream_responses(msg)
                         count+=1
+                        
+            # ---- Orders ----
+            case "order_requests":
+                if self.success_decisions.get('new_order_request'):
+                    await self._new_order_request_response(msg)
+                if self.success_decisions.get('modify_order_request'):
+                    await self._modify_order_request_response(msg)
+                if self.success_decisions.get('cancel_order_request'):
+                    await self._cancel_order_request_response(msg)
+                if self.success_decisions.get('activate_order_request'):
+                    await self._activate_order_request_response(msg)
+                if self.success_decisions.get('cancelall_order_request'):
+                    await self._cancelall_order_request_response(msg)
+                if self.success_decisions.get('liquidateall_order_request'):
+                    await self._liquidateall_order_request_response(msg)
+                if self.success_decisions.get('goflat_order_request'):
+                    await self._goflat_order_request_response(msg)            
             case _:
                 pass
             
@@ -148,21 +172,193 @@ class FakeDataServerCQG:
             await self.transport.in_q.put(mkt_status)
         
     async def _mkt_data_stream_responses(self, client_msg: ClientMsg):
-            for mkt_sub in client_msg.market_data_subscriptions:
-                server_msg = build_real_time_market_data_server_msg(
+        for mkt_sub in client_msg.market_data_subscriptions:
+            server_msg = build_real_time_market_data_server_msg(
+                ServerMsg(),
+                contract_id = mkt_sub.contract_id
+                )
+            
+            await self.transport.in_q.put(server_msg)
+            
+    async def _unsubscribe_mkt_data_response(self):
+        ...
+    
+    # ---- Trade Session ----
+    
+    # ---- Live Order ----
+    async def _new_order_request_response(self, client_msg: ClientMsg):
+        
+        for i, order in enumerate(client_msg.order_requests):
+            if self.success_decisions['new_order_request']:
+                status = OrderStatus.Status.WORKING
+            elif not self.success_decisions['new_order_request']:
+                status = OrderStatus.Status.REJECTED
+            
+            if self.extra_instructions.get('new_order_request_reject'):
+                if self.extra_instructions['new_order_request_reject']:
+                    server_msg = build_order_request_rejects_server_msg(
+                        ServerMsg(),
+                        request_id = client_msg.request_id
+                        )
+                        
+            else:
+                server_msg = build_order_statuses_server_msg(
                     ServerMsg(),
-                    contract_id = mkt_sub.contract_id
+                    res = status,
+                    contract_id = order.new_order.order.contract_id,
+                    sub_ids = [1],
+                    order_id = f"order_id_{i}",
+                    chain_order_id = f"chain_order_id_{i}",
+                    order = order.new_order.order,
+                    account_id = order.new_order.order.account_id
+                    )
+            await self.transport.in_q.put(server_msg)
+        
+    async def _modify_order_request_response(self, client_msg: ClientMsg):
+
+        for i, ore in enumerate(client_msg.order_requests):
+            if self.success_decisions['modify_order_request']:
+                status = OrderStatus.Status.IN_MODIFY
+            elif not self.success_decisions['modify_order_request']:
+                status = OrderStatus.Status.REJECTED
+                
+            if self.extra_instructions.get('modify_order_request_reject'):
+                if self.extra_instructions['modify_order_request_reject']:
+                    server_msg = build_order_request_rejects_server_msg(
+                        ServerMsg(),
+                        request_id = client_msg.request_id
+                        )
+            else:
+                server_msg = build_order_statuses_server_msg(
+                    ServerMsg(),
+                    res = status,
+                    sub_ids = [1],
+                    order_id = ore.modify_order.order_id,
+                    chain_order_id = ore.modify_order.order_id+"chain",
+                    account_id = ore.modify_order.account_id
+                    )
+            await self.transport.in_q.put(server_msg)
+
+    async def _cancel_order_request_response(self, client_msg: ClientMsg):
+
+        for i, ore in enumerate(client_msg.order_requests):
+            if self.success_decisions['cancel_order_request']:
+                status = OrderStatus.Status.IN_CANCEL
+            elif not self.success_decisions['cancel_order_request']:
+                status = OrderStatus.Status.REJECTED
+                
+            if self.extra_instructions.get('cancel_order_request_reject'):
+                if self.extra_instructions['cancel_order_request_reject']:
+                    server_msg = build_order_request_rejects_server_msg(
+                        ServerMsg(),
+                        request_id = client_msg.request_id
+                        )
+            else:                
+                server_msg = build_order_statuses_server_msg(
+                    ServerMsg(),
+                    res = status,
+                    sub_ids = [1],
+                    order_id = ore.cancel_order.order_id,
+                    chain_order_id = ore.cancel_order.order_id+"chain"  ,
+                    account_id = ore.cancel_order.account_id
+                    )
+            await self.transport.in_q.put(server_msg)
+        
+    async def _activate_order_request_response(self, client_msg: ClientMsg):
+
+        for i, ore in enumerate(client_msg.order_requests):
+            if self.success_decisions['activate_order_request']:
+                status = OrderStatus.Status.ACTIVEAT
+            elif not self.success_decisions['activate_order_request']:
+                status = OrderStatus.Status.REJECTED
+                
+            if self.extra_instructions.get('activate_order_request_reject'):
+                if self.extra_instructions['activate_order_request_reject']:
+                    server_msg = build_order_request_rejects_server_msg(
+                        ServerMsg(),
+                        request_id = client_msg.request_id
+                        )
+            else:
+                server_msg = build_order_statuses_server_msg(
+                    ServerMsg(),
+                    res = status,
+                    sub_ids = [1],
+                    order_id = ore.activate_order.order_id,
+                    chain_order_id = ore.activate_order.order_id+"chain",
+                    account_id = ore.activate_order.account_id
+                    )
+            await self.transport.in_q.put(server_msg)
+        
+    async def _cancelall_order_request_response(self, client_msg: ClientMsg):
+        
+        for i, ore in enumerate(client_msg.order_requests):
+            if self.success_decisions['cancelall_order_request']:
+                status = OrderStatus.Status.ACTIVEAT
+            elif not self.success_decisions['cancelall_order_request']:
+                status = OrderStatus.Status.REJECTED
+                
+            if self.extra_instructions.get('cancelall_order_request_reject'):
+                if self.extra_instructions['cancelall_order_request_reject']:
+                    server_msg = build_order_request_rejects_server_msg(
+                        ServerMsg(),
+                        request_id = client_msg.request_id
+                        )
+            else:
+                server_msg = build_order_request_acks_server_msg(
+                    ServerMsg(),
+                    request_id = ore.request_id
+                    )
+            await self.transport.in_q.put(server_msg)
+
+        
+    async def _liquidateall_order_request_response(self, client_msg: ClientMsg):
+        
+        for i, ore in enumerate(client_msg.order_requests):
+            if self.success_decisions['liquidateall_order_request']:
+                status = OrderStatus.Status.ACTIVEAT
+            elif not self.success_decisions['liquidateall_order_request']:
+                status = OrderStatus.Status.REJECTED
+                
+            if self.extra_instructions.get('liquidateall_order_request_reject'):
+                if self.extra_instructions['liquidateall_order_request_reject']:
+                    server_msg = build_order_request_rejects_server_msg(
+                        ServerMsg(),
+                        request_id = ore.request_id
+                        )
+            else:
+                server_msg = build_order_request_acks_server_msg(
+                    ServerMsg(),
+                    request_id = ore.request_id
+                    )
+            await self.transport.in_q.put(server_msg)
+
+        
+    async def _goflat_order_request_response(self, client_msg: ClientMsg):
+        
+        for i, ore in enumerate(client_msg.order_requests):
+            if self.success_decisions['goflat_order_request']:
+                status = OrderStatus.Status.ACTIVEAT
+            elif not self.success_decisions['goflat_order_request']:
+                status = OrderStatus.Status.REJECTED
+                
+            if self.extra_instructions.get('goflat_order_request_reject'):
+                if self.extra_instructions['goflat_order_request_reject']:
+                    server_msg = build_order_request_rejects_server_msg(
+                        ServerMsg(),
+                        request_id = ore.request_id
+                        )
+            else:
+                server_msg = build_go_flat_statuses_server_msg(
+                    ServerMsg(),
+                    request_id = ore.request_id,
+                    account_id = ore.go_flat.account_ids[0]
                     )
                 
             await self.transport.in_q.put(server_msg)
-            
-    async def _unsubscribe_mkt_data_response(self):...
-    
-    # ---- Trade Session ----
+
+
     # ---- run method ----
     async def run(self):
-        import functools
-        import queue
         # while loop, scan the transport
         while not self._server_stop_evt.is_set():
             
@@ -171,16 +367,15 @@ class FakeDataServerCQG:
                     None, functools.partial(self.transport.out_q.get, timeout = 0.05)
                     )
             except queue.Empty:
-                raise
+                break
                 
-            #client_msg = self.transport.out_q.get()
             await self.response_logic(client_msg)
             
             if client_msg.market_data_subscriptions:
                 if client_msg.market_data_subscriptions[0].level == MktDSub.Level.LEVEL_NONE:
                     break
+                
         
-
 # =============================================================================
 # class DummyWSServer:
 #     
