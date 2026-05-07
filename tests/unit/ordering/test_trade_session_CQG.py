@@ -6,6 +6,7 @@ from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus as Trd
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.connect.enums import ConnectionState
+from EC_API.ordering.enums import SubScope
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.ordering.enums import SubScope
 from tests.unit.fixtures.proxy_clients import FakeTransport
@@ -43,7 +44,45 @@ def make_conn():
     return conn, fake_transport
 
 # --- utility functions
-def test_has_orders_scope() -> None:...
+@pytest.mark.asyncio
+async def test_has_orders_scope_success() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    TS._active_trade_subs[1] = [SubScope.ORDERS]
+    conn.start()
+
+    assert TS.has_orders_scope()
+    await conn.stop()
+    
+@pytest.mark.asyncio
+async def test_has_positions_scope_success() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    TS._active_trade_subs[1] = [SubScope.POSITIONS]
+    conn.start()
+
+    assert TS.has_positions_scope()
+    await conn.stop()
+    
+@pytest.mark.asyncio
+async def test_has_orders_scope_fail() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    TS._active_trade_subs[1] = []
+    conn.start()
+
+    assert not TS.has_orders_scope()
+    await conn.stop()
+    
+@pytest.mark.asyncio
+async def test_has_positions_scope_fail() -> None:
+    conn, ft = make_conn()
+    TS = TradeSessionCQG(conn)
+    TS._active_trade_subs[1] = []
+    conn.start()
+
+    assert not TS.has_positions_scope()
+    await conn.stop()
 
 # --- CQG resolve symbol and unsubscribe symbol function calls
 @pytest.mark.asyncio
@@ -68,7 +107,7 @@ async def test_resolve_symbol_success() -> None:
     assert result[0]["contract_metadata"]["contract_symbol"] == "CLE"
     assert result[0]["contract_metadata"]["contract_id"] == 3
     assert result[0]["id"] == rid
-
+    await conn.stop()
 
 @pytest.mark.asyncio
 async def test_resolve_symbol_timeout() -> None:
@@ -130,6 +169,7 @@ async def test_unsub_symbol_success() -> None:
     assert result is not None
     assert len(result) == 1
     assert result[0]["contract_metadata"]["contract_symbol"] == "CLE"
+    await conn.stop()
 
 
 @pytest.mark.asyncio

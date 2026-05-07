@@ -93,7 +93,7 @@ class ConnectCQG(Connect):
             host_name: str, 
             user_name: str, 
             password: str,
-            account_id: str = "",
+            account_id: int = "",
             immediate_connect: bool = False,
             client: Optional[webapi_client.WebApiClient] = None,
             transport: Optional[TransportCQG] = None
@@ -374,10 +374,13 @@ class ConnectCQG(Connect):
                                 ord_sts.chain_order_id, msg
                                 )
                             # one-shot future resolution — silent no-op if nobody registered
-                            cl_order_id = ord_sts.order.cl_order_id
-                            key = ('order_confirm', 'order_statuses', 'cl_order_id', cl_order_id)
-                            self._msg_router.on_message(key, msg)
-                        continue
+                            
+                            for key in [
+                                ('order_confirm', 'order_statuses', 'cl_order_id', ord_sts.order.cl_order_id),
+                                ('order_confirm', 'order_statuses', 'order_id', ord_sts.order_id),
+                                #('order_confirm', 'order_statuses', 'chain_order_id', ord_sts.chain_order_id)
+                                ]:
+                                self._msg_router.on_message(key, msg)
 
                     
                     if is_position_statuses_stream(top_unique_field):
