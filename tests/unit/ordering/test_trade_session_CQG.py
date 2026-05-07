@@ -8,7 +8,8 @@ from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.connect.enums import ConnectionState
 from EC_API.ordering.enums import SubScope
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
-from EC_API.ordering.enums import SubScope
+from EC_API.ordering.enums import SubScope, OrderStatus
+from EC_API.utility.symbol_registry import SymbolRegistry
 from tests.unit.fixtures.proxy_clients import FakeTransport
 from tests.unit.fixtures.server_msg_builders_CQG import (
     build_trade_subscription_statuses_server_msg,
@@ -20,7 +21,8 @@ from tests.unit.fixtures.server_msg_builders_CQG import (
 from EC_API.exceptions import (
     TradeSessionRequestError, 
     TradeSessionTimeOutError,
-    TradeSubscriptionMissingError
+    TradeSubscriptionMissingError,
+    SymbolNotInRegistryError
     )
 
 
@@ -400,3 +402,73 @@ async def test_request_historical_orders_sends_correct_params() -> None:
         grab_and_respond(),
     )
     await conn.stop()
+
+
+# --- get_order_status ---
+def test_get_order_status_exists():
+    ts = TradeSessionCQG.__new__(TradeSessionCQG)
+    ts.latest_order_state_by_chain = {"chain_001": {"status": OrderStatus.FILLED}}
+
+    result = ts.get_order_status("chain_001")
+
+    assert result == {"status": OrderStatus.FILLED}
+
+def test_get_order_status_missing():
+    ts = TradeSessionCQG.__new__(TradeSessionCQG)
+    ts.latest_order_state_by_chain = {}
+
+    result = ts.get_order_status("chain_999")
+
+    assert result is None
+
+
+# --- get_position_status ---
+def test_get_position_status_exists():
+    ts = TradeSessionCQG.__new__(TradeSessionCQG)
+    ts._symbol_registry = SymbolRegistry()
+    ts._symbol_registry.register("ES", {"contract_id": 42})
+    ts.latest_pos_status_by_contract_id = {42: {"qty": 2}}
+
+    result = ts.get_position_status("ES")
+
+    assert result == {"qty": 2}
+
+def test_get_position_status_missing_contract():
+    ts = TradeSessionCQG.__new__(TradeSessionCQG)
+    ts._symbol_registry = SymbolRegistry()
+    ts._symbol_registry.register("ES", {"contract_id": 42})
+    ts.latest_pos_status_by_contract_id = {}
+
+    result = ts.get_position_status("ES")
+
+    assert result is None
+
+def test_get_position_status_symbol_not_in_registry():
+    ts = TradeSessionCQG.__new__(TradeSessionCQG)
+    ts._symbol_registry = SymbolRegistry()
+    ts.latest_pos_status_by_contract_id = {}
+
+    with pytest.raises(SymbolNotInRegistryError): 
+        ts.get_position_status("UNKNOWN")
+
+
+# --- get_account_summary ---
+def test_get_account_summary_exists(mocker):
+    ts = TradeSessionCQG.__new__(TradeSessionCQG)
+    ts._conn = mocker.MagicMock()
+    ts._conn._account_id = "acc_123"
+    ts.latest_account_summaries = {"acc_123": {"balance": 10000}}
+
+    result = ts.get_account_summay()
+
+    assert result == {"balance": 10000}
+
+def test_get_account_summary_missing(mocker):
+    ts = TradeSessionCQG.__new__(TradeSessionCQG)
+    ts._conn = mocker.MagicMock()
+    ts._conn._account_id = "acc_123"
+    ts.latest_account_summaries = {}
+
+    result = ts.get_account_summay()
+
+    assert result is None

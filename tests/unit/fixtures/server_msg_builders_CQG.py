@@ -354,14 +354,16 @@ def build_order_statuses_server_msg(
 def build_position_statuses_server_msg(
         server_msg: ServerMsg,
         subscription_ids: list[int] = [0,1,2],
-        contract_id: int = 0
+        contract_id: int = 0,
+        account_id: int = 123466,
+        qty: int = 1
     ) -> ServerMsg:    
     
     position_statuses = server_msg.position_statuses.add()
     for num in subscription_ids:
         position_statuses.subscription_ids.append(num)
     
-    position_statuses.account_id = 123466
+    position_statuses.account_id = account_id
     position_statuses.contract_id = contract_id
     position_statuses.is_short_open_position = False
     
@@ -369,6 +371,8 @@ def build_position_statuses_server_msg(
     open_positions = position_statuses.open_positions.add()
     open_positions.id = 2
     open_positions.price_correct = 101
+    open_positions.qty.significand = qty
+    open_positions.qty.exponent = 0
     open_positions.trade_date = int(datetime.now().timestamp())
     open_positions.statement_date = int(datetime.now().timestamp())
     open_positions.is_aggregated = True
@@ -393,7 +397,8 @@ def build_position_statuses_server_msg(
 
 def build_account_summary_statuses_server_msg(
         server_msg: ServerMsg, 
-        account_id: int = 1210221
+        account_id: int = 1210221,
+        purchasing_power: float = 1_000_000
         ) -> ServerMsg:
     account_summary_statuses = server_msg.account_summary_statuses.add()
     account_summary_statuses.subscription_ids.append(1)
@@ -402,7 +407,7 @@ def build_account_summary_statuses_server_msg(
     
     account_summary_statuses.account_id = account_id
     account_summary_statuses.currency = "USD"
-    account_summary_statuses.purchasing_power = 1_000_000
+    account_summary_statuses.purchasing_power = purchasing_power
     
     return server_msg
 

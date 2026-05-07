@@ -175,7 +175,6 @@ class StreamRouter:
             
             try:
                 q.put_nowait(item)
-                
                 if self.on_publish:
                     self.on_publish()
                 

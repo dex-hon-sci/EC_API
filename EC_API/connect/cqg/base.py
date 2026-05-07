@@ -115,7 +115,7 @@ class ConnectCQG(Connect):
         self._router_task: Optional[asyncio.Task] = None
         self._stop_evt = asyncio.Event()
         self._trade_work_evt = asyncio.Event()
-        self._timeout: float | int = 1.0 # make make this a ping based decision
+        self._timeout: float | int = 0.2 # make make this a ping based decision
 
         # State Control
         self._state_mgr = StateMgr(
@@ -371,6 +371,7 @@ class ConnectCQG(Connect):
                     # --- (3) order update-related dispatch ---
                     if is_order_update_stream(top_unique_field):
                         for ord_sts in msg.order_statuses:
+                            print("[router_loop] ord_sts", ord_sts)
                             await self._exec_stream_router.publish(
                                 ord_sts.chain_order_id, msg
                                 )
@@ -382,6 +383,7 @@ class ConnectCQG(Connect):
                                 #('order_confirm', 'order_statuses', 'chain_order_id', ord_sts.chain_order_id)
                                 ]:
                                 self._msg_router.on_message(key, msg)
+                        
 
                     
                     if is_position_statuses_stream(top_unique_field):
@@ -433,7 +435,7 @@ class ConnectCQG(Connect):
                 #await asyncio.create_task(self._reconnect_loop)
                 #return
             except Exception as e:
-                logger.error("Router Loop Error:  %s", e, exc_info=True)
+                logger.error("Router Loop Error: %s", e, exc_info=True)
                                  
     # ---- Failure Mode -------------------
     async def _on_transport_failure(self, exc: Exception) -> None:

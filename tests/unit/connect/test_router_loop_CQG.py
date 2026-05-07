@@ -74,7 +74,8 @@ async def test_bench_stream_router_publish() -> None:
     N = 10_000
     msg_stream = dummy_realtime_data_stream(total_msg_number=N)
     
-    router = StreamRouter(max_queue_size=N, max_sub_size=4, max_num_sym=100)
+    router = StreamRouter(
+        max_queue_size=N, max_sub_size=4, max_num_sym=100)
     contract_ids = {m.real_time_market_data[0].contract_id for m in msg_stream}
     for cid in contract_ids:
         router.subscribe(cid)
