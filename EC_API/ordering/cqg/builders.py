@@ -150,7 +150,6 @@ def build_new_order_request_msg(
         validate_input_para(full)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_new_order_request_msg invalid parameters: {str(e)}"
-        logger.error(msg)
         raise MsgBuilderError(msg) 
 
 
@@ -239,7 +238,6 @@ def build_modify_order_request_msg(
         validate_input_para(full)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_modify_order_request_msg invalid parameters: {str(e)}."
-        logger.error(msg)
         raise MsgBuilderError(msg) 
     
     client_msg = ClientMsg()
@@ -249,7 +247,7 @@ def build_modify_order_request_msg(
     order_requests.modify_order.account_id = account_id
     order_requests.modify_order.orig_cl_order_id = orig_cl_order_id
     order_requests.modify_order.cl_order_id = cl_order_id
-    order_requests.modify_order.when_utc_timestamp = when_utc_timestamp
+    order_requests.modify_order.when_utc_timestamp.FromDatetime(when_utc_timestamp)
     
     if kwargs.get('qty_significand') is not None:        
         order_requests.modify_order.qty.significand = int(kwargs['qty_significand'])
@@ -288,7 +286,6 @@ def build_cancel_order_request_msg(
         assert_input_types(params, CANCEL_ORDER_REQUIRED_FIELDS, strict = True)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_cancel_order_request_msg invalid parameters: {str(e)}"
-        logger.error(msg)
         raise MsgBuilderError(msg) 
 
     client_msg = ClientMsg()
@@ -298,7 +295,7 @@ def build_cancel_order_request_msg(
     order_requests.cancel_order.account_id = account_id
     order_requests.cancel_order.orig_cl_order_id = orig_cl_order_id
     order_requests.cancel_order.cl_order_id = cl_order_id
-    order_requests.cancel_order.when_utc_timestamp = when_utc_timestamp
+    order_requests.cancel_order.when_utc_timestamp.FromDatetime(when_utc_timestamp)
     return  client_msg
 
 def build_cancelall_order_request_msg(
@@ -321,7 +318,7 @@ def build_cancelall_order_request_msg(
     order_request = client_msg.order_requests.add()
     order_request.request_id = request_id
     order_request.cancel_all_orders.cl_order_id = cl_order_id
-    order_request.cancel_all_orders.when_utc_timestamp = when_utc_timestamp
+    order_request.cancel_all_orders.when_utc_timestamp.FromDatetime(when_utc_timestamp)
     return client_msg
  
 def build_activate_order_request_msg(
@@ -339,7 +336,6 @@ def build_activate_order_request_msg(
         assert_input_types(params, ACTIVATE_ORDER_REQUIRED_FIELDS, strict = True)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_activate_order_request_msg invalid parameters: {str(e)}"
-        logger.error(msg)
         raise MsgBuilderError(msg) 
 
     client_msg = ClientMsg()
@@ -349,7 +345,7 @@ def build_activate_order_request_msg(
     order_request.activate_order.account_id = account_id
     order_request.activate_order.orig_cl_order_id = orig_cl_order_id
     order_request.activate_order.cl_order_id = cl_order_id
-    order_request.activate_order.when_utc_timestamp = when_utc_timestamp
+    order_request.activate_order.when_utc_timestamp.FromDatetime(when_utc_timestamp)
 
     return client_msg
 
@@ -377,14 +373,13 @@ def build_goflat_order_request_msg(
         validate_input_para(full)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_goflat_order_request_msg invalid parameters: {str(e)}"
-        logger.error(msg)
         raise MsgBuilderError(msg)  
 
     client_msg = ClientMsg()
     order_requests = client_msg.order_requests.add()
     order_requests.request_id = request_id
     order_requests.go_flat.account_ids.append(account_id)
-    order_requests.go_flat.when_utc_timestamp = when_utc_timestamp
+    order_requests.go_flat.when_utc_timestamp.FromDatetime(when_utc_timestamp)
     
     apply_optional_fields(order_requests.go_flat,
                           values=kwargs, 
@@ -417,7 +412,6 @@ def build_liquidateall_order_request_msg(
         validate_input_para(full)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_goflat_order_request_msg invalid parameters: {str(e)}"
-        logger.error(msg)
         raise MsgBuilderError(msg)  
 
     

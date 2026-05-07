@@ -117,7 +117,9 @@ def parse_order_statuses(
                     'duration': ele.order.duration,
                     'side': ele.order.side,
                     'qty': {'significand': ele.order.qty.significand,
-                            'exponent':ele.order.qty.exponent}
+                            'exponent':ele.order.qty.exponent},
+                    'scaled_limit_price': ele.order.scaled_limit_price,
+                    'scaled_stop_price': ele.order.scaled_stop_price
                     }
                 
             # Parse all the detailed optional field in the message. Slow Method.

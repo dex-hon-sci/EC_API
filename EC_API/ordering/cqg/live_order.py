@@ -124,7 +124,7 @@ class LiveOrderCQG(LiveOrder):
             reject_key = ('rpc_reqid', 'order_request_rejects', 
                           'request_id', request_details['request_id'])            
             confirm_key = ('order_confirm', 'order_statuses', 
-                           'cl_order_id', request_details['cl_order_id'])
+                           'order_id', request_details['order_id'])
 
             fut = self.msg_router.register_racing_keys([confirm_key,reject_key])
             await self._transport.send(client_msg)
@@ -146,7 +146,7 @@ class LiveOrderCQG(LiveOrder):
             reject_key = ('rpc_reqid', 'order_request_rejects', 
                           'request_id', request_details['request_id'])            
             confirm_key = ('order_confirm', 'order_statuses',
-                           'cl_order_id', request_details['cl_order_id'])
+                           'order_id', request_details['order_id'])
 
             fut = self.msg_router.register_racing_keys([confirm_key,reject_key])
             await self._transport.send(client_msg)
@@ -166,37 +166,60 @@ class LiveOrderCQG(LiveOrder):
 
             reject_key = ('rpc_reqid', 'order_request_rejects', 
                           'request_id', request_details['request_id'])            
-            confirm_key = ('order_confirm', 'order_statuses', 'cl_order_id', 
-                           request_details['cl_order_id'])
+            confirm_key = ('order_confirm', 'order_statuses', 
+                           'order_id', request_details['order_id'])
 
-            fut = self.msg_router.register_racing_keys([confirm_key,reject_key])
+            fut = self.msg_router.register_racing_keys([confirm_key, reject_key])
 
             await self._transport.send(client_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return parse_server_msg(server_msg, ordering_parsers)
 
  
-    async def _cancel_all_oreder_request(
+    async def _cancelall_order_request(
             self,
             request_details: dict[str, Any],
         ) -> ServerMsg:
-        ack_key    = ('rpc_reqid', 'order_request_acks',    
-                      'request_id', request_details['request_id'])
-        reject_key = ('rpc_reqid', 'order_request_rejects', 
-                      'request_id', request_details['request_id'])            
+        with msg_io_error_handler(
+                LiveOrderRequestError,
+                timeout_error = LiveOrderTimeOutError
+            ):
+            client_msg = build_cancelall_order_request_msg(**request_details)
 
-        return ServerMsg()
+            ack_key    = ('rpc_reqid', 'order_request_acks',    
+                          'request_id', request_details['request_id'])
+            reject_key = ('rpc_reqid', 'order_request_rejects', 
+                          'request_id', request_details['request_id'])    
+            
+            fut = self.msg_router.register_racing_keys([ack_key, reject_key])
+            
+            await self._transport.send(client_msg)
+            server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
+            return parse_server_msg(server_msg, ordering_parsers)
+
+
     
     async def _liquidateall_order_request(
             self,
             request_details: dict[str, Any],
         ) -> ServerMsg:
-        ack_key    = ('rpc_reqid', 'order_request_acks',   
-                      'request_id', request_details['request_id'])
-        reject_key = ('rpc_reqid', 'order_request_rejects', 
-                      'request_id', request_details['request_id'])            
+        with msg_io_error_handler(
+                LiveOrderRequestError,
+                timeout_error = LiveOrderTimeOutError
+            ):
+            client_msg = build_liquidateall_order_request_msg(**request_details)
 
-        return ServerMsg()
+            ack_key    = ('rpc_reqid', 'order_request_acks',    
+                          'request_id', request_details['request_id'])
+            reject_key = ('rpc_reqid', 'order_request_rejects', 
+                          'request_id', request_details['request_id'])    
+            
+            fut = self.msg_router.register_racing_keys([ack_key, reject_key])
+            
+            await self._transport.send(client_msg)
+            server_msg = await asyncio.wait_for(fut, timeout=self.timeout)
+            return parse_server_msg(server_msg, ordering_parsers)
+
     
     async def _goflat_order_request(
             self, 
@@ -228,7 +251,7 @@ class LiveOrderCQG(LiveOrder):
         ) -> Optional[tuple[str, asyncio.Queue]] | dict | None:
 
         # Get the Inputs
-        symbol = request_details['symbol']
+        symbol = request_details['symbol_name']
 
         # Check Symbol resolution
         if not self._trade_session._symbol_registry.has_symbol(symbol):
@@ -237,7 +260,8 @@ class LiveOrderCQG(LiveOrder):
                 )
             
         contract_id = self._trade_session._symbol_registry.get_contract_ids(symbol)
-
+        request_details.pop('symbol_name')
+        
         # Check Trade ID
         if not self._trade_session.has_orders_scope():
             raise TradeSubscriptionMissingError(

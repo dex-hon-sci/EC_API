@@ -148,11 +148,12 @@ class TradeSessionCQG:
             
             # consume _exec_queue
             
-            if not self._pending_cl_to_rid():
-                ...
-            # If There are new order_id added
-            for chain_order_id in self.active_orders:
-                queues = self._stream_router._subs.get(chain_order_id, [])
+            if not self._pending_chain_q():
+                continue
+            else:
+                # If There are new order_id added
+                for chain_order_id in self.active_orders:
+                    queues = self._stream_router._subs.get(chain_order_id, [])
 
              # Look at the order status stream (By Level) using the chain_order_id
              #self._active_subs.get()
