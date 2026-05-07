@@ -62,7 +62,7 @@ class MessageRouter:
                     if not fut.done():
                         fut.cancel()
                     
-            sub_futs.add_done_callback(_on_sub_fut_done)
+            sub_fut.add_done_callback(_on_sub_fut_done)
         return final_fut
 
     def on_message(self, key: RouterKey, msg: Any) -> bool:

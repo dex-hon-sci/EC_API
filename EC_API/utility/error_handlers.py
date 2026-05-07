@@ -21,7 +21,7 @@ def msg_io_error_handler(
         ) -> Iterator[None]:
     try:
         yield
-    except (MsgBuilderError, MsgParserError) as e:
+    except (MsgBuilderError, MsgParserError, TypeError) as e:
         raise output_error(str(e)) from e
     except asyncio.TimeoutError as e:
         raise timeout_error(str(e)) from e
