@@ -166,7 +166,6 @@ class TradeSessionCQG:
             try:
                 await self._conn._trade_work_evt.wait()
                 self._conn._trade_work_evt.clear()
-                print('tracker_loop: start')
     
                 # ---- Order Statuses ----
                 while self._pending_chain_q:
@@ -185,6 +184,7 @@ class TradeSessionCQG:
                                 chain_order_id = self.cl_to_chain[p_ord_sts['order']['cl_order_id']]
                             
                             self.latest_order_state_by_chain[chain_order_id] = p_ord_sts
+                            print('status', p_ord_sts.get('status'))
                             if p_ord_sts.get('status') in TERMINAL_STATES:
                                 done_ord.add(chain_order_id)
                                 break
@@ -195,22 +195,25 @@ class TradeSessionCQG:
                 for contract_id, pos_q in self._active_pos_q.items():
                     while not pos_q.empty():
                         parsed_pos_sts = parse_server_msg(pos_q.get_nowait(), ordering_parsers)
-                        
+                        all_done = None
                         for p_pos_sts in parsed_pos_sts:
                             self.latest_pos_status_by_contract_id[contract_id] = p_pos_sts
-                            
-                            if p_pos_sts['open_positions']:
+                            if p_pos_sts.get('open_positions') is None:
+                                all_done = True
+                            elif len(p_pos_sts['open_positions']) == 0:
+                                all_done = True
+                            else:
                                 all_done = all(op_pos['qty'] == 0 for op_pos in 
                                                p_pos_sts['open_positions'])
-                                if all_done:
-                                    done_pos.add(contract_id)
-                                    break
+                                
+                            if all_done and all_done is not None:
+                                done_pos.add(contract_id)
+                                break
                                 
                 # ---- Account Summary ----
                 for account_id, acc_summary_q in self._active_acc_summary_q.items():
                     while not acc_summary_q.empty():
                         acc_summary = parse_server_msg(acc_summary_q.get_nowait(), ordering_parsers)
-                        print('acc_summary', acc_summary)
                         for p_acc_summ in acc_summary:
                             self.latest_account_summaries[account_id] = p_acc_summ
                         
@@ -389,9 +392,6 @@ class TradeSessionCQG:
                     ConnectTimeOutError) as e:
                 logger.warning(str(e))
             
-            
-    
-
  # =============================================================================
 #         
 # ---

@@ -356,7 +356,8 @@ def build_position_statuses_server_msg(
         subscription_ids: list[int] = [0,1,2],
         contract_id: int = 0,
         account_id: int = 123466,
-        qty: int = 1
+        qty: int = 1,
+        open_pos_not_empty: bool = True 
     ) -> ServerMsg:    
     
     position_statuses = server_msg.position_statuses.add()
@@ -368,15 +369,16 @@ def build_position_statuses_server_msg(
     position_statuses.is_short_open_position = False
     
     # ----
-    open_positions = position_statuses.open_positions.add()
-    open_positions.id = 2
-    open_positions.price_correct = 101
-    open_positions.qty.significand = qty
-    open_positions.qty.exponent = 0
-    open_positions.trade_date = int(datetime.now().timestamp())
-    open_positions.statement_date = int(datetime.now().timestamp())
-    open_positions.is_aggregated = True
-    open_positions.is_short = False
+    if open_pos_not_empty:
+        open_positions = position_statuses.open_positions.add()
+        open_positions.id = 2
+        open_positions.price_correct = 101
+        open_positions.qty.significand = qty
+        open_positions.qty.exponent = 0
+        open_positions.trade_date = int(datetime.now().timestamp())
+        open_positions.statement_date = int(datetime.now().timestamp())
+        open_positions.is_aggregated = True
+        open_positions.is_short = False
     
     # ----
     purchase_and_sales_groups = position_statuses.purchase_and_sales_groups.add()

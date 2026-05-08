@@ -55,7 +55,8 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
         client = FakeCQGClient(),
         transport = fake_transport
         )
-    
+    conn._timeout = 0.0001
+
     async with TradeSessionCQG(conn) as TS:
         # Check if things are empty in the begining
         assert_TS_init(TS)
@@ -158,7 +159,8 @@ async def test_position_status_updates_one_contract_id_lifecycle_valid() -> None
         client = FakeCQGClient(),
         transport = fake_transport
         )
-    
+    conn._timeout = 0.0001
+
     async with TradeSessionCQG(conn) as TS:
         # Check if things are empty in the begining
         assert_TS_init(TS)
@@ -260,7 +262,8 @@ async def test_account_summary_updates_single_ID_lifecycle_valid() -> None:
         client = FakeCQGClient(),
         transport = fake_transport
         )
-    
+    conn._timeout = 0.0001
+
     async with TradeSessionCQG(conn) as TS:
         # Check if things are empty in the begining
         assert_TS_init(TS)
@@ -315,6 +318,7 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         client=FakeCQGClient(),
         transport=fake_transport
         )
+    conn._timeout = 0.0001
 
     async with TradeSessionCQG(conn) as TS:
         assert_TS_init(TS)
@@ -366,7 +370,7 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         # --- Stage 2: terminal on chain_1 only, chain_2 survives
         response_A2 = build_order_statuses_server_msg(
             ServerMsg(),
-            res=OrderStatus.Status.EXPIRED,
+            res=OrderStatus.Status.FILLED,
             contract_id=0,
             sub_ids=TS._active_trade_subs[1],
             order_id="order_id_A2",
@@ -377,7 +381,7 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         await fake_transport.in_q.put(response_A2)
         await asyncio.sleep(0.001)
 
-        assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.EXPIRED]
+        assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.FILLED]
         assert TS._active_order_q.get("chain_order_id_1") is None
         assert TS._exec_stream_router._subs.get("chain_order_id_1") is None
 
@@ -385,6 +389,21 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         assert TS._exec_stream_router._subs.get("chain_order_id_2") is not None
         assert TS.latest_order_state_by_chain["chain_order_id_2"]["order_id"] == "order_id_B1"
 
+        response_B2 = build_order_statuses_server_msg(
+            ServerMsg(),
+            res=OrderStatus.Status.CANCELLED,
+            contract_id=0,
+            sub_ids=TS._active_trade_subs[1],
+            order_id="order_id_B2",
+            chain_order_id="chain_order_id_2",
+            order=None,
+            account_id=conn._account_id
+            )
+        await fake_transport.in_q.put(response_B2)
+        await asyncio.sleep(0.001)
+
+        assert TS._active_order_q.get("chain_order_id_2") is  None
+        assert TS._exec_stream_router._subs.get("chain_order_id_2") is None
 
 @pytest.mark.asyncio
 async def test_position_status_updates_multi_contract_id_lifecycle_valid() -> None:
@@ -398,6 +417,7 @@ async def test_position_status_updates_multi_contract_id_lifecycle_valid() -> No
         client=FakeCQGClient(),
         transport=fake_transport
         )
+    conn._timeout = 0.0001
 
     async with TradeSessionCQG(conn) as TS:
         assert_TS_init(TS)
@@ -470,6 +490,7 @@ async def test_account_summary_updates_multi_account_id_lifecycle() -> None:
         client=FakeCQGClient(),
         transport=fake_transport
         )
+    conn._timeout = 0.0001
 
     async with TradeSessionCQG(conn) as TS:
         assert_TS_init(TS)
@@ -517,6 +538,213 @@ async def test_account_summary_updates_multi_account_id_lifecycle() -> None:
         assert TS.latest_account_summaries[conn._account_id]['purchasing_power'] == 999
         assert TS.latest_account_summaries[account_id_2]['purchasing_power'] == 500_000
 
+
+# --- Multi keys, multi streams
+@pytest.mark.asyncio
+async def test_mix_streams_multi_id_lifecycle_valid() -> None:
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name",
+        "user_name",
+        "password",
+        account_id=10000,
+        immediate_connect=False,
+        client=FakeCQGClient(),
+        transport=fake_transport
+        )
+    conn._timeout = 0.0001
+
+    async with TradeSessionCQG(conn) as TS:
+        assert_TS_init(TS)
+
+        TS._symbol_registry.add_symbol('Asset_A', 0)
+        TS._symbol_registry.add_metadata('Asset_A', {'A': 'a'})
+        TS._symbol_registry.add_symbol('Asset_B', 1)
+        TS._symbol_registry.add_metadata('Asset_B', {'B': 'b'})
+
+        TS._active_trade_subs[1] = [
+            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
+            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
+            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+            ]
+        
+        ord_q0 = TS._exec_stream_router.subscribe("chain_order_id_0")
+        ord_q1 = TS._exec_stream_router.subscribe("chain_order_id_1")
+        TS._active_order_q["chain_order_id_0"] = ord_q0
+        TS._active_order_q["chain_order_id_1"] = ord_q1
+
+        pos_q0 = TS._pos_status_stream_router.subscribe(0)
+        pos_q1 = TS._pos_status_stream_router.subscribe(1)
+        TS._active_pos_q[0] = pos_q0
+        TS._active_pos_q[1] = pos_q1
+        
+        account_id_2 = 20000
+        acc_q1 = TS._acc_summary_stream_router.subscribe(conn._account_id)
+        acc_q2 = TS._acc_summary_stream_router.subscribe(account_id_2)
+        TS._active_acc_summary_q[conn._account_id] = acc_q1
+        TS._active_acc_summary_q[account_id_2] = acc_q2
+        
+        # --- Stage 1:
+        response_ord_0_1 = build_order_statuses_server_msg(
+            ServerMsg(),
+            res=OrderStatus.Status.IN_TRANSIT,
+            contract_id=0,
+            sub_ids=TS._active_trade_subs[1],
+            order_id="order_id_A1",
+            chain_order_id="chain_order_id_0",
+            order=None,
+            account_id=conn._account_id
+            )
+        response_ord_1_1 = build_order_statuses_server_msg(
+            ServerMsg(),
+            res=OrderStatus.Status.WORKING,
+            contract_id=0,
+            sub_ids=TS._active_trade_subs[1],
+            order_id="order_id_B1",
+            chain_order_id="chain_order_id_1",
+            order=None,
+            account_id=conn._account_id
+            )    
+        
+        response_pos_0_1 = build_position_statuses_server_msg(
+            ServerMsg(),
+            subscription_ids=TS._active_trade_subs[1],
+            contract_id=0,
+            account_id=conn._account_id,
+            qty=2
+            )
+        response_pos_1_1 = build_position_statuses_server_msg(
+            ServerMsg(),
+            subscription_ids=TS._active_trade_subs[1],
+            contract_id=1,
+            account_id=conn._account_id,
+            qty=5
+            )
+            
+        response_acc_1_1 = build_account_summary_statuses_server_msg(
+            ServerMsg(),
+            account_id=conn._account_id,
+            purchasing_power=1_000_000
+            )
+        response_acc_2_1 = build_account_summary_statuses_server_msg(
+            ServerMsg(),
+            account_id=account_id_2,
+            purchasing_power=500_000
+            )
+
+        # assertion for _trade_work_evt clear()
+        await fake_transport.in_q.put(response_ord_0_1)
+        await asyncio.sleep(0.0001)
+        assert not conn._trade_work_evt.is_set()
+        
+        await fake_transport.in_q.put(response_pos_0_1)
+        await asyncio.sleep(0.0001)
+        assert not conn._trade_work_evt.is_set()
+
+        await fake_transport.in_q.put(response_pos_1_1)
+        await asyncio.sleep(0.0001)
+        assert not conn._trade_work_evt.is_set()
+
+        await fake_transport.in_q.put(response_acc_1_1)
+        await asyncio.sleep(0.0001)
+        assert not conn._trade_work_evt.is_set()
+
+        await fake_transport.in_q.put(response_ord_1_1)
+        await asyncio.sleep(0.0001)
+        assert not conn._trade_work_evt.is_set()
+
+        await fake_transport.in_q.put(response_acc_2_1)
+        await asyncio.sleep(0.001)
+        assert not conn._trade_work_evt.is_set()
+
+        # Final result assertion
+        assert ord_q0.empty()
+        assert ord_q1.empty()
+        assert TS.latest_order_state_by_chain["chain_order_id_0"]["order_id"] == "order_id_A1"
+        assert TS.latest_order_state_by_chain["chain_order_id_0"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.IN_TRANSIT]
+        assert TS.latest_order_state_by_chain["chain_order_id_1"]["order_id"] == "order_id_B1"
+        assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.WORKING]
+
+        assert pos_q0.empty()
+        assert pos_q1.empty()
+        assert TS.latest_pos_status_by_contract_id[0]['open_positions'][0]['qty'] == 2
+        assert TS.latest_pos_status_by_contract_id[1]['open_positions'][0]['qty'] == 5
+
+        assert acc_q1.empty()
+        assert acc_q2.empty()
+        assert TS.latest_account_summaries[conn._account_id]['purchasing_power'] == 1_000_000
+        assert TS.latest_account_summaries[account_id_2]['purchasing_power'] == 500_000
+
+        # Check at least one terminal cleanup
+        response_ord_1_2 = build_order_statuses_server_msg(
+            ServerMsg(),
+            res=OrderStatus.Status.REJECTED,
+            contract_id=0,
+            sub_ids=TS._active_trade_subs[1],
+            order_id="order_id_B2",
+            chain_order_id="chain_order_id_1",
+            order=None,
+            account_id=conn._account_id
+            )    
+        await fake_transport.in_q.put(response_ord_1_2)
+        await asyncio.sleep(0.0001)
+
+        assert ord_q1.empty()
+
+
+# Empty open position cleanup for position status
+@pytest.mark.asyncio
+async def test_position_status_cleanup_empty_open_position_valid() -> None:
+    # --- Setup ---
+    fake_transport = FakeTransport()
+    conn = ConnectCQG(
+        "host_name", 
+        "user_name", 
+        "password",
+        account_id = 10000,
+        immediate_connect= False, 
+        client = FakeCQGClient(),
+        transport = fake_transport
+        )
+    conn._timeout = 0.0001
+
+    async with TradeSessionCQG(conn) as TS:
+        # Check if things are empty in the begining
+        assert_TS_init(TS)
+        
+        # Trade Session Setup
+        TS._symbol_registry.add_symbol('Asset_A', 0)
+        TS._symbol_registry.add_metadata('Asset_A', {'A':'a'})
+        
+        TS._active_trade_subs[1] = [
+            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
+            ]
+        
+        # stream subscription
+        q = TS._pos_status_stream_router.subscribe(0)
+        TS._active_pos_q[0] = q
+        
+        # --- Stage 1
+        response_1 = build_position_statuses_server_msg(
+            ServerMsg(),
+            subscription_ids = [
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
+                ],
+            contract_id = 0,
+            account_id = conn._account_id,
+            qty = 1, # <--- despite qty != 0 but 
+            open_pos_not_empty= False #<--- empty list of open positions should trigget cleanup
+            )
+        await fake_transport.in_q.put(response_1)
+        await asyncio.sleep(0.001)
+        
+        assert TS.latest_pos_status_by_contract_id[0]['contract_id'] == 0
+        assert not TS.latest_pos_status_by_contract_id[0].get('open_positions')
+        
+        assert TS._active_pos_q.get(0) is None
+        assert TS._pos_status_stream_router._subs.get(0) is None
+
+        
 # =============================================================================
 #   Order statuses
 #   - Multiple chain_order_ids active simultaneously (verify they don't cross-contaminate)
