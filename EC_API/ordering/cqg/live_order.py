@@ -287,29 +287,28 @@ class LiveOrderCQG(LiveOrder):
                         q = self.stream_router.subscribe(chain_order_id)
                         
                         self._trade_session._pending_chain_q.append((chain_order_id, q))
-                        return chain_order_id
-                    
-                    elif parsed_server_msg.get('reject_code'):
-                        raise LiveOrderRequestError(f'{request_type} request failed.')
                 # ---
                 case RequestType.MODIFY_ORDER:
-                    parsed_server_msg = await self._modify_order_request(details)        
+                    parsed_server_msg = await self._modify_order_request(details)  
+
                 case RequestType.CANCEL_ORDER:
                     parsed_server_msg = await self._cancel_order_request(details)
+
                 case RequestType.ACTIVATE_ORDER:
                     parsed_server_msg = await self._activate_order_request(details)
+
                 # ---
                 case RequestType.CANCELALL_ORDER:
-                    parsed_server_msg = await self._cancel_all_order_request(details)
-                    return parsed_server_msg
+                    parsed_server_msg = await self._cancelall_order_request(details)
+                    
                 case RequestType.LIQUIDATEALL_ORDER:
                     details["contract_id"] = contract_id
-
                     parsed_server_msg = await self._liquidateall_order_request(details)
-                    return parsed_server_msg
+                    
                 case RequestType.GOFLAT_ORDER:
                     parsed_server_msg = await self._goflat_order_request(details)
-                    return parsed_server_msg
+            return parsed_server_msg
+
                      
         except LiveOrderRequestError as e:
             logger.warning(str(e))

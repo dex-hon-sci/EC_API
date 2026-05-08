@@ -489,7 +489,6 @@ async def test_activate_order_request_valid_reject() -> None:
             return await LiveOrderCQG(TS, timeout = 0.01)._activate_order_request(order_info)
         
     result, _ = await asyncio.gather(run_order(), fake_server.run())
-    assert result 
     assert isinstance(result, list)
     assert result[0]['request_id'] == 111
     

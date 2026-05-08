@@ -262,6 +262,7 @@ class FakeDataServerCQG:
                     chain_order_id = ore.cancel_order.order_id+"chain"  ,
                     account_id = ore.cancel_order.account_id
                     )
+                print("[Server]", server_msg)
             await self.transport.in_q.put(server_msg)
         
     async def _activate_order_request_response(self, client_msg: ClientMsg):
