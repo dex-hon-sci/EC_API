@@ -9,12 +9,11 @@ import asyncio
 import logging
 from typing import Optional
 from datetime import datetime
-from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.connect.cqg.base import ConnectCQG
-from EC_API.ordering.enums import OrderStatus
+from EC_API.ordering.enums import OrderStatus, SubScope
 from EC_API.ordering.cqg.enums import SubScopeCQG
-from EC_API.ordering.enums import SubScope
+from EC_API.ordering.cqg.enum_mapping import TRADE_SUB_SUCCESS
 from EC_API.ordering.cqg.builders import (
     build_trade_subscription_msg,
     build_trade_historical_orders_request_msg
@@ -275,7 +274,7 @@ class TradeSessionCQG:
             self,
             sub_id: int,
             sub_scope: SubScope | SubScopeCQG                           
-        ) -> ServerMsg | None:
+        ) -> dict:
         
         if sub_id in self._active_trade_subs.keys():
             logger.warning("Sub_id: {sub_id} is already in-use.")
@@ -302,14 +301,25 @@ class TradeSessionCQG:
 
             sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self.timeout)
             snapshot_msg = await asyncio.wait_for(fut_snapshot, timeout=self.timeout)
-            return parse_server_msg(sub_status_msg, ordering_parsers),\
-                   parse_server_msg(snapshot_msg, ordering_parsers)
+            parsed_sub_status = parse_server_msg(sub_status_msg, ordering_parsers)
+            parsed_snapshot = parse_server_msg(snapshot_msg, ordering_parsers)
+            
+            if parsed_sub_status and parsed_sub_status[0].get('status_code') == TRADE_SUB_SUCCESS:
+                self._active_trade_subs.setdefault(sub_id, []).append(sub_scope)
+            return parsed_sub_status, parsed_snapshot
+
+            # Add to active_trade_subs
+            #if sub_status_msg.status_code == TRADE_SUB_SUCCESS:
+            #    self._active_trade_subs[sub_id].append(sub_scope)
+            #
+            #return parse_server_msg(sub_status_msg, ordering_parsers),\
+            #       parse_server_msg(snapshot_msg, ordering_parsers)
                    
     async def unsubscribe_trade_request(
             self, 
             sub_id: int, 
             sub_scope: SubScope | SubScopeCQG
-        ) -> None:
+        ) -> dict:
         
         
         with msg_io_error_handler(
@@ -333,7 +343,20 @@ class TradeSessionCQG:
             await self._transport.send(msg)
 
             sub_status_msg = await asyncio.wait_for(fut_sub_status, timeout=self.timeout)
-            return parse_server_msg(sub_status_msg, ordering_parsers)
+            
+            parsed_sub_status = parse_server_msg(sub_status_msg, ordering_parsers)
+
+            if parsed_sub_status and parsed_sub_status[0].get('status_code') == TRADE_SUB_SUCCESS:
+                self._active_trade_subs[sub_id].remove(sub_scope)
+            
+            return parsed_sub_status
+
+            
+            ### remove from active_trade_subs
+            #if sub_status_msg.status_code == TRADE_SUB_SUCCESS:
+            #    self._active_trade_subs[sub_id].remove(sub_scope)#
+            #
+            #return parse_server_msg(sub_status_msg, ordering_parsers)
 
     async def request_historical_orders(
             self,

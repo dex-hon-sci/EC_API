@@ -12,9 +12,9 @@ This Enum file contain the CQG specific enums type for ordering.
 from enum import Enum, auto
     
 class SubScopeCQG(Enum):
-    COLLATERAL = auto()
-    EXCHANGE_POSITIONS = auto()
-    EXCHANGE_BALANCES = auto()
+    COLLATERAL = 3
+    EXCHANGE_POSITIONS = 4
+    EXCHANGE_BALANCES = 5
 
 class OrderTypeCQG(Enum):
     CROSS = auto()

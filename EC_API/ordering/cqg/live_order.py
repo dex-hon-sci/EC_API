@@ -237,6 +237,8 @@ class LiveOrderCQG(LiveOrder):
         ) -> Optional[tuple[str, asyncio.Queue]] | dict | None:
 
         # Get the Inputs
+        if not request_details.get('symbol_name'):
+            raise KeyError('"symbol_name" is missing in the request_details.')
         symbol = request_details['symbol_name']
 
         # Check Symbol resolution
@@ -260,8 +262,7 @@ class LiveOrderCQG(LiveOrder):
                 RequestType.LIQUIDATEALL_ORDER,
                 RequestType.GOFLAT_ORDER
             ):
-            
-            if request_details['chain_order_id'] not in self._trade_session.active_orders:
+            if request_details.get('chain_order_id') not in self._trade_session._active_order_q.keys():
                 raise MissingOrderIDError(
                     f"Order ID: {request_details['chain_order_id']} is not in active orders."
                     )
@@ -275,7 +276,6 @@ class LiveOrderCQG(LiveOrder):
                 }
         
             match request_type:
-                # ---
                 case RequestType.NEW_ORDER:
                     parsed_server_msg = await self._new_order_request(details)       
                     if parsed_server_msg.get('chain_order_id'):
@@ -310,14 +310,3 @@ class LiveOrderCQG(LiveOrder):
         except LiveOrderRequestError as e:
             logger.warning(str(e))
             return 
-# =============================================================================
-#                         # inside send(), after confirm future resolves
-#   chain_order_id = parsed['chain_order_id']
-#   self._trade_session.latest_order_state_by_chain[chain_order_id] = parsed  # first msg
-#   q = self.stream_router.subscribe(chain_order_id)                           # no gap
-#   await self._trade_session._new_chain_q.put((chain_order_id, q))            # notify
-#   tracker_loop
-#   return chain_order_id                                                       # caller
-#   gets ID only  
-#                 case RequestType.MODIFY_ORDER:
-# =============================================================================

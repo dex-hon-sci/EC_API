@@ -6,6 +6,7 @@ Created on Sat Dec 20 06:52:02 2025
 @author: dexter
 """
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as CQG_TS
+from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus as CQG_TSS
 from EC_API.ext.WebAPI.order_2_pb2 import Order as CQG_Ord
 from EC_API.ext.common.shared_1_pb2 import OrderStatus as OrdStatusCQG
 from EC_API.ordering.enums import (
@@ -18,6 +19,8 @@ from EC_API.ordering.cqg.enums import (
     DurationCQG, ExecInstructionCQG,
     )
 
+TRADE_SUB_SUCCESS = CQG_TSS.StatusCode.STATUS_CODE_SUCCESS
+
 # Vendor Enum -> Int Enum (Int Regular+Int vendor) -> Payload Enum
 # This mapping file translate between Vendor Enum <-> Int Enum
 SubScope_MAP_INT2CQG = {
@@ -27,6 +30,15 @@ SubScope_MAP_INT2CQG = {
     SubScope.ACCOUNT_SUMMARY: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,
     SubScopeCQG.EXCHANGE_POSITIONS: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS,
     SubScopeCQG.EXCHANGE_BALANCES: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES    
+    }
+
+SubScope_MAP_CQG2INT = {
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS: SubScope.ORDERS,
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS: SubScope.POSITIONS,
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL: SubScopeCQG.COLLATERAL,
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY: SubScope.ACCOUNT_SUMMARY,
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS: SubScopeCQG.EXCHANGE_POSITIONS, 
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES: SubScopeCQG.EXCHANGE_BALANCES  
     }
 
 Side_MAP_INT2CQG = {

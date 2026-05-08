@@ -21,9 +21,9 @@ class RequestType(Enum):
     GOFLAT_ORDER = "goflat_order_request"
     
 class SubScope(Enum):
-    ORDERS = "Orders"
-    POSITIONS = "Positions"
-    ACCOUNT_SUMMARY = "Account-Summary"
+    ORDERS = 0
+    POSITIONS = 1
+    ACCOUNT_SUMMARY = 2
 
 class Side(Enum):
     BUY = "BUY"

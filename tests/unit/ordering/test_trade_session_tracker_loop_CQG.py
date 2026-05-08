@@ -8,18 +8,20 @@ Created on Fri May  8 01:15:07 2026
 import asyncio
 import pytest
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
-from EC_API.ext.common.shared_1_pb2 import OrderStatus
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as CQG_TS
+from EC_API.ext.common.shared_1_pb2 import OrderStatus
 from EC_API.connect.cqg.base import ConnectCQG
+from EC_API.ordering.enums import SubScope
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
-from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_CQG2INT
+from EC_API.ordering.cqg.enum_mapping import (
+    OrderStatus_MAP_CQG2INT, SubScope_MAP_INT2CQG
+    )
 from tests.unit.fixtures.proxy_clients import FakeTransport, FakeCQGClient
 from tests.unit.fixtures.server_msg_builders_CQG import (
     build_order_statuses_server_msg,
     build_position_statuses_server_msg,
     build_account_summary_statuses_server_msg
     )
-
 def assert_TS_init(ts: TradeSessionCQG):
     assert isinstance(ts._active_trade_subs, dict)
     assert isinstance(ts.cl_to_chain, dict)
@@ -65,9 +67,7 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
         TS._symbol_registry.add_symbol('Asset_A', 0)
         TS._symbol_registry.add_metadata('Asset_A', {'A':'a'})
         
-        TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
-            ]
+        TS._active_trade_subs[1] = [SubScope.ORDERS]
         
         # stream subscription
         TS.cl_to_chain['cl_order_id'] = "chain_order_id_1"
@@ -80,7 +80,7 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
             ServerMsg(),
             res = OrderStatus.Status.IN_TRANSIT,
             contract_id = 0,
-            sub_ids =  TS._active_trade_subs[1],
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id = "order_id_1",
             chain_order_id = "chain_order_id_1",
             order = None,
@@ -102,7 +102,7 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
             ServerMsg(),
             res = OrderStatus.Status.IN_MODIFY,
             contract_id = 0,
-            sub_ids =  TS._active_trade_subs[1],
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id = "order_id_2",
             chain_order_id = "chain_order_id_1",
             order = None,
@@ -113,7 +113,7 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
             ServerMsg(),
             res = OrderStatus.Status.WORKING,
             contract_id = 0,
-            sub_ids =  TS._active_trade_subs[1],
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id = "order_id_3",
             chain_order_id = "chain_order_id_1",
             order = None,
@@ -131,7 +131,7 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
             ServerMsg(),
             res = OrderStatus.Status.EXPIRED, #<---Terminal State
             contract_id = 0,
-            sub_ids =  TS._active_trade_subs[1],
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id = "order_id_4",
             chain_order_id = "chain_order_id_1",
             order = None,
@@ -169,9 +169,7 @@ async def test_position_status_updates_one_contract_id_lifecycle_valid() -> None
         TS._symbol_registry.add_symbol('Asset_A', 0)
         TS._symbol_registry.add_metadata('Asset_A', {'A':'a'})
         
-        TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-            ]
+        TS._active_trade_subs[1] = [SubScope.POSITIONS]
         
         # stream subscription
         q = TS._pos_status_stream_router.subscribe(0)
@@ -180,9 +178,7 @@ async def test_position_status_updates_one_contract_id_lifecycle_valid() -> None
         # --- Stage 1
         response_1 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids = [
-                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-                ],
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             contract_id = 0,
             account_id = conn._account_id,
             qty = 1
@@ -193,7 +189,7 @@ async def test_position_status_updates_one_contract_id_lifecycle_valid() -> None
         assert TS.latest_pos_status_by_contract_id.get(0)
         assert isinstance(TS.latest_pos_status_by_contract_id[0], dict)
         assert TS.latest_pos_status_by_contract_id[0]['sub_ids'] == [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
+            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
             ]
         assert TS.latest_pos_status_by_contract_id[0]['account_id'] == conn._account_id
         assert TS.latest_pos_status_by_contract_id[0]['contract_id'] == 0
@@ -203,18 +199,14 @@ async def test_position_status_updates_one_contract_id_lifecycle_valid() -> None
         # --- Stage 2
         response_2 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids = [
-                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-                ],
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             contract_id = 0,
             account_id = conn._account_id,
             qty = 2
             )
         response_3 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids = [
-                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-                ],
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             contract_id = 0,
             account_id = conn._account_id,
             qty = 3
@@ -231,9 +223,7 @@ async def test_position_status_updates_one_contract_id_lifecycle_valid() -> None
         # --- Stage 3
         response_4 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids = [
-                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-                ],
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             contract_id = 0,
             account_id = conn._account_id,
             qty = 0 # <--- trigger cleanup
@@ -272,9 +262,7 @@ async def test_account_summary_updates_single_ID_lifecycle_valid() -> None:
         TS._symbol_registry.add_symbol('Asset_A', 0)
         TS._symbol_registry.add_metadata('Asset_A', {'A':'a'})
         
-        TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
-            ]
+        TS._active_trade_subs[1] = [SubScope.ACCOUNT_SUMMARY]
         
         # stream subscription
         q = TS._acc_summary_stream_router.subscribe(conn._account_id)
@@ -326,9 +314,7 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         TS._symbol_registry.add_symbol('Asset_A', 0)
         TS._symbol_registry.add_metadata('Asset_A', {'A': 'a'})
 
-        TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS
-            ]
+        TS._active_trade_subs[1] = [SubScope.ORDERS]
 
         TS.cl_to_chain['cl_order_id_1'] = "chain_order_id_1"
         TS.cl_to_chain['cl_order_id_2'] = "chain_order_id_2"
@@ -341,8 +327,8 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         response_A1 = build_order_statuses_server_msg(
             ServerMsg(),
             res=OrderStatus.Status.IN_TRANSIT,
-            contract_id=0,
-            sub_ids=TS._active_trade_subs[1],
+            contract_id = 0,
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id="order_id_A1",
             chain_order_id="chain_order_id_1",
             order=None,
@@ -351,8 +337,8 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         response_B1 = build_order_statuses_server_msg(
             ServerMsg(),
             res=OrderStatus.Status.WORKING,
-            contract_id=0,
-            sub_ids=TS._active_trade_subs[1],
+            contract_id = 0,
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id="order_id_B1",
             chain_order_id="chain_order_id_2",
             order=None,
@@ -372,7 +358,7 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
             ServerMsg(),
             res=OrderStatus.Status.FILLED,
             contract_id=0,
-            sub_ids=TS._active_trade_subs[1],
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id="order_id_A2",
             chain_order_id="chain_order_id_1",
             order=None,
@@ -392,8 +378,8 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         response_B2 = build_order_statuses_server_msg(
             ServerMsg(),
             res=OrderStatus.Status.CANCELLED,
-            contract_id=0,
-            sub_ids=TS._active_trade_subs[1],
+            contract_id = 0,
+            sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id="order_id_B2",
             chain_order_id="chain_order_id_2",
             order=None,
@@ -427,9 +413,7 @@ async def test_position_status_updates_multi_contract_id_lifecycle_valid() -> No
         TS._symbol_registry.add_symbol('Asset_B', 1)
         TS._symbol_registry.add_metadata('Asset_B', {'B': 'b'})
 
-        TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-            ]
+        TS._active_trade_subs[1] = [SubScope.POSITIONS]
 
         q0 = TS._pos_status_stream_router.subscribe(0)
         q1 = TS._pos_status_stream_router.subscribe(1)
@@ -439,14 +423,14 @@ async def test_position_status_updates_multi_contract_id_lifecycle_valid() -> No
         # --- Stage 1: both active
         response_A1 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids=[CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS],
-            contract_id=0,
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS],
+            contract_id = 0,
             account_id=conn._account_id,
             qty=2
             )
         response_B1 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids=[CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS],
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS],
             contract_id=1,
             account_id=conn._account_id,
             qty=5
@@ -461,7 +445,7 @@ async def test_position_status_updates_multi_contract_id_lifecycle_valid() -> No
         # --- Stage 2: contract_id 0 goes flat, contract_id 1 survives
         response_A2 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids=[CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS],
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS],
             contract_id=0,
             account_id=conn._account_id,
             qty=0
@@ -498,9 +482,7 @@ async def test_account_summary_updates_multi_account_id_lifecycle() -> None:
         TS._symbol_registry.add_symbol('Asset_A', 0)
         TS._symbol_registry.add_metadata('Asset_A', {'A': 'a'})
 
-        TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
-            ]
+        TS._active_trade_subs[1] = [SubScope.ACCOUNT_SUMMARY]
 
         account_id_2 = 20000
         q1 = TS._acc_summary_stream_router.subscribe(conn._account_id)
@@ -563,9 +545,9 @@ async def test_mix_streams_multi_id_lifecycle_valid() -> None:
         TS._symbol_registry.add_metadata('Asset_B', {'B': 'b'})
 
         TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY
+            SubScope.ORDERS,
+            SubScope.POSITIONS,
+            SubScope.ACCOUNT_SUMMARY
             ]
         
         ord_q0 = TS._exec_stream_router.subscribe("chain_order_id_0")
@@ -589,7 +571,11 @@ async def test_mix_streams_multi_id_lifecycle_valid() -> None:
             ServerMsg(),
             res=OrderStatus.Status.IN_TRANSIT,
             contract_id=0,
-            sub_ids=TS._active_trade_subs[1],
+            sub_ids = [
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,                
+                ],
             order_id="order_id_A1",
             chain_order_id="chain_order_id_0",
             order=None,
@@ -599,7 +585,11 @@ async def test_mix_streams_multi_id_lifecycle_valid() -> None:
             ServerMsg(),
             res=OrderStatus.Status.WORKING,
             contract_id=0,
-            sub_ids=TS._active_trade_subs[1],
+            sub_ids = [
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,                
+                ],
             order_id="order_id_B1",
             chain_order_id="chain_order_id_1",
             order=None,
@@ -608,14 +598,22 @@ async def test_mix_streams_multi_id_lifecycle_valid() -> None:
         
         response_pos_0_1 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids=TS._active_trade_subs[1],
+            subscription_ids = [
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,                
+                ],
             contract_id=0,
             account_id=conn._account_id,
             qty=2
             )
         response_pos_1_1 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids=TS._active_trade_subs[1],
+            subscription_ids = [
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,                
+                ],
             contract_id=1,
             account_id=conn._account_id,
             qty=5
@@ -680,7 +678,11 @@ async def test_mix_streams_multi_id_lifecycle_valid() -> None:
             ServerMsg(),
             res=OrderStatus.Status.REJECTED,
             contract_id=0,
-            sub_ids=TS._active_trade_subs[1],
+            sub_ids= [
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS,
+                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,                
+                ],
             order_id="order_id_B2",
             chain_order_id="chain_order_id_1",
             order=None,
@@ -716,9 +718,7 @@ async def test_position_status_cleanup_empty_open_position_valid() -> None:
         TS._symbol_registry.add_symbol('Asset_A', 0)
         TS._symbol_registry.add_metadata('Asset_A', {'A':'a'})
         
-        TS._active_trade_subs[1] = [
-            CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-            ]
+        TS._active_trade_subs[1] = [SubScope.POSITIONS]
         
         # stream subscription
         q = TS._pos_status_stream_router.subscribe(0)
@@ -727,9 +727,7 @@ async def test_position_status_cleanup_empty_open_position_valid() -> None:
         # --- Stage 1
         response_1 = build_position_statuses_server_msg(
             ServerMsg(),
-            subscription_ids = [
-                CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS
-                ],
+            subscription_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS],
             contract_id = 0,
             account_id = conn._account_id,
             qty = 1, # <--- despite qty != 0 but 
