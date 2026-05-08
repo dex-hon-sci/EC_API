@@ -743,32 +743,3 @@ async def test_position_status_cleanup_empty_open_position_valid() -> None:
         
         assert TS._active_pos_q.get(0) is None
         assert TS._pos_status_stream_router._subs.get(0) is None
-
-        
-# =============================================================================
-#   Order statuses
-#   - Multiple chain_order_ids active simultaneously (verify they don't cross-contaminate)
-#   - cl_to_chain lookup path — when order.cl_order_id is present in the parsed message,
-#   the chain_order_id gets remapped via self.cl_to_chain
-#   - _pending_chain_q intake — orders added mid-loop (the while self._pending_chain_q
-#   drain at the top)
-# 
-#   Position statuses
-#   - Multiple contract_ids active simultaneously
-#   - qty=0 but open_positions is empty list — the current condition if
-#   p_pos_sts['open_positions']: skips the cleanup check entirely if the list is empty,
-#   which might be a logic gap worth a test
-# 
-#   Account summary
-#   - Multiple account_ids (probably not relevant for your use case but worth knowing)
-#   - Overwrite behaviour — you tested this implicitly but a dedicated assert on the old
-#   value being gone would be explicit
-# 
-#   Cross-cutting
-#   - All three streams active simultaneously — order + position + account summary in one
-#   test, verify no interference
-#   - _trade_work_evt reset behaviour — after the loop processes one batch, the event is
-#   cleared; a second message arriving should re-trigger it
-#   - CancelledError propagation — tracker_loop shuts down cleanly when the task is
-#   cancelled mid-drain
-# =============================================================================
