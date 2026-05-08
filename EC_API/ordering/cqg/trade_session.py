@@ -77,6 +77,7 @@ class TradeSessionCQG:
 
         # Logging event pairing 
         self.cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID, int]] = dict() 
+        self.active_order_ids_by_chain: dict[OS_CHAIN_ORDER_ID, tuple[OS_ORDER_ID, int]] = dict()
         
         # --- Containers --- 
         self._pending_chain_q: list[tuple[OS_CHAIN_ORDER_ID, asyncio.Queue]] = list()
@@ -183,6 +184,11 @@ class TradeSessionCQG:
                                 chain_order_id = self.cl_to_chain[p_ord_sts['order']['cl_order_id']]
                             
                             self.latest_order_state_by_chain[chain_order_id] = p_ord_sts
+                            self.active_order_ids_by_chain[chain_order_id] = \
+                                (p_ord_sts['order_id'], 
+                                 p_ord_sts['status_utc_timestamp'].ToMilliseconds()
+                                 )
+                            
                             print('status', p_ord_sts.get('status'))
                             if p_ord_sts.get('status') in TERMINAL_STATES:
                                 done_ord.add(chain_order_id)
@@ -220,6 +226,7 @@ class TradeSessionCQG:
                 for chain_order_id in done_ord:
                     q = self._active_order_q.pop(chain_order_id)
                     self._exec_stream_router.unsubscribe(chain_order_id, q)
+                    self.active_order_ids_by_chain.pop(chain_order_id)
                     logger.info("Order %s reached terminal state", chain_order_id)
                     
                 for contract_id in done_pos:
@@ -308,13 +315,6 @@ class TradeSessionCQG:
                 self._active_trade_subs.setdefault(sub_id, []).append(sub_scope)
             return parsed_sub_status, parsed_snapshot
 
-            # Add to active_trade_subs
-            #if sub_status_msg.status_code == TRADE_SUB_SUCCESS:
-            #    self._active_trade_subs[sub_id].append(sub_scope)
-            #
-            #return parse_server_msg(sub_status_msg, ordering_parsers),\
-            #       parse_server_msg(snapshot_msg, ordering_parsers)
-                   
     async def unsubscribe_trade_request(
             self, 
             sub_id: int, 
@@ -350,13 +350,6 @@ class TradeSessionCQG:
                 self._active_trade_subs[sub_id].remove(sub_scope)
             
             return parsed_sub_status
-
-            
-            ### remove from active_trade_subs
-            #if sub_status_msg.status_code == TRADE_SUB_SUCCESS:
-            #    self._active_trade_subs[sub_id].remove(sub_scope)#
-            #
-            #return parse_server_msg(sub_status_msg, ordering_parsers)
 
     async def request_historical_orders(
             self,
@@ -416,118 +409,6 @@ class TradeSessionCQG:
                 logger.warning(str(e))
             
 # =============================================================================
-#   routers.py lines 62-65:
-#   def _on_sub_fut_done(this_fut: asyncio.Future):
-#       if this_fut.cancelled() or final_fut.done():
-#           return
-#       final_fut.set_result(this_fut.result())
-# 
-#       for fut in sub_futs:
-#           if not fut.done:          # ← bug 1: checks method object, not calling it
-#               fut.cancel()
-# 
-#   sub_futs.add_done_callback(_on_sub_fut_done)  # ← bug 2: list has no
-#   .add_done_callback
-# 
-#   Both need to be:
-#   for fut in sub_futs:
-#       if not fut.done():           # call it
-#           fut.cancel()
-# 
-#   sub_fut.add_done_callback(_on_sub_fut_done)   # on the future, not the list
-# 
-#   ---
-#   Now, the tracker_loop. There are a few prerequisite changes needed first.
-# 
-#   parse_order_statuses needs status_code — it currently doesn't extract ele.status at
-#   all, which tracker_loop needs for terminal detection. Add to the D dict:
-# 
-#   from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_CQG2INT
-# 
-#   # inside parse_order_statuses loop:
-#   D['status_code'] = OrderStatus_MAP_CQG2INT.get(ele.status, OrderStatus.PENDING).value
-# 
-#   TradeSessionCQG.__init__ needs _new_chain_q:
-#   self._new_chain_q: asyncio.Queue[tuple[str, asyncio.Queue]] = asyncio.Queue()
-# 
-#   send() in live_order.py — the current NEW_ORDER block is broken (calls .get() on a
-#   list). The correct hand-off shape:
-# 
-#   case RequestType.NEW_ORDER:
-#       parsed_list = await self._new_order_request(details)
-#       first = parsed_list[0] if parsed_list else {}
-# 
-#       if 'chain_order_id' in first:
-#           chain_order_id = first['chain_order_id']
-#           self._trade_session.latest_order_state_by_chain[chain_order_id] = first
-#           q = self.stream_router.subscribe(chain_order_id)
-#           await self._trade_session._new_chain_q.put((chain_order_id, q))
-#           self._trade_session.cl_to_chain[request_details['cl_order_id']] =
-#   chain_order_id
-#           return chain_order_id
-#       elif first.get('reject_code'):
-#           raise LiveOrderRequestError(
-#               f"NEW_ORDER rejected: code={first['reject_code']}"
-#           )
-# 
-#   tracker_loop implementation:
-# 
-#   async def _tracker_loop(self):
-#       from EC_API.ordering.cqg.parsers import parse_order_statuses
-#       TERMINAL = {
-#           OrderStatus.FILLED, OrderStatus.CANCELLED,
-#           OrderStatus.REJECTED, OrderStatus.EXPIRED
-#       }
-#       active: dict[str, asyncio.Queue] = {}
-# 
-#       while not self._stop_evt.is_set():
-#           # intake new chain registrations
-#           while not self._new_chain_q.empty():
-#               chain_order_id, q = self._new_chain_q.get_nowait()
-#               active[chain_order_id] = q
-# 
-#           done: set[str] = set()
-#           for chain_order_id, q in active.items():
-#               while not q.empty():
-#                   server_msg = q.get_nowait()
-#                   all_statuses = parse_order_statuses(server_msg)
-#                   # stream_router publishes full ServerMsg keyed by chain_order_id
-#                   # — find the one matching this subscription
-#                   parsed = next(
-#                       (s for s in all_statuses if s['chain_order_id'] ==
-#   chain_order_id),
-#                       None
-#                   )
-#                   if parsed is None:
-#                       continue
-# 
-#                   # cl_order_id only present when 'order' sub-field populated
-#                   if parsed.get('order', {}).get('cl_order_id'):
-#                       self.cl_to_chain[parsed['order']['cl_order_id']] = chain_order_id
-# 
-#                   self.latest_order_state_by_chain[chain_order_id] = parsed
-# 
-#                   if parsed.get('status_code') in TERMINAL:
-#                       done.add(chain_order_id)
-#                       break   # stop draining — terminal is final
-# 
-#           for chain_order_id in done:
-#               q = active.pop(chain_order_id)
-#               self._stream_router.unsubscribe(chain_order_id, q)
-#               logger.info("Order %s reached terminal state", chain_order_id)
-# 
-#           await asyncio.sleep(0)
-# 
-#   One subtle note on the break: once terminal is detected, we stop draining that queue.
-#   Any remaining messages are stale — the order is done. unsubscribe removes the queue
-#   from _stream_router._subs, so the queue reference goes away.
-# 
-#   Also fix the _active_subs vs _active_trade_subs inconsistency in trade_session.py —
-#   the methods (has_orders_scope, has_positions_scope, trade_subscription_request,
-#   unsubscribe_trade_request) all reference _active_subs but __init__ defines
-#   _active_trade_subs. Pick one name (the longer one is more explicit) and update all
-#   references.
-# 
 #   ---
 #   Production-level assessment
 # 

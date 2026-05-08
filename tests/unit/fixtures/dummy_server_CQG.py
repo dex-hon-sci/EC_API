@@ -45,7 +45,7 @@ class FakeDataServerCQG:
         #
         self._server_stop_evt = asyncio.Event()
         
-    async def response_logic(self, msg: ClientMsg):
+    async def response_logic(self, msg: ClientMsg, **kwargs):
         msg_name = client_msg_type(msg)[0] 
         # we assume client dispatch message one at a time
         match msg_name:
@@ -56,7 +56,7 @@ class FakeDataServerCQG:
                 await self._logoff_response(msg)
             # ---- Metadata ----
             case "information_requests": # In this context
-                await self._sym_res_response(msg)
+                await self._sym_res_response(msg, **kwargs)
                  
             # ---- Realtime Data ----
             case "market_data_subscriptions":
@@ -114,7 +114,7 @@ class FakeDataServerCQG:
             await self.transport.in_q.put(server_msg)
         
     # ---- Metadata ----
-    async def _sym_res_response(self, client_msg: ClientMsg) -> None:
+    async def _sym_res_response(self, client_msg: ClientMsg, **kwargs) -> None:
         if self.success_decisions.get("information_requests") is not None:
             sym = client_msg.information_requests[0].symbol_resolution_request.symbol
 
@@ -131,7 +131,7 @@ class FakeDataServerCQG:
                 sym_rp = build_symbol_resolution_report_server_msg(
                     ServerMsg(), 
                     report_id = client_msg.information_requests[0].id,
-                    cotract_id = int(sym.split("_")[-1]),
+                    cotract_id = kwargs['contract_id'] if 'contract_id' in kwargs else int(sym.split("_")[-1]),
                     contract_symbol = sym,
                     res = success_code
                     )
@@ -140,7 +140,7 @@ class FakeDataServerCQG:
                 sym_rp = build_symbol_resolution_report_server_msg(
                     ServerMsg(), 
                     report_id = client_msg.information_requests[0].id,
-                    cotract_id = int(sym.split("_")[-1]),
+                    cotract_id = kwargs['contract_id'] if 'contract_id' in kwargs else int(sym.split("_")[-1]),
                     contract_symbol = sym,
                     res = InfoRp.StatusCode.STATUS_CODE_FAILURE
                     )
@@ -358,7 +358,7 @@ class FakeDataServerCQG:
 
 
     # ---- run method ----
-    async def run(self):
+    async def run(self, **kwargs):
         # while loop, scan the transport
         while not self._server_stop_evt.is_set():
             
@@ -369,7 +369,7 @@ class FakeDataServerCQG:
             except queue.Empty:
                 break
                 
-            await self.response_logic(client_msg)
+            await self.response_logic(client_msg, **kwargs)
             
             if client_msg.market_data_subscriptions:
                 if client_msg.market_data_subscriptions[0].level == MktDSub.Level.LEVEL_NONE:

@@ -99,7 +99,6 @@ class LiveOrderCQG(LiveOrder):
             self, 
             request_details: dict[str, Any],
         ) -> ServerMsg:
-        # check if there is a chain_order_id in the chamber
         
         with msg_io_error_handler(
                 LiveOrderRequestError,
@@ -262,21 +261,24 @@ class LiveOrderCQG(LiveOrder):
                 RequestType.LIQUIDATEALL_ORDER,
                 RequestType.GOFLAT_ORDER
             ):
-            if request_details.get('chain_order_id') not in self._trade_session._active_order_q.keys():
+            if not any(oid == request_details['order_id'] 
+                    for oid , _ in self._trade_session.active_order_ids_by_chain.values()
+                    ):
                 raise MissingOrderIDError(
-                    f"Order ID: {request_details['chain_order_id']} is not in active orders."
+                    f"Order ID: {request_details['order_id']} is not in active orders."
                     )
-
         try:
             details = {
-                "account_id": self._trade_session._conn.account_id,
+                "account_id": self._trade_session._conn._account_id,
                 "request_id": self.rid(),
-                "contract_id": contract_id,
+                #"contract_id": contract_id,
                 **request_details,  
                 }
         
             match request_type:
                 case RequestType.NEW_ORDER:
+                    details["contract_id"] = contract_id
+                    
                     parsed_server_msg = await self._new_order_request(details)       
                     if parsed_server_msg.get('chain_order_id'):
                         chain_order_id =  parsed_server_msg['chain_order_id']
@@ -301,6 +303,8 @@ class LiveOrderCQG(LiveOrder):
                     parsed_server_msg = await self._cancel_all_order_request(details)
                     return parsed_server_msg
                 case RequestType.LIQUIDATEALL_ORDER:
+                    details["contract_id"] = contract_id
+
                     parsed_server_msg = await self._liquidateall_order_request(details)
                     return parsed_server_msg
                 case RequestType.GOFLAT_ORDER:

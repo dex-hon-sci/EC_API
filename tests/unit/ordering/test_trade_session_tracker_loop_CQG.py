@@ -95,7 +95,8 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["order_id"] == "order_id_1"
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["account_id"] == conn._account_id
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.IN_TRANSIT]
-        
+        assert TS.active_order_ids_by_chain["chain_order_id_1"][0] == "order_id_1"
+
         # Stage 2: overwriting snapshot
         # Message building
         response_2 = build_order_statuses_server_msg(
@@ -125,7 +126,8 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
         
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["order_id"] == "order_id_3"
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.WORKING]
-        
+        assert TS.active_order_ids_by_chain["chain_order_id_1"][0] == "order_id_3"
+
         # Stage 3 Terminal message and cleanup()
         response_4 = build_order_statuses_server_msg(
             ServerMsg(),
@@ -142,6 +144,8 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
         
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["order_id"] == "order_id_4"
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.EXPIRED]
+        assert TS.active_order_ids_by_chain.get("chain_order_id_1") is None
+
         # ID no longer in active queue and router
         assert TS._active_order_q.get("chain_order_id_1") is None
         assert TS._exec_stream_router._subs.get("chain_order_id_1") is None
@@ -352,6 +356,8 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.IN_TRANSIT]
         assert TS.latest_order_state_by_chain["chain_order_id_2"]["order_id"] == "order_id_B1"
         assert TS.latest_order_state_by_chain["chain_order_id_2"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.WORKING]
+        assert TS.active_order_ids_by_chain["chain_order_id_1"][0] == "order_id_A1"
+        assert TS.active_order_ids_by_chain["chain_order_id_2"][0] == "order_id_B1"
 
         # --- Stage 2: terminal on chain_1 only, chain_2 survives
         response_A2 = build_order_statuses_server_msg(
@@ -374,6 +380,9 @@ async def test_order_status_updates_multi_chain_order_id_lifecycle_valid() -> No
         assert TS._active_order_q.get("chain_order_id_2") is not None
         assert TS._exec_stream_router._subs.get("chain_order_id_2") is not None
         assert TS.latest_order_state_by_chain["chain_order_id_2"]["order_id"] == "order_id_B1"
+        
+        assert TS.active_order_ids_by_chain.get("chain_order_id_1") is None
+        assert TS.active_order_ids_by_chain["chain_order_id_2"][0] == "order_id_B1"
 
         response_B2 = build_order_statuses_server_msg(
             ServerMsg(),
@@ -663,6 +672,9 @@ async def test_mix_streams_multi_id_lifecycle_valid() -> None:
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["order_id"] == "order_id_B1"
         assert TS.latest_order_state_by_chain["chain_order_id_1"]["status"] == OrderStatus_MAP_CQG2INT[OrderStatus.Status.WORKING]
 
+        assert TS.active_order_ids_by_chain["chain_order_id_0"][0] == "order_id_A1"
+        assert TS.active_order_ids_by_chain["chain_order_id_1"][0] == "order_id_B1"
+
         assert pos_q0.empty()
         assert pos_q1.empty()
         assert TS.latest_pos_status_by_contract_id[0]['open_positions'][0]['qty'] == 2
@@ -690,6 +702,8 @@ async def test_mix_streams_multi_id_lifecycle_valid() -> None:
             )    
         await fake_transport.in_q.put(response_ord_1_2)
         await asyncio.sleep(0.0001)
+        
+        assert TS.active_order_ids_by_chain.get("chain_order_id_1") is None
 
         assert ord_q1.empty()
 
