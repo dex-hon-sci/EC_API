@@ -94,7 +94,7 @@ def parse_information_report(
         # walk and get types
         info_subtype_name = walk_fields(report, selector, max_depth = 1)
         for name in info_subtype_name:
-            p_rp: dict[str, Any] = metadata_parsers[name](report)
+            p_rp = metadata_parsers[name](report)
             p_rp['id'] = report.id
             p_rp['status_code'] = report.status_code
             res.append(p_rp)

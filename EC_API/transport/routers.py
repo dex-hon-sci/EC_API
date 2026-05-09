@@ -98,7 +98,7 @@ class StreamRouter:
         self._max_num_sym = max_num_sym
         self._drop_if_full = drop_if_full
         
-        self.on_publish: Callable = on_publish
+        self.on_publish: Optional[Callable] = on_publish
         
         if drop_policy not in {"drop_oldest", "drop_latest"}:
             raise InvalidDroppingPolicy("Invalid dropping policy. It must be either:'drp_oldest' or 'drop_latest'.")

@@ -9,7 +9,7 @@ ClientMsgType = TypeVar("ClientMsgType")
 
 # ------ Routers ------
 # Router Keys (Universal)
-RouterKey = tuple[str, str, str, int|str] 
+RouterKey = tuple[str, str, str, Any] 
 
 RK_MSG_FAMILY = 0 
 RK_MSG_TYPE = 1
@@ -24,7 +24,7 @@ KH_MSG_TYPE = 1
 KH_IS_REPEATED = 2
 KH_IS_FIELD = 3
 
-type Extractor_func = Callable[[ServerMsgType, str], Any]
+type Extractor_func[ServerMsgType] = Callable[[ServerMsgType, str], Any]
 
 # ------ Builders ------
 type Builder_func[ClientMsgType] = Callable[[Any, ClientMsgType], Any]
@@ -32,13 +32,12 @@ type Builder_func[ClientMsgType] = Callable[[Any, ClientMsgType], Any]
 _FieldSpec = dict[str, tuple[str, type | tuple[type, ...] | Any, Callable[..., Any] | None]]
 
 # ------ Parsers ------
-type Parser_func[ServerMsgType] = Callable[[Any, ServerMsgType], Any]
+type Parser_func[ServerMsgType] = Callable[[ServerMsgType], Any]
 
 # ----- OrderStatuses ---
-OrderStatusType: TypeAlias = tuple
-PositionStatusType: TypeAlias = tuple
-AccountSummaryType: TypeAlias = tuple
-
+OrderStatusType: TypeAlias = dict[str, Any]#tuple
+PositionStatusType: TypeAlias = dict[str, Any] #tuple
+AccountSummaryType: TypeAlias = dict[str, Any]#tuple
 
 
 # ====== Vendor-Specific Types ======
@@ -158,9 +157,15 @@ ParsedRTMDCQG = tuple[
     ]
 
 # ------ LiveOrder ------
-OrderStatusType = dict[str, Any]
+ChainOrderId:   TypeAlias = str   # OS_CHAIN_ORDER_ID field value
+ClOrderId:      TypeAlias = str   # OS_CL_ORDER_ID field value
+OrderId:        TypeAlias = str   # OS_ORDER_ID field value
+ContractId:     TypeAlias = int   # PS_CONTRACT_ID field value
 
-OrderStatusTypeCQG: TypeAlias = tuple
+OrderStatusTypeCQG: TypeAlias = dict[str, Any]#tuple
+PositionStatusTypeCQG: TypeAlias = dict[str, Any] #tuple
+AccountSummaryTypeCQG: TypeAlias = dict[str, Any]#tuple
+
 
 OS_CHAIN_ORDER_ID       = 0             # [0]  chain_order_id      str
 OS_CL_ORDER_ID          = 1             # [1]  cl_order_id         str   (from order sub-field, promoted)
@@ -182,8 +187,6 @@ OS_SUB_IDS              = 16            # [16] sub_ids             tuple[int, ..
 
 
 # OpenPositionTypeCQG — nested sub-tuple
-OpenPositionTypeCQG: TypeAlias = tuple
-
 OP_ID                   = 0   # int      surrogate key for updates
 OP_QTY_SIGNIFICAND      = 1   # int
 OP_QTY_EXPONENT         = 2   # int      qty=0 means this position is DELETED
@@ -197,7 +200,6 @@ OP_IS_YESTERDAY         = 9   # bool
 OP_SPECULATION_TYPE     = 10  # int
 
 # PositionStatusTypeCQG — top-level tuple
-PositionStatusTypeCQG: TypeAlias = tuple
 
 PS_SUB_IDS              = 0   # tuple[int, ...]
 PS_IS_SNAPSHOT          = 1   # bool
@@ -206,4 +208,3 @@ PS_CONTRACT_ID          = 3   # int
 PS_OPEN_POSITIONS       = 4   # tuple[OpenPositionTypeCQG, ...]
 
 # AccountSummaryTypeCQG 
-AccountSummaryTypeCQG: TypeAlias = tuple

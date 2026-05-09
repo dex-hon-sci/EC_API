@@ -7,8 +7,10 @@ Created on Tue Jul 29 13:19:48 2025
 """
 from typing import Protocol, Any
 from EC_API.ordering.enums import RequestType
+from EC_API.ordering.trade_session import TradeSession
 
 class LiveOrder(Protocol):
+    _trade_session: TradeSession
 
     @property
     def timeout(self) -> float | int: ...

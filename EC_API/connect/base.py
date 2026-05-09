@@ -7,6 +7,7 @@ Created on Wed Jul 30 10:23:04 2025
 """
 from typing import Protocol, Any
 from EC_API.connect.enums import ConnectionState
+from EC_API._typing import PongType
 
 class Connect(Protocol):
 
@@ -68,7 +69,7 @@ class Connect(Protocol):
         ...
 
     # --- Heartbeat ---
-    async def ping(self, token: str | None = None) -> dict[str, Any] | None: 
+    async def ping(self, token: str | None = None) -> PongType | None: 
         """
         Used for Connection health check. Expect a Pong response message from
         server and calculate the time between send and recieve.
@@ -81,5 +82,5 @@ class Connect(Protocol):
     async def pong(self, token: str, ping_utc_time: int, pong_utc_time: int) -> None: ...
 
     # --- Symbol ---
-    async def resolve_symbol(self, symbol: str) -> dict[str, Any] | None: ...
-    async def unsubscribe_symbol(self, symbol: str) -> None: ...
+    async def resolve_symbol(self, symbol: str) -> list[dict[str, Any]]: ...
+    async def unsubscribe_symbol(self, symbol: str) -> list[dict[str, Any]]: ...

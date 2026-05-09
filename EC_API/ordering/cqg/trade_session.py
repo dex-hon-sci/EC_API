@@ -44,7 +44,11 @@ from EC_API._typing import (
     OS_CL_ORDER_ID,
     OS_ORDER_ID,
     OS_CHAIN_ORDER_ID,
-    PS_CONTRACT_ID
+    PS_CONTRACT_ID,
+    ChainOrderId,  
+    ClOrderId, 
+    OrderId,
+    ContractId
     )
 
 logger = logging.getLogger(__name__)
@@ -73,23 +77,23 @@ class TradeSessionCQG:
         self._symbol_registry: SymbolRegistry = SymbolRegistry()
 
         # --- Lookup Dictionary ---
-        self._active_trade_subs: dict[int, set[SubScope]] = dict() # trade_sub_id -> scope
+        self._active_trade_subs: dict[int, list[SubScope]] = dict() # trade_sub_id -> scope
 
         # Logging event pairing 
-        self.cl_to_chain: dict[OS_CL_ORDER_ID, tuple[OS_CHAIN_ORDER_ID, int]] = dict() 
-        self.active_order_ids_by_chain: dict[OS_CHAIN_ORDER_ID, tuple[OS_ORDER_ID, int]] = dict()
-        
+        self.cl_to_chain: dict[ClOrderId, ChainOrderId] = dict() 
+        self.active_order_ids_by_chain: dict[ChainOrderId, tuple[OrderId, int]] = dict()
+
         # --- Containers --- 
-        self._pending_chain_q: list[tuple[OS_CHAIN_ORDER_ID, asyncio.Queue]] = list()
+        self._pending_chain_q: list[tuple[ChainOrderId, asyncio.Queue]] = list()
         
-        self._active_order_q: dict[OS_CHAIN_ORDER_ID, asyncio.Queue] = dict()
-        self._active_pos_q: dict[PS_CONTRACT_ID, asyncio.Queue] = dict()
-        self._active_acc_summary_q: dict[str, asyncio.Queue] = dict()
+        self._active_order_q: dict[ChainOrderId, asyncio.Queue] = dict()
+        self._active_pos_q: dict[ContractId, asyncio.Queue] = dict()
+        self._active_acc_summary_q: dict[int, asyncio.Queue] = dict()
 
         # Snapshots for the latest order_state. overwrite on every event
-        self.latest_order_state_by_chain: dict[OS_CHAIN_ORDER_ID, OrderStatusTypeCQG] = dict() # latest status, overwritten everytime
-        self.latest_pos_status_by_contract_id: dict[PS_CONTRACT_ID, PositionStatusTypeCQG] = dict()
-        self.latest_account_summaries: dict[str, AccountSummaryTypeCQG] = dict()
+        self.latest_order_state_by_chain: dict[ChainOrderId, OrderStatusTypeCQG] = dict() # latest status, overwritten everytime
+        self.latest_pos_status_by_contract_id: dict[ContractId, PositionStatusTypeCQG] = dict()
+        self.latest_account_summaries: dict[int, AccountSummaryTypeCQG] = dict()
 
         # Settings
         self.order_statuses_TTL: int = 10 #(Time-to-live in Seconds)
@@ -145,14 +149,14 @@ class TradeSessionCQG:
             )
     
     # --- Getters
-    def get_order_status(self, chain_order_id: str) -> OrderStatusTypeCQG:
+    def get_order_status(self, chain_order_id: str) -> OrderStatusTypeCQG | None:
         return self.latest_order_state_by_chain.get(chain_order_id)
     
-    def get_position_status(self, symbol_name: str) -> PositionStatusTypeCQG:
+    def get_position_status(self, symbol_name: str) -> PositionStatusTypeCQG | None:
         contract_id = self._symbol_registry.get_contract_ids(symbol_name)
         return self.latest_pos_status_by_contract_id.get(contract_id)
 
-    def get_account_summay(self) -> AccountSummaryTypeCQG:
+    def get_account_summay(self) -> AccountSummaryTypeCQG | None:
         return self.latest_account_summaries.get(self._conn._account_id)
     
     # --- status tracker 
@@ -189,7 +193,6 @@ class TradeSessionCQG:
                                  p_ord_sts['status_utc_timestamp'].ToMilliseconds()
                                  )
                             
-                            print('status', p_ord_sts.get('status'))
                             if p_ord_sts.get('status') in TERMINAL_STATES:
                                 done_ord.add(chain_order_id)
                                 break
@@ -246,7 +249,7 @@ class TradeSessionCQG:
                 logger.error("tracker_loop error: %s", e, exc_info=True)
 
     # --- CQG function calls ---
-    async def resolve_symbol(self, symbol_name: str) -> ContractMetaDataType:
+    async def resolve_symbol(self, symbol_name: str) -> Optional[list[ContractMetaDataType]]:
         try:
             if symbol_name not in self._symbol_registry.sym_to_contract_ids.keys():
     
@@ -259,11 +262,12 @@ class TradeSessionCQG:
                 return metadatas
 
             else: 
-                metadatas = self._symbol_registry.get_metadata(symbol_name)
+                metadata = self._symbol_registry.get_metadata(symbol_name)
+                return [metadata]
         except (SymbolResolutionError, ConnectTimeOutError) as e :
             raise TradeSessionRequestError(str(e))
     
-    async def unsubscribe_symbol(self, symbol_name: str) -> ContractMetaDataType:
+    async def unsubscribe_symbol(self, symbol_name: str) -> Optional[list[ContractMetaDataType]]:
         try:
             if symbol_name not in self._symbol_registry.sym_to_contract_ids.keys():
                 raise SymbolNotInRegistryError(
@@ -280,12 +284,12 @@ class TradeSessionCQG:
     async def trade_subscription_request(
             self,
             sub_id: int,
-            sub_scope: SubScope | SubScopeCQG                           
-        ) -> dict:
+            sub_scope: SubScope                           
+        ) -> tuple[list[dict], list[dict]] | None:
         
         if sub_id in self._active_trade_subs.keys():
             logger.warning("Sub_id: {sub_id} is already in-use.")
-            return
+            return None
         
         with msg_io_error_handler(
                 TradeSessionRequestError, 
@@ -318,10 +322,9 @@ class TradeSessionCQG:
     async def unsubscribe_trade_request(
             self, 
             sub_id: int, 
-            sub_scope: SubScope | SubScopeCQG
-        ) -> dict:
-        
-        
+            sub_scope: SubScope
+        ) -> list[dict]:
+         
         with msg_io_error_handler(
                 TradeSessionRequestError,                               
                 timeout_error = TradeSessionTimeOutError
@@ -379,8 +382,9 @@ class TradeSessionCQG:
         
     # --- Lifecycle ---
     def start(self) -> bool:
-        self._conn.start()
+        start_success = self._conn.start()
         self._tracker_task = asyncio.create_task(self._tracker_loop())
+        return start_success
 
     async def stop(self) -> bool:
         if self._tracker_task and not self._tracker_task.done():
@@ -389,7 +393,8 @@ class TradeSessionCQG:
                 await self._tracker_task
             except asyncio.CancelledError:
                 pass
-        await self._conn.stop()
+        stop_success = await self._conn.stop()
+        return stop_success
         
     async def _cleanup(self) -> None:
         # Automatically unsubscirbe and destroy the queue copy of the 

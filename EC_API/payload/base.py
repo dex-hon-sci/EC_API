@@ -53,10 +53,11 @@ class Payload:
     def __post_init__(self) -> None:
         # Check the order instructions based on the order type
         # import checking classes and func specific for CQG type orders
-        try:
-            self.risk_check.static_validate(self.order_info)
-        except (KeyError, ValueError, AttributeError) as e:
-            raise RiskViolationError(str(e))
+        if self.risk_check is not None:
+            try:
+                self.risk_check.static_validate(self.order_info)
+            except (KeyError, ValueError, AttributeError) as e:
+                raise RiskViolationError(str(e))
 
 class ExecutePayload:
     """
@@ -68,12 +69,12 @@ class ExecutePayload:
     # Execution object for CQG trade rounting connection
     def __init__(
             self, 
-            payload: type[Payload],
-            live_order: type[LiveOrder]
+            payload: Payload,
+            live_order: LiveOrder
         ):
-        self.payload: type[Payload] = payload
-        self.live_order: type[LiveOrder] = live_order # LiveOrder class, vendor-specific.
-        self._trade_session: type[TradeSession] = self.live_order._trade_session
+        self.payload: Payload = payload
+        self.live_order: LiveOrder = live_order # LiveOrder class, vendor-specific.
+        self._trade_session: TradeSession = self.live_order._trade_session
 
         # Choose what enums are used for match cases in change payload status
         
@@ -85,7 +86,7 @@ class ExecutePayload:
         # Only send payload that is pending.
         if self.payload.status == PayloadStatus.PENDING:
             try:
-                await self.live_order(self._trade_session).send(
+                await self.live_order.send(
                     request_type = self.payload.order_request_type, 
                     request_details = self.payload.order_info
                     )

@@ -42,12 +42,14 @@ def extract_router_keys(
             errors.append(
                 f"{msg_type} not found in the avaliable message types."
                 )
+            continue
         
         extractor = extractors.get(family)
         if extractor is None:
             errors.append(
                 f"Corresponding extractor for {msg_type} not found."
                 )
+            continue
         try:
             res.extend(extractor(server_msg, msg_type))
         except Exception:

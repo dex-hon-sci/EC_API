@@ -5,7 +5,7 @@ Created on Fri Feb 13 20:03:25 2026
 
 @author: dexter
 """
-from typing import Callable, Any, Iterable
+from typing import Callable, Any, Iterable, Sequence
 from google.protobuf.message import Message
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 #from EC_API.protocol.cqg.mapping import MAP_RESPONSES_TYPES_STR
@@ -58,7 +58,7 @@ def walk_fields(
 def extract_session_router_keys(
         msg: ServerMsg, 
         msg_type: str
-    )->list[RouterKey]:
+    ) -> Sequence[RouterKey]:
     
     if msg_type == 'pong':
         rid = "token"
@@ -73,7 +73,7 @@ def extract_session_router_keys(
 def extract_info_keys(
         msg: ServerMsg, 
         msg_type: str                      
-    ) -> list[RouterKey]:
+    ) -> Sequence[RouterKey]:
     
     TARGET = {                             
         "symbol_resolution_report",
@@ -105,7 +105,7 @@ def extract_info_keys(
         if request_id is None and hit[0] == 'id':
             request_id = hit[1]
         elif hit[0] in TARGET:
-            res.append(("info", "information_reports:"+hit[0], "id", request_id))
+            res.append(("info", "information_reports:"+str(hit[0]), "id", request_id))
     return res
 
 
@@ -113,7 +113,7 @@ def extract_info_keys(
 def extract_rpc_reqid_router_keys(
         msg: ServerMsg, 
         msg_type: str                      
-    ) -> list[RouterKey]:
+    ) -> Sequence[RouterKey]:
     
     TARGET = {
         "order_request_rejects", 
@@ -150,7 +150,7 @@ def extract_rpc_reqid_router_keys(
 def extract_sub_router_keys(
         msg: ServerMsg, 
         msg_type: str                      
-    ) -> list[RouterKey]: 
+    ) -> Sequence[RouterKey]: 
     
     TARGET = {
         "market_data_subscription_statuses", 
@@ -185,7 +185,7 @@ def extract_sub_router_keys(
 def extract_substream_router_keys(
         msg: ServerMsg, 
         msg_type: str                      
-    ) -> list[RouterKey]: 
+    ) -> Sequence[RouterKey]: 
     TARGET = {
         "order_statuses",
         "position_statuses", 

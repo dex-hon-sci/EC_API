@@ -94,8 +94,6 @@ def build_new_order_request_msg(
     cl_order_id: str, 
     side: Side, # Delibrate choice here to return error msg if no side is provided
     qty: int,
-    #qty_significant: int, # make sure qty are in Decimal (int) not float
-    #qty_exponent: int, 
     order_type: OrderType | OrderTypeCQG = OrderType.MKT, 
     duration: Duration | DurationCQG = Duration.DAY, 
     is_manual: bool = False,

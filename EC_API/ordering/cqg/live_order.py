@@ -64,7 +64,7 @@ class LiveOrderCQG(LiveOrder):
     async def _new_order_request(
             self, 
             request_details: dict[str, Any]
-        ) -> None:
+        ) -> list[dict]:
         
         with msg_io_error_handler(
                 LiveOrderRequestError,
@@ -86,7 +86,7 @@ class LiveOrderCQG(LiveOrder):
     async def _modify_order_request(
             self, 
             request_details: dict[str, Any],
-        ) -> ServerMsg:
+        ) -> list[dict]:
         
         with msg_io_error_handler(
                 LiveOrderRequestError,
@@ -109,7 +109,7 @@ class LiveOrderCQG(LiveOrder):
             self,
             request_details: dict[str, Any],
             **kwargs
-        ) -> ServerMsg:
+        ) -> list[dict]:
         with msg_io_error_handler(
                 LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
@@ -130,7 +130,7 @@ class LiveOrderCQG(LiveOrder):
     async def _activate_order_request(
             self,
             request_details: dict[str, Any],
-        ) -> ServerMsg:
+        ) -> list[dict]:
         with msg_io_error_handler(
                 LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
@@ -152,7 +152,7 @@ class LiveOrderCQG(LiveOrder):
     async def _cancelall_order_request(
             self,
             request_details: dict[str, Any],
-        ) -> ServerMsg:
+        ) -> list[dict]:
         with msg_io_error_handler(
                 LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
@@ -175,7 +175,7 @@ class LiveOrderCQG(LiveOrder):
     async def _liquidateall_order_request(
             self,
             request_details: dict[str, Any],
-        ) -> ServerMsg:
+        ) -> list[dict]:
         with msg_io_error_handler(
                 LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
@@ -197,7 +197,7 @@ class LiveOrderCQG(LiveOrder):
     async def _goflat_order_request(
             self, 
             request_details: dict[str, Any],
-        ) -> ServerMsg:
+        ) -> list[dict]:
         with msg_io_error_handler(
                 LiveOrderRequestError,
                 timeout_error = LiveOrderTimeOutError
@@ -221,7 +221,7 @@ class LiveOrderCQG(LiveOrder):
             request_type: RequestType,
             request_details: dict,
             **kwargs
-        ) -> Optional[tuple[str, asyncio.Queue]] | dict | None:
+        ) -> Optional[list[dict]]:
 
         # Get the Inputs
         if not request_details.get('symbol_name'):

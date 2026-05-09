@@ -93,7 +93,7 @@ class ConnectCQG(Connect):
             host_name: str, 
             user_name: str, 
             password: str,
-            account_id: int = "",
+            account_id: int = 0,
             immediate_connect: bool = False,
             client: Optional[webapi_client.WebApiClient] = None,
             transport: Optional[TransportCQG] = None
@@ -113,8 +113,11 @@ class ConnectCQG(Connect):
         # Event Loop
         self._loop = asyncio.get_running_loop()
         self._router_task: Optional[asyncio.Task] = None
+        
         self._stop_evt = asyncio.Event()
         self._trade_work_evt = asyncio.Event()
+        self._dust_bin_evt = asyncio.Event()
+        
         self._timeout: float | int = 0.2 # make make this a ping based decision
 
         # State Control
@@ -420,7 +423,7 @@ class ConnectCQG(Connect):
                                         # (5) --- Unsolicited Messages ---
                                         await self._misc_queue.put(msg)
                                     
-                    # --- (5) Dead Letters/Unsolicited Message Collections ---
+                    # --- (5) Dust Bin/Unsolicited Message Collections ---
                     # For server-side
                     # 1. logged_off
                     # 2. concurrent_connection_join_results
@@ -436,7 +439,9 @@ class ConnectCQG(Connect):
                 #return
             except Exception as e:
                 logger.error("Router Loop Error: %s", e, exc_info=True)
-                                 
+    # ----- DustBin -----------------------
+    async def _dust_bin_handle(self) -> None:
+        ...
     # ---- Failure Mode -------------------
     async def _on_transport_failure(self, exc: Exception) -> None:
         pass
@@ -595,7 +600,7 @@ class ConnectCQG(Connect):
     async def resolve_symbol(
             self, 
             symbol: str,
-        ) -> ContractMetaDataType | None:
+        ) -> list[dict[str, Any]]:
         # symbol Resolution
         with msg_io_error_handler(
                 SymbolResolutionError, 
@@ -614,7 +619,7 @@ class ConnectCQG(Connect):
     async def unsubscribe_symbol(
             self,
             symbol: str
-        ) -> None:
+        ) -> list[dict[str, Any]]:
         
         with msg_io_error_handler(
                 SymbolResolutionError, 

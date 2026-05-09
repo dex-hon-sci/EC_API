@@ -16,7 +16,7 @@ from EC_API._typing import Parser_func
 
 def walk_fields(
         msg: ServerMsg, 
-        selector: Callable[[Any], Any],
+        selector: Callable[[Any, Any], Iterable[Any]],
         max_depth: int=2
     ) -> list[Any]:
     
@@ -50,7 +50,7 @@ def parse_server_msg(
         raise MsgParserError("Cannot resolve server message type.")
     
     # --- parsing
-    res: list[Optional[dict[str, Any]]] = []
+    res: list[dict[str, Any]] = []
     errors: list[str] = []
     for msg_type in msg_types:
         parser = parsers.get(msg_type)
