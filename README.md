@@ -46,7 +46,7 @@ Currently supported vendors:
 
 
 `EC_API` consists of two layers:
-![plot](./images/message_flow.jpg)
+![plot](./images/message_flow_v3.jpg)
 
 1. **The Infrastructure Layer**
 
