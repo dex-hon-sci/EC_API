@@ -1,5 +1,6 @@
 [aliases]
 CLEV25  = "CL_GENERIC"
+CLE = "CL_GENERIC"
 
 [global_limits]
 qty_min = 0
