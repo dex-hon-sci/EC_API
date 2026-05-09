@@ -6,6 +6,7 @@ Created on Mon Jul 14 19:37:54 2025
 @author: dexter
 """
 # Python imports
+import logging
 from datetime import timezone, datetime, timedelta
 from dataclasses import dataclass, field
 # EC_API imports
@@ -14,11 +15,15 @@ from EC_API.payload.enums import PayloadStatus
 from EC_API.ordering.enums import RequestType
 from EC_API.payload.safety import PreTradeRiskCheck
 from EC_API.ordering.trade_session import TradeSession
-from EC_API.exceptions import (
-    ExecutePayloadError, 
+from EC_API.exceptions import ( 
     LiveOrderRequestError,
+    LiveOrderTimeOutError,
+    TradeSubscriptionMissingError,
+    MissingSymbolResolutionError,
+    MissingOrderIDError,
     RiskViolationError
     )
+logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class Payload:
@@ -84,11 +89,34 @@ class ExecutePayload:
                     request_type = self.payload.order_request_type, 
                     request_details = self.payload.order_info
                     )
+                self.payload.status = PayloadStatus.SENT
+                logger.info(
+                    "Payload sent: %s %s",
+                    self.payload.order_request_type,
+                    self.payload.order_info.get('symbol_name', '')
+                )
+            except (TradeSubscriptionMissingError,
+                    MissingSymbolResolutionError,
+                    MissingOrderIDError) as e:
+                self.payload.status = PayloadStatus.VOID
+                logger.error("Payload blocked — setup error [%s]: %s", type(e).__name__, e)
+            except LiveOrderTimeOutError as e:
+                self.payload.status = PayloadStatus.VOID
+                logger.warning(
+                    "Payload timed out [%s %s]: %s",
+                    self.payload.order_request_type,
+                    self.payload.order_info.get('symbol_name', ''), e
+                )
             except LiveOrderRequestError as e:
-                raise ExecutePayloadError(str(e))
+                self.payload.status = PayloadStatus.VOID
+                logger.warning(
+                    "Payload rejected [%s %s]: %s",
+                    self.payload.order_request_type,
+                    self.payload.order_info.get('symbol_name', ''), e
+                )
         else:
-            raise ExecutePayloadError(
-                "Only pending payloads can be unloaded."
+            logger.warning(
+                "Invalid Payload Status: Only pending payloads can be unloaded."
                 )
         
 
