@@ -1,4 +1,4 @@
-# *EC_API*: A vendor-agnostic Infrastructure and Execution Framework for Algo Trading 
+# *EC_API*: A vendor-agnostic Execution Framework for Algo Trading 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue.svg)
 ![CI](https://github.com/dex-hon-sci/EC_API/actions/workflows/unittest.yml/badge.svg)
 [![Coverage](https://codecov.io/gh/dex-hon-sci/EC_API/branch/main/graph/badge.svg)](https://codecov.io/gh/dex-hon-sci/EC_API)
@@ -195,13 +195,13 @@ from EC_API.ordering.enums import (
 ORDER_INFO =  { 
     "symbol_name": "CLEV25",
     "cl_order_id": "1231314",
-    "order_type": OrderType.ORDER_TYPE_LMT,  # For Limit orders
-    "duration": Duration.DURATION_GTC,      # With a Duration of Good-till-Cancel
-    "side": Side.SIDE_BUY,              # Buy order
+    "order_type": OrderType.LMT,  # For Limit orders
+    "duration": Duration.GTC,      # With a Duration of Good-till-Cancel
+    "side": Side.BUY,              # Buy order
     "qty": 2,
     "limit_price": 100,
     "good_thru_date": datetime(2025,9,9),
-    "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
+    "exec_instructions": ExecInstruction.AON
     }
                       
 async with TradeSessionCQG(conn) as TS:
@@ -223,6 +223,7 @@ updated based on the session information.
 
 Here is the format for static toml file for pre-trade check:
 ```toml
+# risk_para.toml
 [global_limits]
 qty_max = 10
 
