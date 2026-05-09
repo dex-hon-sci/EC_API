@@ -3,6 +3,12 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.ordering.enums import RequestType, SubScope
+from EC_API.ordering.enums import (
+    Side, 
+    Duration, 
+    OrderType,
+    ExecInstruction
+    )
 from EC_API.ordering.cqg.live_order import LiveOrderCQG
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.exceptions import (
@@ -30,16 +36,56 @@ async def conn(timeout = None):
 # ------ Happy Path 1: Ack  ------
 @pytest.mark.asyncio
 async def test_new_order_request_send_valid(conn) -> None:
-    fake_transport = FakeTransport()
-    conn = ConnectCQG(
-        "host_name",
-        "user_name",
-        "password",
-        account_id=10000,
-        immediate_connect=False,
-        client=FakeCQGClient(),
-        transport=fake_transport
+    # ---
+    success_decisions = {
+        "new_order_request": True,
+        "information_requests": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions
         )
+    # --- Send
+    request_details = {
+        "symbol_name": "CLE",
+        "cl_order_id": "1231314",
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
+        "qty": 2,
+        "is_manual": False,
+        "limit_price": 150,
+        "exec_instructions": ExecInstruction.NONE
+        }
+    metadata = {'CLE': "something", "contract_id": 1}
+    
+    async def send_order():
+        async with TradeSessionCQG(conn) as TS:
+            TS._symbol_registry.register('CLE', metadata)        
+            TS._active_trade_subs[1] = [SubScope.ORDERS]
+                       
+            result = await LiveOrderCQG(TS).send(
+                                RequestType.NEW_ORDER,
+                                request_details=request_details
+                            )
+            await asyncio.sleep(0.1)
+            assert '1231314' in TS.cl_to_chain
+            assert len(TS._pending_chain_q) == 0 # Empty pending, tracker loop working
+            assert 'chain_order_id_0' in TS._active_order_q 
+            assert not conn._trade_work_evt.is_set() # tracker loop unset the work event
+            return result
+
+    result, _ = await asyncio.gather(send_order(), fake_server.run(contract_id=1))
+    assert isinstance(result, list)
+    assert result[0]['order_id'] == 'order_id_0'
+    assert result[0]['chain_order_id'] == 'chain_order_id_0'
+    
+    assert result[0]['order']['account_id'] == conn._account_id
+    assert result[0]['order']['contract_id'] == 1
+    assert result[0]['order']['cl_order_id'] == '1231314'
+    assert result[0]['order']['qty']['significand'] == 2
+    assert result[0]['order']['qty']['exponent'] == 0
+    assert result[0]['order']['scaled_limit_price'] == 150
 
 @pytest.mark.asyncio
 async def test_modify_order_request_send_valid(conn) -> None:
@@ -268,7 +314,53 @@ async def test_goflat_order_request_send_valid(conn) -> None:
     assert result[0]['request_id'] == 11
     
 # ------ Happy Path 2: Reject  ------
+@pytest.mark.asyncio
+async def test_new_order_request_send_valid_reject(conn) -> None:
+    # ---
+    success_decisions = {
+        "new_order_request": True,
+        "information_requests": True
+        }
+    extra_instructions = {
+        "new_order_request_reject": True
+        }
+    loop = asyncio.get_running_loop()
+    fake_server = FakeDataServerCQG(
+        conn, loop, success_decisions = success_decisions,
+        extra_instructions = extra_instructions
+        )
+    # --- Send
+    request_details = {
+        "symbol_name": "CLE",
+        "cl_order_id": "1231314",
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.BUY,
+        "qty": 2,
+        "is_manual": False,
+        "limit_price": 150,
+        "exec_instructions": ExecInstruction.NONE
+        }
+    metadata = {'CLE': "something", "contract_id": 1}
+    
+    async def send_order():
+        async with TradeSessionCQG(conn) as TS:
+            TS._symbol_registry.register('CLE', metadata)        
+            TS._active_trade_subs[1] = [SubScope.ORDERS]
+                       
+            result = await LiveOrderCQG(TS).send(
+                                RequestType.NEW_ORDER,
+                                request_details=request_details
+                            )
+            await asyncio.sleep(0.1)
+            assert len(TS.cl_to_chain) == 0 # empty cl_to_chain, no hand-off
+            assert len(TS._pending_chain_q) == 0 # Empty pending, tracker loop working
+            assert not conn._trade_work_evt.is_set() 
+            return result
 
+    result, _ = await asyncio.gather(send_order(), fake_server.run(contract_id=1))
+    assert isinstance(result, list)
+    assert result[0]['reject_code'] == 1001
 
 # ------ Sad Path
 @pytest.mark.asyncio
@@ -369,4 +461,3 @@ async def test_order_request_failed_no_order_id(
                 request_type,
                 request_details=request_details
                 )
-

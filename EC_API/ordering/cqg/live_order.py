@@ -267,49 +267,47 @@ class LiveOrderCQG(LiveOrder):
                 raise MissingOrderIDError(
                     f"Order ID: {request_details['order_id']} is not in active orders."
                     )
-        try:
-            details = {
-                "account_id": self._trade_session._conn._account_id,
-                "request_id": self.rid(),
-                #"contract_id": contract_id,
-                **request_details,  
-                }
-        
-            match request_type:
-                case RequestType.NEW_ORDER:
-                    details["contract_id"] = contract_id
-                    
-                    parsed_server_msg = await self._new_order_request(details)       
-                    if parsed_server_msg.get('chain_order_id'):
-                        chain_order_id =  parsed_server_msg['chain_order_id']
+        details = {
+            "account_id": self._trade_session._conn._account_id,
+            "request_id": self.rid(),
+            #"contract_id": contract_id,
+            **request_details,  
+            }
+    
+        match request_type:
+            case RequestType.NEW_ORDER:
+                details["contract_id"] = contract_id
+                
+                parsed_server_msg = await self._new_order_request(details)   
+                for p_s_msg in parsed_server_msg:
+                    if p_s_msg.get('chain_order_id'):
+                        chain_order_id =  p_s_msg['chain_order_id']
                         self._trade_session.cl_to_chain[request_details['cl_order_id']] = chain_order_id
                            
                         q = self.stream_router.subscribe(chain_order_id)
                         
                         self._trade_session._pending_chain_q.append((chain_order_id, q))
-                # ---
-                case RequestType.MODIFY_ORDER:
-                    parsed_server_msg = await self._modify_order_request(details)  
+                        self._conn._trade_work_evt.set()
+            # ---
+            case RequestType.MODIFY_ORDER:
+                parsed_server_msg = await self._modify_order_request(details)  
 
-                case RequestType.CANCEL_ORDER:
-                    parsed_server_msg = await self._cancel_order_request(details)
+            case RequestType.CANCEL_ORDER:
+                parsed_server_msg = await self._cancel_order_request(details)
 
-                case RequestType.ACTIVATE_ORDER:
-                    parsed_server_msg = await self._activate_order_request(details)
+            case RequestType.ACTIVATE_ORDER:
+                parsed_server_msg = await self._activate_order_request(details)
 
-                # ---
-                case RequestType.CANCELALL_ORDER:
-                    parsed_server_msg = await self._cancelall_order_request(details)
-                    
-                case RequestType.LIQUIDATEALL_ORDER:
-                    details["contract_id"] = contract_id
-                    parsed_server_msg = await self._liquidateall_order_request(details)
-                    
-                case RequestType.GOFLAT_ORDER:
-                    parsed_server_msg = await self._goflat_order_request(details)
-            return parsed_server_msg
+            # ---
+            case RequestType.CANCELALL_ORDER:
+                parsed_server_msg = await self._cancelall_order_request(details)
+                
+            case RequestType.LIQUIDATEALL_ORDER:
+                details["contract_id"] = contract_id
+                parsed_server_msg = await self._liquidateall_order_request(details)
+                
+            case RequestType.GOFLAT_ORDER:
+                parsed_server_msg = await self._goflat_order_request(details)
+        return parsed_server_msg
 
-                     
-        except LiveOrderRequestError as e:
-            logger.warning(str(e))
-            return 
+
