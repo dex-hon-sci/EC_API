@@ -7,25 +7,14 @@ Created on Wed Jul 30 10:01:16 2025
 """
 import asyncio
 from typing import Any, Optional
-import logging
 
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.connect.cqg.base import ConnectCQG
-from EC_API.ordering.enums import (
-    SubScope, OrderType,
-    Duration, RequestType, 
-    ExecInstruction, OrderStatus
-    )
-from EC_API.ordering.cqg.enums import (
-    SubScopeCQG, OrderTypeCQG,
-    DurationCQG, ExecInstructionCQG,
-    OrderStatusCQG
-    )
+from EC_API.ordering.enums import RequestType
 from EC_API.ordering.base import LiveOrder
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
-from EC_API.ordering.cqg.enum_mapping import OrderStatus_MAP_CQG2INT
 from EC_API.ordering.cqg.builders import (
     build_new_order_request_msg, 
     build_modify_order_request_msg,
@@ -46,7 +35,6 @@ from EC_API.exceptions import (
     MissingOrderIDError
     )
 
-logger = logging.getLogger(__name__)
 
 class LiveOrderCQG(LiveOrder):
     # a class that control the ordering action to the exchange

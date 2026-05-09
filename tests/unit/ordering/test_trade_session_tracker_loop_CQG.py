@@ -11,11 +11,14 @@ from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as CQG_TS
 from EC_API.ext.common.shared_1_pb2 import OrderStatus
 from EC_API.connect.cqg.base import ConnectCQG
-from EC_API.ordering.enums import SubScope
+from EC_API.ordering.enums import (
+    SubScope, Side, OrderType, Duration
+    )
 from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.ordering.cqg.enum_mapping import (
     OrderStatus_MAP_CQG2INT, SubScope_MAP_INT2CQG
     )
+from EC_API.ordering.cqg.builders import build_new_order_request_msg
 from tests.unit.fixtures.proxy_clients import FakeTransport, FakeCQGClient
 from tests.unit.fixtures.server_msg_builders_CQG import (
     build_order_statuses_server_msg,
@@ -59,6 +62,20 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
         )
     conn._timeout = 0.0001
 
+    proxy_client_msg = build_new_order_request_msg(
+        account_id = 10000,
+        request_id = 11,
+        contract_id = 0,
+        cl_order_id = "cl_order_id", 
+        side = Side.BUY, # Delibrate choice here to return error msg if no side is provided
+        qty = 1,
+        order_type =  OrderType.MKT, 
+        duration = Duration.DAY, 
+        is_manual = False,
+        scale_factor = 1.0,
+
+        )
+
     async with TradeSessionCQG(conn) as TS:
         # Check if things are empty in the begining
         assert_TS_init(TS)
@@ -83,7 +100,7 @@ async def test_order_status_updates_one_chain_order_id_lifecycle_valid() -> None
             sub_ids = [CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS],
             order_id = "order_id_1",
             chain_order_id = "chain_order_id_1",
-            order = None,
+            order = proxy_client_msg.order_requests[0].new_order.order,
             account_id = conn._account_id
             )
         await fake_transport.in_q.put(response_1)
