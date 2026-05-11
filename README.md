@@ -253,7 +253,7 @@ PL1 = Payload(
 async with TradeSessionCQG(conn) as TS:
     await TS.trade_subscription_request(sub_id=1, sub_scope = SubScope.ORDERS)
     await TS.resolve_symbol("CLEV25") 
-    await ExecutePayload(PL1, live_order=LiveOrderCQG(TS)).unload()
+    await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL1)
     
 ```
 

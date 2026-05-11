@@ -69,51 +69,50 @@ class ExecutePayload:
     # Execution object for CQG trade rounting connection
     def __init__(
             self, 
-            payload: Payload,
             live_order: LiveOrder
         ):
-        self.payload: Payload = payload
+        #self.payload: Payload = payload
         self.live_order: LiveOrder = live_order # LiveOrder class, vendor-specific.
         self._trade_session: TradeSession = self.live_order._trade_session
 
         # Choose what enums are used for match cases in change payload status
         
-    async def unload(self) -> None:
+    async def unload(self, payload: Payload) -> None:
         """
         Sending order request base on vendor-specific format and logics.
 
         """
         # Only send payload that is pending.
-        if self.payload.status == PayloadStatus.PENDING:
+        if payload.status == PayloadStatus.PENDING:
             try:
                 await self.live_order.send(
-                    request_type = self.payload.order_request_type, 
-                    request_details = self.payload.order_info
+                    request_type = payload.order_request_type, 
+                    request_details = payload.order_info
                     )
-                self.payload.status = PayloadStatus.SENT
+                payload.status = PayloadStatus.SENT
                 logger.info(
                     "Payload sent: %s %s",
-                    self.payload.order_request_type,
-                    self.payload.order_info.get('symbol_name', '')
+                    payload.order_request_type,
+                    payload.order_info.get('symbol_name', '')
                 )
             except (TradeSubscriptionMissingError,
                     MissingSymbolResolutionError,
                     MissingOrderIDError) as e:
-                self.payload.status = PayloadStatus.VOID
+                payload.status = PayloadStatus.VOID
                 logger.error("Payload blocked — setup error [%s]: %s", type(e).__name__, e)
             except LiveOrderTimeOutError as e:
-                self.payload.status = PayloadStatus.VOID
+                payload.status = PayloadStatus.VOID
                 logger.warning(
                     "Payload timed out [%s %s]: %s",
-                    self.payload.order_request_type,
-                    self.payload.order_info.get('symbol_name', ''), e
+                    payload.order_request_type,
+                    payload.order_info.get('symbol_name', ''), e
                 )
             except LiveOrderRequestError as e:
-                self.payload.status = PayloadStatus.VOID
+                payload.status = PayloadStatus.VOID
                 logger.warning(
                     "Payload rejected [%s %s]: %s",
-                    self.payload.order_request_type,
-                    self.payload.order_info.get('symbol_name', ''), e
+                    payload.order_request_type,
+                    payload.order_info.get('symbol_name', ''), e
                 )
         else:
             logger.warning(

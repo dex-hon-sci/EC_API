@@ -79,7 +79,7 @@ async def test_execute_payload_new_order_request_send_valid(conn, caplog) -> Non
             TS._symbol_registry.register('CLE', metadata)
             TS._active_trade_subs[1] = [SubScope.ORDERS]
             
-            await ExecutePayload(PL, LiveOrderCQG(TS)).unload()
+            await ExecutePayload(LiveOrderCQG(TS)).unload(PL)
                         
     with caplog.at_level(logging.INFO, logger="EC_API.payload.base"):
         result, _ = await asyncio.gather(unload_order(), fake_server.run(contract_id=1))
@@ -108,7 +108,7 @@ async def test_execute_payload_fail_not_pending(conn, caplog) -> None:
     PL.status = PayloadStatus.SENT # <-- illegal start
     async def unload_order():
         async with TradeSessionCQG(conn) as TS:            
-            await ExecutePayload(PL, LiveOrderCQG(TS)).unload()
+            await ExecutePayload(LiveOrderCQG(TS)).unload(PL)
 
     with caplog.at_level(logging.WARNING, logger="EC_API.payload.base"):
         await unload_order()
@@ -139,7 +139,7 @@ async def test_execute_payload_fail_timeout(conn, caplog) -> None:
             TS._symbol_registry.register('CLE', metadata)
             TS._active_trade_subs[1] = [SubScope.ORDERS]
 
-            await ExecutePayload(PL, LiveOrderCQG(TS)).unload()
+            await ExecutePayload(LiveOrderCQG(TS)).unload(PL)
 
     with caplog.at_level(logging.WARNING, logger="EC_API.payload.base"):
         await unload_order()
@@ -171,7 +171,7 @@ async def test_execute_payload_fail_builder_error(conn, caplog) -> None:
             TS._symbol_registry.register('CLE', metadata)
             TS._active_trade_subs[1] = [SubScope.ORDERS]
 
-            await ExecutePayload(PL, LiveOrderCQG(TS)).unload()
+            await ExecutePayload(LiveOrderCQG(TS)).unload(PL)
 
     with caplog.at_level(logging.WARNING, logger="EC_API.payload.base"):
         await unload_order()
@@ -203,7 +203,7 @@ async def test_execute_payload_fail_missing_trade_sub_error(conn, caplog) -> Non
             TS._symbol_registry.register('CLE', metadata)
             #TS._active_trade_subs[1] = [SubScope.ORDERS] # <--missing trade_subs
 
-            await ExecutePayload(PL, LiveOrderCQG(TS)).unload()
+            await ExecutePayload(LiveOrderCQG(TS)).unload(PL)
 
     with caplog.at_level(logging.WARNING, logger="EC_API.payload.base"):
         await unload_order()
@@ -235,7 +235,7 @@ async def test_execute_payload_fail_missing_sym_res_error(conn, caplog) -> None:
             #TS._symbol_registry.register('CLE', metadata)# <--missing symbol_resolution
             TS._active_trade_subs[1] = [SubScope.ORDERS] 
 
-            await ExecutePayload(PL, LiveOrderCQG(TS)).unload()
+            await ExecutePayload(LiveOrderCQG(TS)).unload(PL)
 
     with caplog.at_level(logging.WARNING, logger="EC_API.payload.base"):
         await unload_order()
@@ -267,7 +267,7 @@ async def test_execute_payload_fail_missing_order_id_error(conn, caplog) -> None
             TS.latest_order_state_by_chain['chain_order_id_1'] = {'order_id': 'order_id_1'}
             TS.active_order_ids_by_chain['chain_order_id_1'] = ('order_id_1', 10101)
 
-            await ExecutePayload(PL, LiveOrderCQG(TS)).unload()
+            await ExecutePayload(LiveOrderCQG(TS)).unload(PL)
 
     with caplog.at_level(logging.WARNING, logger="EC_API.payload.base"):
         await unload_order()
