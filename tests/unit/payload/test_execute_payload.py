@@ -9,7 +9,6 @@ from pathlib import Path
 import asyncio
 import logging
 import pytest
-from datetime import datetime, timezone, timedelta
 from EC_API.connect.cqg.base import ConnectCQG
 from EC_API.ordering.enums import (
     Side, SubScope,
@@ -22,10 +21,7 @@ from EC_API.ordering.cqg.trade_session import TradeSessionCQG
 from EC_API.payload.base import Payload, ExecutePayload
 from EC_API.payload.enums import PayloadStatus
 from EC_API.payload.safety import PreTradeRiskCheck
-from EC_API.exceptions import (
-    LiveOrderTimeOutError,
-    LiveOrderRequestError
-    )
+
 from tests.unit.fixtures.proxy_clients import FakeCQGClient, FakeTransport
 from tests.unit.fixtures.dummy_server_CQG import FakeDataServerCQG
 
