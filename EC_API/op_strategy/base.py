@@ -22,10 +22,14 @@ class OpStrategy(Protocol):
     
     Contain Cool-down mechanism
     """
-    def __init__(self,
-                 symbols: list[str],
-                 #datafeed_pool: list[DataFeed],
-                 payload_pool: list[DataFeed]):
+    def __init__(
+            self,
+            symbols: list[str],
+            #datafeed_pool: list[DataFeed],
+            payload_pool: list[DataFeed]
+        ):
+        
+        self.feeds: dict[str, DataFeed] = dict()
         #self.datafeed_pool = datafeed_pool
         # Build DataFeed_pool
         for sym in symbols:
@@ -35,10 +39,10 @@ class OpStrategy(Protocol):
                                       )
         self.payload_pool = payload_pool
         
-    def on_tick():
+    def on_tick(self):
         pass
     
-    def insert_signal():
+    def spawn_signal(self):
         pass
         
 

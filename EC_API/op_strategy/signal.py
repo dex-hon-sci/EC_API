@@ -5,16 +5,15 @@ Created on Mon Sep  8 11:19:23 2025
 
 @author: dexter
 """
-
-from typing import Protocol
+from abc import ABC
 from datetime import datetime
-from EC_API.monitor.data_feed import DataFeed
+from EC_API.monitor.data_feed import DataFeed, CrossFeeds
 from EC_API.op_strategy.enums import OpSignalStatus, OPSIGNAL_STATUS_LIFECYCLE
 from EC_API.op_strategy.action import ActionTree, ActionContext
 from EC_API.utility.state_mgr import StateMgr
 
 
-class OpSignal(Protocol):
+class OpSignal(ABC):
     """
     OpSignal contain the cool-down mechanism.
     """
@@ -26,19 +25,24 @@ class OpSignal(Protocol):
             end_time: datetime
         ):
         self.signal_id: str = ""
-        self.feeds = feeds   # e.g. {"WTI": DataFeed(...), "Brent": DataFeed(...)} 
+        
+        self.feeds: dict[str, DataFeed] = feeds   # e.g. {"WTI": DataFeed(...), "Brent": DataFeed(...)} 
+        self.cross: CrossFeeds = None
+        
         self.action_tree = action_tree
         self.start_time = start_time
         self.end_time = end_time
         
         self.context = ActionContext(self.start_time, self.end_time, self.feeds)        
+
         self._state_mgr: StateMgr = StateMgr(
             OPSIGNAL_STATUS_LIFECYCLE, 
             OpSignalStatus.INACTIVE,
             OpSignalStatus.INACTIVE,
             allowed_starts = [OpSignalStatus.INACTIVE]
-            )
-            
+            )        
+
+
         # Creation, status Inactive,
         # If start_time is hit, activate, start running on_tick, that         
         # monitor raw data, time, price, volume
@@ -64,7 +68,7 @@ class OpSignal(Protocol):
         self.state = OpSignalStatus.EXPIRED
         print("[OpSignal] Deactivated")
         
-
+    # ---
     def on_tick(
             self, 
             price: float, 
