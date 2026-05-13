@@ -52,20 +52,20 @@ class OpSignal(ABC):
         
     # --- Internals ---
     @property
-    def state(self) -> OpSignalStatus:
+    def ststus(self) -> OpSignalStatus:
         return self._state_mgr.cur
 
     # --- Functions ---
     def activate(self):
-        self.state = OpSignalStatus.ACTIVE
+        self.status = OpSignalStatus.ACTIVE
         print("[OpSignal] Activated")
         
     def terminate(self):
-        self.state = OpSignalStatus.TERMINAL
+        self.status = OpSignalStatus.TERMINAL
         print("[OpSignal] Terminated")
 
     def deactivate(self):
-        self.state = OpSignalStatus.EXPIRED
+        self.status = OpSignalStatus.EXPIRED
         print("[OpSignal] Deactivated")
         
     # ---
@@ -83,13 +83,13 @@ class OpSignal(ABC):
         self.on_tick()
         
         # During Active Signal
-        if self.state == OpSignalStatus.PENDING and now >= self.context.start_time:
+        if self.status == OpSignalStatus.INACTIVE and now >= self.context.start_time:
             return self.activate()
         elif not self.action_tree.cur:
             self.terminate()
         
         # When end_time is reached, override all status
-        if self.state == OpSignalStatus.ACTIVE and now > self.context.end_time:
+        if self.status == OpSignalStatus.ACTIVE and now > self.context.end_time:
             self.deactivate()
             
     # decay_func, confidence level

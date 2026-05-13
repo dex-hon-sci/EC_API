@@ -92,7 +92,7 @@ class ActionTree:
                     # Cancel siblings
                     for alt_label, (_, alt_node) in self.head_cur.transitions.items():
                         if alt_node is not nxt_node and alt_node.status == ActionStatus.PENDING:
-                            alt_node.status = ActionStatus.VOID
+                            alt_node.status = ActionStatus.CANCELLED
                             
                     print("Move from: ", self.head_cur.label)
                     self.head_cur = nxt_node

@@ -5,10 +5,10 @@ Created on Mon Sep 29 14:40:16 2025
 
 @author: dexter
 """
-from typing import Callable, Optional, Any, field, Self
+from typing import Callable, Optional, Any, Self
 
 from EC_API.common.data_feeds import DataFeed
-from EC_API.op_strategy.enums import ActionStatus 
+from EC_API.op_strategy.enums import ActionStatus, ACTION_STATUS_LIFECYCLE 
 from EC_API.utility.state_mgr import StateMgr
 
 
@@ -16,7 +16,7 @@ class ActionContext:
     """ ActionContext is in charge of the DataFeed related operation"""
     def __init__(self, 
                  feeds: dict[str, DataFeed]):
-        self.feeds = feeds   # e.g. {"WTI": DataFeed(...), "Brent": DataFeed(...)}
+        self.feeds: dict[str, DataFeed] = feeds   # e.g. {"WTI": DataFeed(...), "Brent": DataFeed(...)}
         
         # Exchange specific attributes
         self.connect: str = ""
@@ -78,8 +78,8 @@ class ActionNode:
     def __init__(self, 
                  label: str,
                  payloads: list[dict] | None, # Payloads of this action
-                 trigger_cond: Callable[ActionContext, dict] | None,
-                 transitions: dict[str, tuple[[ActionContext, bool], Self]] | None,
+                 trigger_cond: Callable[[ActionContext], dict] | None,
+                 transitions: dict[str, tuple[tuple[ActionContext, bool], Self]] | None,
                  remark: str =""):
         # Name of the Action Node
         self.label = label
@@ -89,13 +89,13 @@ class ActionNode:
         self.transitions = transitions if transitions else {}
                 
         # -------------
-        self._state_mgr: StateMgr = None #StateMgr(
-            #ACTION_STATUS_LIFECYCLE, 
-            #ActionStatus.PENDING,
-            #ActionStatus.PENDING,
-            #allowed_starts = [ActionStatus.PENDING]
-            #)
-            
+        #self._state_mgr: StateMgr = StateMgr(
+        #    ACTION_STATUS_LIFECYCLE, 
+        #    ActionStatus.PENDING,
+        #    ActionStatus.PENDING,
+        #    allowed_starts = [ActionStatus.PENDING]
+        #    )
+        self.status: ActionStatus = ActionStatus.PENDING
         # -------------
         self.payloads_states = [False for _ in range(10)]
         
@@ -115,9 +115,9 @@ class ActionNode:
             self.move_status = ActionStatus.COMPLETED
         
     # --- Internals ---
-    @property
-    def state(self) -> ActionStatus:
-        return self._state_mgr.cur
+    #@property
+    #def state(self) -> ActionStatus:
+    #   return self._state_mgr.cur
 
     # -----------------
     async def insert_order_info(self) -> None:
@@ -127,7 +127,7 @@ class ActionNode:
     async def evaluate(self, ctx: dict) -> None:
         # Only evaluate nodes that are still pending
         # Status: PENDING -> SENT
-        if self.state != ActionStatus.PENDING:
+        if self.status != ActionStatus.PENDING:
             return None
         
         # Check Trigger condition and fire Payload
@@ -135,20 +135,20 @@ class ActionNode:
             print(f"[ActionNode] {self.label} triggered.")
 
             for payload in self.payloads:             
-                await self.insert_payload()
-                self.state = ActionStatus.SENT
+                await self.insert_order_info()
+                self.status = ActionStatus.SENT
         return 
     
     async def listen_for_conifrm(self) -> None:
         # Status: SENT -> COMPLETED/VOID
-        if self.state != ActionStatus.SENT:
+        if self.status != ActionStatus.SENT:
             return None
         
         for i, payload in enumerate(self.payloads):
             ...
                 
         if all(self.payloads_states):
-            self.state = ActionStatus.COMPLETED
+            self.status = ActionStatus.COMPLETED
             
         return 
     
@@ -176,7 +176,7 @@ class GoFlatNode(ActionNode): # Untested
         
         Status
         """
-        if self.state != ActionStatus.PENDING:
+        if self.status != ActionStatus.PENDING:
             return None
 
         print("[GoFlatNode] Emergency liquidation triggered")
@@ -188,10 +188,9 @@ class GoFlatNode(ActionNode): # Untested
             if qty != 0:
                 action_type = "LIQUIDATE_LONG" if qty > 0 else "LIQUIDATE_SHORT"
                 payload = None
-                self.payloads.append(payload)
 
         # Insert liquidation payloads into DB
 
 
-        self.state = ActionStatus.COMPLETED
+        self.status = ActionStatus.COMPLETED
         return None

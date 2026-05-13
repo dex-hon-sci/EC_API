@@ -116,9 +116,9 @@ pip install git+https://github.com/dex-hon-sci/EC_API
 Here are some usage examples. 
 We use the CQG connection as an example in this demonstration.
 
-### **Interfacing with Exchanges**
+### **1. Interfacing with Exchanges**
 
-#### **Establish Connection**
+#### **1.1 Establish Connection**
 To establish a connection and start running:
 ```python
 import asyncio
@@ -144,7 +144,7 @@ vendor's server. The recommended way to start/stop the service is via
 and async context manager. Alternatively, you may also start/stop the 
 service through `conn.start()` and `conn.stop()` function calls, respectively.
 
-#### **Monitoring and Data Feed**
+#### **1.2 Monitoring and Data Feed**
 To stream real-time market Data:
 ```python
 from EC_API.monitor.cqg.realtime import MonitorDataCQG
@@ -172,7 +172,7 @@ where `QuotesValueTypeCQG`, `MarketValueTypeCQG` are also `tuple`s.
 For detail description of the field indexing, please refer to either 
 `_typing.py` file or the internal documentation.
 
-#### **Trade Session and Live Orders**
+#### **1.3 Trade Session and Live Orders**
 To handle trade session and send orders to the exchanges, you need to
 use establish a `TradeSession` object and operate within the context code 
 block. Requests related to the trade account, such as order request, tracking
@@ -213,7 +213,7 @@ async with TradeSessionCQG(conn) as TS:
         request_details = ORDER_INFO
         )  
 ```
-#### **Payload and Safety Parameters**
+#### **1.4 Payload and Safety Parameters**
 However, it is recommended to send order requests via a `Payload` object. 
 It is a vendor-agnostic dataclass that conduct safety checks upon creation.
 
@@ -256,7 +256,7 @@ async with TradeSessionCQG(conn) as TS:
     await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL1)
     
 ```
-### **Communications (planned v0.3.0 feature)**
+### **2. Communications (planned v0.3.0 feature)**
 Since data ingestion via `MonitorData` and trading via `TradeSession` often
 rely on separate account ids and connections, it is advisable to setup your 
 operations in separate processes to minimise congestion or interference.
@@ -268,13 +268,13 @@ communication protocols (planned):
 | #  | Name | Folder Label | Protocol | Status | Docs |
 |:---|:----:|:------------:|:--------:|:------:| ----:|
 | 0. | Internal | `` | Single Process Communication | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
-| 1. | Redis | `` | In-Memory IPC | ![Status](https://img.shields.io/badge/To_Be_Started-F54927D9) | Docs |
+| 1. | Redis | `` | In-Memory IPC | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
 
 
 ```python
 ```
 
-### **Strategy Building (planned v0.3.0 feature)**
+### **3. Strategy Building (planned v0.3.0 feature)**
 `EC_API` provide useful templates: `OpStrategy` and `OpSignal` 
 classes to aid writing your custom strategy logics by standardising common 
 utilities such as cool-down mechanism and data ingestion.
@@ -304,7 +304,7 @@ To illustrate the workflow, we can look at the following example that shows
 the schema of our operational strategy format.
 ![plot](./images/OpSignal_schema_v2.jpg)
 
-#### Action Node
+#### 3.1 Action Node
 First, we specify the trigger conditions and instructions to carry out orders.
 ```python
 from datetime import datetime, timedelta, timezone
@@ -329,13 +329,12 @@ TE_PL_A = (
     {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "duration": Duration.DURATION_GTC, 
-        "side": Side.SIDE_SELL,
-        "qty_significant": 2,
-        "qty_exponent": 0, 
+        "order_type": OrderType.LMT, 
+        "duration": Duration.GTC, 
+        "side": Side.SELL,
+        "qty": 2,
         "is_manual": False,
-        "scaled_limit_price": 100,
+        "limit_price": 100,
         "good_thru_date": datetime(2025,9,9),
         "exec_instructions": ExecInstruction.EXEC_INSTRUCTION_AON
         })
@@ -345,27 +344,27 @@ TE_mod_PL_A = (
         "symbol_name": "Asset_A",
         "orig_cl_order_id" : "1231314",
         "cl_order_id" : "1231315",
-        "scaled_limit_price": 80, 
+        "limit_price": 80, 
         })
 TP_PL1_A = (
     RequestType.NEW_ORDER,
     {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "side": Side.SIDE_BUY,
-        "qty_significant": 2,
-        "scaled_limit_price": 60,
+        "order_type": OrderType.LMT, 
+        "side": Side.BUY,
+        "qty": 2,
+        "limit_price": 60,
         })
 TP_PL2_A = (
     RequestType.NEW_ORDER,
     {
         "symbol_name": "Asset_A",
         "cl_order_id": "1231314",
-        "order_type": OrderType.ORDER_TYPE_LMT, 
-        "side": Side.SIDE_BUY,
-        "qty_significant": 2,
-        "scaled_limit_price": 70,
+        "order_type": OrderType.LMT, 
+        "side": Side.BUY,
+        "qty": 2,
+        "limit_price": 70,
         })
 cancel_PL_A = (
     RequestType.CANCEL_ORDER,
@@ -381,6 +380,8 @@ overtime_PL_A = (
     })
 
 ```
+
+#### 3.2 Action Tree
 After that we have to define `ActionNode` and `ActionTree`. The `ActionTree` is 
 better built from bottom-up (End Nodes come first, Root node come last):
 ```python
@@ -430,6 +431,8 @@ overtime_node = ActionNode(
 tree = ActionTree(TE_node, overtime_cond, overtime_node)
 
 ```
+#### 3.3 OpSignal
+
 Then, we have to define the `OpSignal` (Operation Signal) objects where 
 the `ActionTree` lives:
 ```python
@@ -445,6 +448,7 @@ OPS = StratASignal(...
 
 ```
 
+#### 3.4 OpSignal
 Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 ```python
 class StratA(OpStrategy):

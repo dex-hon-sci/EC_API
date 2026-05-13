@@ -26,12 +26,12 @@ class ActionStatus(Enum):
     CANCELLED = "Cancelled"
 
 # --- Lifecycle ---
-OPSTRATEGY_STATUS_LIFECYCLE = {
+OPSTRATEGY_STATUS_LIFECYCLE: dict[OpStrategyStatus, list[OpStrategyStatus]] = {
     OpStrategyStatus.LIVE: [OpStrategyStatus.LIVE, OpStrategyStatus.IDLE],
     OpStrategyStatus.IDLE: [OpStrategyStatus.LIVE, OpStrategyStatus.IDLE]
     }
 
-OPSIGNAL_STATUS_LIFECYCLE = { #Work on this later
+OPSIGNAL_STATUS_LIFECYCLE: dict[OpSignalStatus, list[OpSignalStatus]] = { #Work on this later
     OpSignalStatus.INACTIVE: [],
     OpSignalStatus.ACTIVE: [],
     OpSignalStatus.FREEZE: [],
@@ -39,7 +39,7 @@ OPSIGNAL_STATUS_LIFECYCLE = { #Work on this later
     OpSignalStatus.EXPIRED: []
     }
 
-ACTION_STATUS_LIFECYCLE = {
+ACTION_STATUS_LIFECYCLE: dict[ActionStatus, list[ActionStatus]] = {
     ActionStatus.PENDING: [
         ActionStatus.PENDING, 
         ActionStatus.SENT, 

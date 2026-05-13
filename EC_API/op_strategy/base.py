@@ -8,11 +8,12 @@ Created on Mon Aug 18 12:52:55 2025
 Operational Strategy module
 """
 from typing import Protocol
+from abc import ABC
 # EC_APi imports
 from EC_API.monitor.data_feed import DataFeed
 from EC_API.monitor.tick import TimeTickBuffer
 
-class OpStrategy(Protocol):
+class OpStrategy(ABC):
     """
     Base class of Operational Strategy
     
@@ -26,18 +27,18 @@ class OpStrategy(Protocol):
             self,
             symbols: list[str],
             #datafeed_pool: list[DataFeed],
-            payload_pool: list[DataFeed]
+            #payload_pool: list[DataFeed]
         ):
         
         self.feeds: dict[str, DataFeed] = dict()
         #self.datafeed_pool = datafeed_pool
         # Build DataFeed_pool
-        for sym in symbols:
-            self.datafeed_pool.append(DataFeed(tick_buffer=TimeTickBuffer, 
-                                               calculators={},symbol=sym
-                                               )
-                                      )
-        self.payload_pool = payload_pool
+        #for sym in symbols:
+        #    self.datafeed_pool.append(DataFeed(tick_buffer=TimeTickBuffer, 
+        #                                       calculators={},symbol=sym
+        #                                       )
+        #                              )
+        #self.payload_pool = payload_pool
         
     def on_tick(self):
         pass

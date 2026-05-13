@@ -57,9 +57,9 @@ class DataFeed:
     
     def history(self) -> None: return
     
-    def mean(self) -> float: ...
-    def std(self) -> float: ...
-    def mean_last(self, seconds: float, now: float) -> float: ...
+    def mean(self) -> float: return
+    def std(self) -> float: return
+    def mean_last(self, seconds: float, now: float) -> float: return 
 
 # =============================================================================
 #     @property
@@ -87,7 +87,7 @@ class CrossFeeds: # WIP
     def __init__(self):
         self._feeds: dict[str, DataFeed] = dict()
     
-    def spread(self, a: str, b: str) -> float: ...
-    def ratio(self, a: str, b: str) -> float: ...
-    def corr(self, a: str, b: str) -> float: ...
+    def spread(self, a: str, b: str) -> float: return
+    def ratio(self, a: str, b: str) -> float: return
+    def corr(self, a: str, b: str) -> float: return
 
