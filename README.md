@@ -18,12 +18,12 @@ trades, real-time data monitoring, open positions tracking, etc.
   - [Sending Orders](#sending-orders)
   - [Monitoring and Data Feed](#monitoring-and-data-feed)
   - [Payload and Pre-Trade Risk Check](#risk-and-safety)
+- [Communications](#IPC)
 - [Strategy Building](#strategy-building)
   - [Action Node](#action-node)
   - [Action Tree](#action-tree)
   - [OpSignal](#op-signal)
   - [OpStrategy](#op-strategy)
-- [Communications](#IPC)
     
 ## **Project Description**
 `EC_API` is a trading API that handles message relays 
@@ -42,7 +42,7 @@ Currently supported vendors:
 | #  | Name | Folder Label | Protocol | Status | Docs |
 |:---|:----:|:------------:|:--------:|:------:| ----:|
 | 0. | Archive | `backtest` | Internal DB conncetion | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
-| 1. | CQG WebAPI | `cqg` | WebSocket TSL+protobuf message | ![Status](https://img.shields.io/badge/In_Progress-6030D9) | Docs |
+| 1. | CQG WebAPI | `cqg` | WebSocket TSL+protobuf message | ![Status](https://img.shields.io/badge/Integration-Testing-6030D9) | Docs |
 
 
 `EC_API` consists of two layers:
@@ -256,24 +256,45 @@ async with TradeSessionCQG(conn) as TS:
     await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL1)
     
 ```
+### **Communications (planned v0.3.0 feature)**
+Since data ingestion via `MonitorData` and trading via `TradeSession` often
+rely on separate account ids and connections, it is advisable to setup your 
+operations in separate processes to minimise congestion or interference.
 
-### **Strategy Building (WIP)**
+`EC_API` has a standard way of setting up communications between services via
+constructs in the `channel` module. The followings are the supported 
+communication protocols (planned):
+
+| #  | Name | Folder Label | Protocol | Status | Docs |
+|:---|:----:|:------------:|:--------:|:------:| ----:|
+| 0. | Internal | `` | Single Process Communication | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
+| 1. | Redis | `` | In-Memory IPC | ![Status](https://img.shields.io/badge/To_Be_Started-F54927D9) | Docs |
+
+
+```python
+```
+
+### **Strategy Building (planned v0.3.0 feature)**
 `EC_API` provide useful templates: `OpStrategy` and `OpSignal` 
 classes to aid writing your custom strategy logics by standardising common 
 utilities such as cool-down mechanism and data ingestion.
 
-Note that for a fully automated Algo-Trading setup, both the `OpSignal` and 
-`OpStrategy` live in the "Data Loop" where the raw market data from the 
-websocket is ingested. The raw ticks have to be stored in `TickBuffer` objects 
-via the  built-in method of the `DataFeed` class. `OpSignal` and `OpStrategy` interact 
+Data primitives that handle calculation such as the `DataFeed` and `CrossFeed`
+objects sit in the bottom of the operation. They contain a set of symbol-specific
+metrics and cross-symbol metrics, respectively. T
+
+For a fully automated Algo-Trading setup, both the `OpSignal` and 
+`OpStrategy` live in the "Strategy Engine" where both objects live in parallel 
+and have their independent life-cycle. `OpSignal` and `OpStrategy` interact 
 with `DataFeed` and decide when to send out the corresponding orders or what 
 signal to generate, respectively.
 
-As a short summary, each class are in control of a separate function, from
+To summarise, each class owns a separate aspect of the operation, from
 a top-to-down perspective, we have:
-1. `OpStrategy` reads the `DataFeed`, controls the production `OpSignal` and 
-    the cool-down mechanism that limits the frequency of signal production;
-2. `OpSignal` reads the `DataFeed` and controls xxx;
+1. `OpStrategy` reads the `DataFeed` and/or `CrossFeeds`, controls the 
+    production `OpSignal` and the cool-down mechanism that limits the 
+    frequency of signal production;
+2. `OpSignal` reads the `DataFeed` and/or `CrossFeeds` controls the ;
 3. `ActionTree` controls the traversal along the `ActionNode` chain and the
     sequence of execution of the `ActionNode` objects;
 4. `ActionNode` controls when the execution is triggered and sent to the trade 
@@ -412,13 +433,23 @@ tree = ActionTree(TE_node, overtime_cond, overtime_node)
 Then, we have to define the `OpSignal` (Operation Signal) objects where 
 the `ActionTree` lives:
 ```python
-OPS = OpSignal(...
+
+class StratASignal(OpSignal):
+    def __init__(self):
+       self.__super__().__init__()
+        
+    
+        
+OPS = StratASignal(...
         )
 
 ```
 
 Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 ```python
+class StratA(OpStrategy):
+    def __init__(self):
+       self. __super__().__init__()
 
 
 
