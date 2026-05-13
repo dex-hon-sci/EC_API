@@ -24,12 +24,20 @@ class DataFeed:
     
     DataFeed is meant to be taken by OpStrategy for trade logic calculation.
     """
-    def __init__(self, 
-                 tick_buffer: TickBuffer,
-                 calculators: dict = {},
-                 min_n: int = 20, 
-                 symbol: str = "",
-                 ):
+    def __init__(
+            self, 
+            tick_buffer: TickBuffer,
+            calculators: dict = {},
+            min_n: int = 20, 
+            symbol: str = "",
+        ):
+        
+        self._ring_price: list = [] #np.ndarray  shape (window,)
+        self._ring_time: list = [] #np.ndarray  shape (window,)
+        self._ptr: int = 0
+
+        
+        
         self.tick_buffer: TickBuffer = tick_buffer
         self.symbol: str = symbol
         self.min_n: int = min_n
@@ -44,6 +52,14 @@ class DataFeed:
     def tick_buffer_stat(self, horizon:float, current_time: float) -> dict[str, float | None]: 
         # Only Getter method is needed in this class
         return self.buf_stat_method.stats(horizon, current_time)
+
+    def latest(self) -> None: return
+    
+    def history(self) -> None: return
+    
+    def mean(self) -> float: ...
+    def std(self) -> float: ...
+    def mean_last(self, seconds: float, now: float) -> float: ...
 
 # =============================================================================
 #     @property
@@ -61,11 +77,17 @@ class DataFeed:
         #self._tick_buffer_stat: dict = {}
 # =============================================================================
 
-class CrossDataFeed: # WIP
+class CrossFeeds: # WIP
     """
     An Object that process dervied data from more than one DataFeed. For 
     example, cross correlation of two different assets.
     
     CrossDataFeed is meant to be taken by OpStrategy for trade logic calculation
     """
-    pass
+    def __init__(self):
+        self._feeds: dict[str, DataFeed] = dict()
+    
+    def spread(self, a: str, b: str) -> float: ...
+    def ratio(self, a: str, b: str) -> float: ...
+    def corr(self, a: str, b: str) -> float: ...
+
