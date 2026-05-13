@@ -18,7 +18,7 @@ from EC_API.common.stat_metrics import (
     MeanPrice, MeanVolume, 
     StdPrice, StdVolume
     )
-from EC_API.common.data_feed import DataFeed
+from EC_API.common.data_feeds import DataFeed
 
 @dataclass
 class IncomingTicks:
