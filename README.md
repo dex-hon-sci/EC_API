@@ -1,7 +1,7 @@
 # *EC_API*: A vendor-agnostic Execution Framework for Algo Trading 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue.svg)
-![CI](https://github.com/dex-hon-sci/EC_API/actions/workflows/unittest.yml/badge.svg)
-[![Coverage](https://codecov.io/gh/dex-hon-sci/EC_API/branch/main/graph/badge.svg)](https://codecov.io/gh/dex-hon-sci/EC_API)
+![CI](https://github.com/EulerCapitalAU/EC_API/actions/workflows/unittest.yml/badge.svg)
+[![Coverage](https://codecov.io/gh/EulerCapitalAU/EC_API/branch/main/graph/badge.svg)](https://codecov.io/gh/dex-hon-sci/EC_API)
 
 ## **Overview**
 `EC_API` provides easy-to-use functions for algorithmic trading. 
