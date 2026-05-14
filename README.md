@@ -13,17 +13,17 @@ trades, real-time data monitoring, open positions tracking, etc.
 - [Installation Guide](#installation-guide)
 - [Modules Review](#module-reviews)
 - [Usage](#usage)
-- [Interfacing with Exchanges](#Interface)
-  - [Establish Connection](#connection)
-  - [Sending Orders](#sending-orders)
-  - [Monitoring and Data Feed](#monitoring-and-data-feed)
-  - [Payload and Pre-Trade Risk Check](#risk-and-safety)
-- [Communications](#IPC)
-- [Strategy Building](#strategy-building)
-  - [Action Node](#action-node)
-  - [Action Tree](#action-tree)
-  - [OpSignal](#op-signal)
-  - [OpStrategy](#op-strategy)
+- [1.Interfacing with Exchanges](#Interface)
+  - [1.1 Establish Connection](#connection)
+  - [1.2 Sending Orders](#sending-orders)
+  - [1.3 Monitoring and Data Feed](#monitoring-and-data-feed)
+  - [1.4 Payload and Pre-Trade Risk Check](#risk-and-safety)
+- [2. Communications](#IPC)
+- [3. Strategy Building](#strategy-building)
+  - [3.1 Action Node](#action-node)
+  - [3.2 Action Tree](#action-tree)
+  - [3.3 OpSignal](#op-signal)
+  - [3.4 OpStrategy](#op-strategy)
     
 ## **Project Description**
 `EC_API` is a trading API that handles message relays 
@@ -439,7 +439,7 @@ the `ActionTree` lives:
 
 class StratASignal(OpSignal):
     def __init__(self):
-       self.__super__().__init__()
+       super().__init__()
         
     
         
@@ -453,8 +453,9 @@ Finally, we can write the `OpStrategy` type class that produces `OpSignal`.
 ```python
 class StratA(OpStrategy):
     def __init__(self):
-       self. __super__().__init__()
+       super().__init__()
 
 
 
 ```
+## Contributions
