@@ -1,10 +1,7 @@
-from .builder_util import (
-    assert_input_types,
-    apply_optional_fields
-    )
+from .builder_util import assert_input_types, apply_optional_fields
 from .parser_util import (
     parse_server_msg,
-    )
+)
 from .router_util import (
     server_msg_type,
     extract_router_keys,
@@ -15,14 +12,9 @@ from .router_util import (
     is_symbol_resolution,
     realtime_tick_contract_id,
     order_statuses_order_id,
-    )
-from .key_extractors import (
-    extractors,
-    register_extractor
-    )
-from .mapping import (
-    SERVER_MSG_FAMILY
-    )
+)
+from .key_extractors import extractors, register_extractor
+from .mapping import SERVER_MSG_FAMILY
 
 __all__ = [
     # --- builders
@@ -45,6 +37,6 @@ __all__ = [
     "extractors",
     "register_extractor",
     # --- mapping
-    "SERVER_MSG_FAMILY"
-    ]
+    "SERVER_MSG_FAMILY",
+]
 __pdoc__ = {k: False for k in __all__}

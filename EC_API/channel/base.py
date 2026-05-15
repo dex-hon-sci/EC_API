@@ -5,10 +5,12 @@ Created on Wed May 13 19:44:46 2026
 
 @author: dexter
 """
+
 from typing import Protocol, Callable, Any
 
+
 class Channel(Protocol):
-    on_data: Callable[[Any], None]    # wired to DataBus.push at engine construction
+    on_data: Callable[[Any], None]  # wired to DataBus.push at engine construction
 
     async def connect(self) -> None: ...
     async def disconnect(self) -> None: ...

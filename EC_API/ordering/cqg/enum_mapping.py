@@ -5,19 +5,18 @@ Created on Sat Dec 20 06:52:02 2025
 
 @author: dexter
 """
+
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscription as CQG_TS
 from EC_API.ext.WebAPI.trade_routing_2_pb2 import TradeSubscriptionStatus as CQG_TSS
 from EC_API.ext.WebAPI.order_2_pb2 import Order as CQG_Ord
 from EC_API.ext.common.shared_1_pb2 import OrderStatus as OrdStatusCQG
-from EC_API.ordering.enums import (
-    SubScope, Side, OrderType,
-    Duration, ExecInstruction,
-    OrderStatus
-    )
+from EC_API.ordering.enums import SubScope, Side, OrderType, Duration, ExecInstruction, OrderStatus
 from EC_API.ordering.cqg.enums import (
-    SubScopeCQG, OrderTypeCQG,
-    DurationCQG, ExecInstructionCQG,
-    )
+    SubScopeCQG,
+    OrderTypeCQG,
+    DurationCQG,
+    ExecInstructionCQG,
+)
 
 TRADE_SUB_SUCCESS = CQG_TSS.StatusCode.STATUS_CODE_SUCCESS
 
@@ -29,30 +28,27 @@ SubScope_MAP_INT2CQG = {
     SubScopeCQG.COLLATERAL: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL,
     SubScope.ACCOUNT_SUMMARY: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY,
     SubScopeCQG.EXCHANGE_POSITIONS: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS,
-    SubScopeCQG.EXCHANGE_BALANCES: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES    
-    }
+    SubScopeCQG.EXCHANGE_BALANCES: CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES,
+}
 
 SubScope_MAP_CQG2INT = {
     CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ORDERS: SubScope.ORDERS,
     CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_POSITIONS: SubScope.POSITIONS,
     CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_COLLATERAL: SubScopeCQG.COLLATERAL,
     CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_ACCOUNT_SUMMARY: SubScope.ACCOUNT_SUMMARY,
-    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS: SubScopeCQG.EXCHANGE_POSITIONS, 
-    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES: SubScopeCQG.EXCHANGE_BALANCES  
-    }
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_POSITIONS: SubScopeCQG.EXCHANGE_POSITIONS,
+    CQG_TS.SubscriptionScope.SUBSCRIPTION_SCOPE_EXCHANGE_BALANCES: SubScopeCQG.EXCHANGE_BALANCES,
+}
 
-Side_MAP_INT2CQG = {
-    Side.BUY: CQG_Ord.Side.SIDE_BUY,
-    Side.SELL: CQG_Ord.Side.SIDE_SELL
-    }
+Side_MAP_INT2CQG = {Side.BUY: CQG_Ord.Side.SIDE_BUY, Side.SELL: CQG_Ord.Side.SIDE_SELL}
 
 OrderType_MAP_INT2CQG = {
     OrderType.MKT: CQG_Ord.OrderType.ORDER_TYPE_MKT,
     OrderType.LMT: CQG_Ord.OrderType.ORDER_TYPE_LMT,
     OrderType.STP: CQG_Ord.OrderType.ORDER_TYPE_STP,
     OrderType.STL: CQG_Ord.OrderType.ORDER_TYPE_STL,
-    OrderTypeCQG.CROSS: CQG_Ord.OrderType.ORDER_TYPE_CROSS
-    }
+    OrderTypeCQG.CROSS: CQG_Ord.OrderType.ORDER_TYPE_CROSS,
+}
 
 Duration_MAP_INT2CQG = {
     Duration.DAY: CQG_Ord.Duration.DURATION_DAY,
@@ -63,8 +59,8 @@ Duration_MAP_INT2CQG = {
     DurationCQG.FAK: CQG_Ord.Duration.DURATION_FAK,
     DurationCQG.ATO: CQG_Ord.Duration.DURATION_ATO,
     DurationCQG.ATC: CQG_Ord.Duration.DURATION_ATC,
-    DurationCQG.GFA: CQG_Ord.Duration.DURATION_GFA
-    }
+    DurationCQG.GFA: CQG_Ord.Duration.DURATION_GFA,
+}
 
 ExecInstruction_MAP_INT2CQG = {
     ExecInstruction.NONE: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_NONE,
@@ -79,8 +75,8 @@ ExecInstruction_MAP_INT2CQG = {
     ExecInstructionCQG.AUCTION: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_AUCTION,
     ExecInstructionCQG.ATANYPRICE: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ATANYPRICE,
     ExecInstructionCQG.LMT_PRARGD: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_LMT_PRARGD,
-    ExecInstructionCQG.ICO: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICO
-    }
+    ExecInstructionCQG.ICO: CQG_Ord.ExecInstruction.EXEC_INSTRUCTION_ICO,
+}
 
 OrderStatus_MAP_CQG2INT = {
     OrdStatusCQG.Status.IN_TRANSIT: OrderStatus.PENDING,
@@ -94,13 +90,13 @@ OrderStatus_MAP_CQG2INT = {
     OrdStatusCQG.Status.SUSPENDED: OrderStatus.OPEN,
     OrdStatusCQG.Status.DISCONNECTED: OrderStatus.ERROR,
     OrdStatusCQG.Status.ACTIVEAT: OrderStatus.PENDING,
-    OrdStatusCQG.Status.APPROVE_REQUIRED: OrderStatus.PENDING, #OrderStatus.APPROVE_REQUIRED,
-    OrdStatusCQG.Status.APPROVED_BY_EXCHANGE: OrderStatus.OPEN, #OrderStatus.APPROVED_BY_EXCHANGE,
+    OrdStatusCQG.Status.APPROVE_REQUIRED: OrderStatus.PENDING,  # OrderStatus.APPROVE_REQUIRED,
+    OrdStatusCQG.Status.APPROVED_BY_EXCHANGE: OrderStatus.OPEN,  # OrderStatus.APPROVED_BY_EXCHANGE,
     OrdStatusCQG.Status.APPROVE_REJECTED: OrderStatus.REJECTED,
-    OrdStatusCQG.Status.MATCHED: OrderStatus.FILLED,#OrderStatus.MATCHED,
-    OrdStatusCQG.Status.PARTIALLY_MATCHED: OrderStatus.PARTIAL,#OrderStatus.PARTIALLY_MATCHED,
+    OrdStatusCQG.Status.MATCHED: OrderStatus.FILLED,  # OrderStatus.MATCHED,
+    OrdStatusCQG.Status.PARTIALLY_MATCHED: OrderStatus.PARTIAL,  # OrderStatus.PARTIALLY_MATCHED,
     OrdStatusCQG.Status.TRADE_BROKEN: OrderStatus.ERROR,
-    }
+}
 
 # =============================================================================
 # # CQG → Internal (in ordering/cqg/mapping.py or similar)
@@ -123,7 +119,7 @@ OrderStatus_MAP_CQG2INT = {
 #     OrderStatusCQG.PARTIALLY_MATCHED:   OrderStatus.PARTIAL,
 #     OrderStatusCQG.TRADE_BROKEN:        OrderStatus.ERROR,
 # }
-# 
+#
 # =============================================================================
 # --- State Transition Map ---
 # =============================================================================
@@ -141,7 +137,7 @@ OrderStatus_MAP_CQG2INT = {
 #     OrderStatus.ERROR: [
 #         ]
 #     }
-# 
+#
 # =============================================================================
 # =============================================================================
 #     PENDING = auto()
@@ -153,4 +149,3 @@ OrderStatus_MAP_CQG2INT = {
 #     PARTIAL = auto()
 #     ERROR = auto()
 # =============================================================================
- 

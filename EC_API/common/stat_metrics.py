@@ -5,48 +5,60 @@ Created on Mon Sep 22 13:25:47 2025
 
 @author: dexter
 """
+
 import numpy as np
 from typing import Protocol
 
+
 class StatCalculator(Protocol):
-    def compute(self, 
-                prices: np.ndarray,
-                volumes: np.ndarray, 
-                timestamps: np.ndarray) -> float: pass
+    def compute(self, prices: np.ndarray, volumes: np.ndarray, timestamps: np.ndarray) -> float:
+        pass
+
     @property
     def name(self) -> str: ...
 
+
 class MeanPrice:
     name = "mean_price"
+
     def compute(self, prices, volumes, timestamps):
         return np.mean(prices) if prices.size > 0 else np.nan
 
+
 class StdPrice:
     name = "std_price"
+
     def compute(self, prices, volumes, timestamps):
-        return np.std(prices,ddof=1) if prices.size > 0 else np.nan
-    
+        return np.std(prices, ddof=1) if prices.size > 0 else np.nan
+
+
 class MeanVolume:
     name = "mean_volume"
+
     def compute(self, prices, volumes, timestamps):
         return np.mean(volumes) if prices.size > 0 else np.nan
 
+
 class StdVolume:
     name = "std_volume"
+
     def compute(self, prices, volumes, timestamps):
-        return np.std(volumes,ddof=1) if prices.size > 0 else np.nan
+        return np.std(volumes, ddof=1) if prices.size > 0 else np.nan
+
 
 class VWAP:
     name = "vwap"
+
     def compute(self, prices, volumes, timestamps):
         if volumes.sum() > 0:
             return float(np.sum(prices * volumes) / np.sum(volumes))
         return np.nan
 
+
 class OHLC:
-    def __init__(self): 
+    def __init__(self):
         self.name = "ohlc_price"
-        
+
     def compute(self, prices, volumes, timestamps):
         if prices.size == 0:
             return None
@@ -55,9 +67,8 @@ class OHLC:
             "high": np.max(prices),
             "low": np.min(prices),
             "close": prices[-1],
-            "open_volume":volumes[0],
-            "high_volume":np.max(volumes),
-            "low_volume":np.min(volumes),
-            "close_volume":volumes[-1]
-            }
-    
+            "open_volume": volumes[0],
+            "high_volume": np.max(volumes),
+            "low_volume": np.min(volumes),
+            "close_volume": volumes[-1],
+        }

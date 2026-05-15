@@ -9,5 +9,4 @@ Created on Wed Jul 30 10:14:08 2025
 from .base import Monitor
 from .enums import MktDataSubLevel
 
-__all__ = ['Monitor', 'MktDataSubLevel']
-
+__all__ = ["Monitor", "MktDataSubLevel"]

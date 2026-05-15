@@ -5,7 +5,9 @@ Created on Thu Nov 27 21:55:11 2025
 
 @author: dexter
 """
+
 from typing import Protocol, Any
+
 
 class Transport(Protocol):
     """
@@ -19,6 +21,7 @@ class Transport(Protocol):
       - manage their own connection lifecycle
       - expose async send/recv for higher layers
     """
+
     # --- Lifecycle ---
     def connect(self) -> bool: ...
     def disconnect(self) -> bool: ...
@@ -40,7 +43,7 @@ class Transport(Protocol):
         Should be idempotent and safe to call on shutdown.
         """
         ...
-        
+
     # ---- I/O
     async def send(self, msg: Any) -> None:
         """

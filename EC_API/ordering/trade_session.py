@@ -5,6 +5,7 @@ Created on Tue Mar 31 05:17:56 2026
 
 @author: dexter
 """
+
 from typing import Protocol
 from datetime import datetime
 from EC_API.connect.enums import ConnectionState
@@ -13,8 +14,8 @@ from EC_API._typing import (
     OrderStatusType,
     PositionStatusType,
     AccountSummaryType,
-    ContractMetaDataType
-    )
+    ContractMetaDataType,
+)
 
 
 class TradeSession(Protocol):
@@ -49,9 +50,7 @@ class TradeSession(Protocol):
     async def trade_subscription_request(
         self, sub_id: int, sub_scope: SubScope
     ) -> tuple[list[dict], list[dict]] | None: ...
-    async def unsubscribe_trade_request(
-        self, sub_id: int, sub_scope: SubScope
-    ) -> list[dict]: ...
+    async def unsubscribe_trade_request(self, sub_id: int, sub_scope: SubScope) -> list[dict]: ...
     async def request_historical_orders(
         self, from_date: datetime, to_date: datetime
     ) -> dict[str, str]: ...

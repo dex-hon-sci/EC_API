@@ -9,21 +9,20 @@ Created on Wed Dec 17 02:30:44 2025
 from typing import Any, Callable, Mapping, Union, Tuple
 
 _MISSING = object()
-            
-def _as_types_tuple(t:Union[type, Tuple[type, ...]]) -> tuple[type, ...]:
+
+
+def _as_types_tuple(t: Union[type, Tuple[type, ...]]) -> tuple[type, ...]:
     return t if isinstance(t, tuple) else (t,)
 
-def _type_name(
-    t: Union[type, Tuple[type, ...]]           
-    ) -> str:
+
+def _type_name(t: Union[type, Tuple[type, ...]]) -> str:
     ts = _as_types_tuple(t)
     return " | ".join(x.__name__ for x in ts)
 
+
 def assert_input_types(
-    inputs: Mapping[str, Any],
-    spec: Mapping[str, tuple[str, Any, Any]],
-    strict: bool = False
-    ) -> None:
+    inputs: Mapping[str, Any], spec: Mapping[str, tuple[str, Any, Any]], strict: bool = False
+) -> None:
     """
     Ensure all default values conform to the type constraints in spec.
     This prevents silently bad defaults.
@@ -32,23 +31,23 @@ def assert_input_types(
         if k not in spec:
             raise KeyError(f"Default key '{k}' not found in default spec")
         proto_attr, accepted, transform = spec[k]
-        
+
         if v is None:
             if not strict:
                 continue
             else:
                 raise ValueError(f"Key {k} cannot be None.")
-        
+
         if not isinstance(v, _as_types_tuple(accepted)):
             raise TypeError(f"default:{k} must be {_type_name(accepted)}, got {type(v).__name__}")
 
 
 def apply_optional_fields(
-    target: Any, # The Msg
-    values: Mapping[str, Any], #
+    target: Any,  # The Msg
+    values: Mapping[str, Any],  #
     spec: Mapping[str, tuple[str, type | tuple[type, ...], Callable | None]],
     strict: bool = True,
-    ) -> None:
+) -> None:
     """
     target: protobuf message object to mutate
     values: kwargs from caller (your builder input)
@@ -69,5 +68,5 @@ def apply_optional_fields(
         # Transform is for normalization ONLY (e.g. datetime -> epoch_ms)
         if transform is not None:
             v = transform(v)
-        #print(proto_attr, accepted, v, type(v))
+        # print(proto_attr, accepted, v, type(v))
         setattr(target, proto_attr, v)

@@ -5,12 +5,9 @@ Created on Thu Nov 27 21:54:56 2025
 
 @author: dexter
 """
+
 from .base import Transport
 from .routers import MessageRouter, StreamRouter
 
-__all__ =[
-    "Transport",
-    "MessageRouter",
-    "StreamRouter"
-    ]
+__all__ = ["Transport", "MessageRouter", "StreamRouter"]
 __pdoc__ = {k: False for k in __all__}

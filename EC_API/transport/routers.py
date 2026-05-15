@@ -5,21 +5,24 @@ Created on Wed Nov 26 16:40:57 2025
 
 @author: dexter
 """
+
 import asyncio
 from typing import Any, Callable, Optional  # Hashable, Optional
 from EC_API._typing import RouterKey
 from EC_API.exceptions import (
     DuplicateRouterKeyError,
-    UnknownSubscriptionError, SubscriptionQueueMismatchError,
-    MaxSymbolsExceededError, MaxSubscribersExceededError,
-    InvalidDroppingPolicy
-    )
+    UnknownSubscriptionError,
+    SubscriptionQueueMismatchError,
+    MaxSymbolsExceededError,
+    MaxSubscribersExceededError,
+    InvalidDroppingPolicy,
+)
 
 
 class MessageRouter:
     def __init__(self):
         self.pending: dict[RouterKey, asyncio.Future] = {}
-        
+
     @property
     def pending_count(self) -> int:
         return len(self.pending)
@@ -35,15 +38,15 @@ class MessageRouter:
         # clearup code in case of user cancel
         def _cleanup(_):
             self.pending.pop(key, None)
-        
+
         fut.add_done_callback(_cleanup)
         return fut
-    
+
     def register_racing_keys(self, keys: list[RouterKey]) -> asyncio.Future:
-        # Automatically resolve racing keys for async task. 
+        # Automatically resolve racing keys for async task.
         # One winner future, cancel the rest.
         final_fut = asyncio.get_running_loop().create_future()
-        
+
         sub_futs = []
         for key in keys:
             if key in self.pending.keys():
@@ -52,16 +55,16 @@ class MessageRouter:
 
             sub_fut = self.register_key(key)
             sub_futs.append(sub_fut)
-            
+
             def _on_sub_fut_done(this_fut: asyncio.Future):
                 if this_fut.cancelled() or final_fut.done():
-                    return 
+                    return
                 final_fut.set_result(this_fut.result())
-                
+
                 for fut in sub_futs:
                     if not fut.done():
                         fut.cancel()
-                    
+
             sub_fut.add_done_callback(_on_sub_fut_done)
         return final_fut
 
@@ -83,105 +86,94 @@ class MessageRouter:
 class StreamRouter:
     def __init__(
         self,
-        max_queue_size: int = 1_000, # max amount of data points
-        max_sub_size: int = 5, # max number of subs per symbol
-        max_num_sym: int = 50, # max number of symbols
+        max_queue_size: int = 1_000,  # max amount of data points
+        max_sub_size: int = 5,  # max number of subs per symbol
+        max_num_sym: int = 50,  # max number of symbols
         drop_if_full: bool = True,
         drop_policy: str = "drop_oldest",
-        on_publish: Optional[Callable] = None
-        ):
+        on_publish: Optional[Callable] = None,
+    ):
         # we assume one Stream Router per vendor
-        self._subs: dict[int|str, list[asyncio.Queue]] = {}
-        
+        self._subs: dict[int | str, list[asyncio.Queue]] = {}
+
         self._max_queue_size = max_queue_size
         self._max_subs_size = max_sub_size
         self._max_num_sym = max_num_sym
         self._drop_if_full = drop_if_full
-        
+
         self.on_publish: Optional[Callable] = on_publish
-        
+
         if drop_policy not in {"drop_oldest", "drop_latest"}:
-            raise InvalidDroppingPolicy("Invalid dropping policy. It must be either:'drp_oldest' or 'drop_latest'.")
+            raise InvalidDroppingPolicy(
+                "Invalid dropping policy. It must be either:'drp_oldest' or 'drop_latest'."
+            )
         self.drop_policy = drop_policy
-        
+
     @property
     def sub_id_count(self) -> int:
         return len(self._subs)
-    
+
     def subscriber_count(self, sub_id: int | str) -> int:
         if not self._subs.get(sub_id):
             msg = f"[{self.__class__.__name__}] Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
             raise UnknownSubscriptionError(msg)
         return len(self._subs[sub_id])
-    
-    def subscribe(
-            self,
-            sub_id: int | str
-        ) -> asyncio.Queue[Any]:
+
+    def subscribe(self, sub_id: int | str) -> asyncio.Queue[Any]:
         # Add a new Queue to the list in case there is a new subscriber who
         # calls subscribe
         if len(self._subs) >= self._max_num_sym:
             msg = f"[{self.__class__.__name__}] Maximum number of contract subscribed exceeded."
             raise MaxSymbolsExceededError(msg)
-            
+
         if self._subs.get(sub_id):
             if len(self._subs[sub_id]) >= self._max_subs_size:
                 msg = f"[{self.__class__.__name__}] Maximum subscribers has reached for this contract: {sub_id}."
                 raise MaxSubscribersExceededError(msg)
 
-        q: asyncio.Queue[Any] = asyncio.Queue(
-            maxsize=self._max_queue_size
-            ) if self._max_queue_size else asyncio.Queue()
+        q: asyncio.Queue[Any] = (
+            asyncio.Queue(maxsize=self._max_queue_size) if self._max_queue_size else asyncio.Queue()
+        )
 
         self._subs.setdefault(sub_id, []).append(q)
         return q
 
-    def unsubscribe(
-        self,
-        sub_id: int|str,
-        q: asyncio.Queue
-        ) -> None:
-
+    def unsubscribe(self, sub_id: int | str, q: asyncio.Queue) -> None:
         lst = self._subs.get(sub_id, [])
         if not lst:
             msg = f"[{self.__class__.__name__}] Retrival of {sub_id} failed. Sub ID: {sub_id} is not in the router."
             raise UnknownSubscriptionError(msg)
-            
+
         if q not in lst:
             msg = f"[self.__class__.__name__] Unsubscribe failed. Input queue is not in the list of id:{sub_id}."
             raise SubscriptionQueueMismatchError(msg)
 
         lst.remove(q)
 
-        if not lst and sub_id in self._subs: # delete subbed symbol when it is empty
+        if not lst and sub_id in self._subs:  # delete subbed symbol when it is empty
             # Maybe do some backup for unconsumed data first here
             # Only delete when the streaming is completely done
             del self._subs[sub_id]
 
-    async def publish(
-            self,
-            sub_id: int | str, 
-            item: Any,
-            cool_time = 0.001
-        ) -> None:
+    async def publish(self, sub_id: int | str, item: Any, cool_time=0.001) -> None:
         queues = self._subs.get(sub_id)
         if not queues:
             return
-        
+
         for q in list(queues):
             if not self._drop_if_full:
                 await asyncio.wait_for(q.put(item), timeout=0.001)
                 continue
-            
+
             try:
                 q.put_nowait(item)
                 if self.on_publish:
                     self.on_publish()
-                
+
             except asyncio.QueueFull:
                 if self._drop_if_full:
-                    if self.drop_policy == "drop_oldest": 
-                        q.get_nowait() 
+                    if self.drop_policy == "drop_oldest":
+                        q.get_nowait()
                         q.put_nowait(item)
                     elif self.drop_policy == "drop_latest":
                         pass

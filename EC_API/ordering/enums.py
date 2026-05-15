@@ -7,8 +7,10 @@ Created on Mon Jul 21 17:55:13 2025
 
 This Enum file contain the most relevant enums for ordering.
 """
+
 # Python imports
 from enum import Enum, auto
+
 
 class RequestType(Enum):
     NEW_ORDER = "new_order_request"
@@ -19,27 +21,32 @@ class RequestType(Enum):
     CANCELALL_ORDER = "cancelall_order_request"
     LIQUIDATEALL_ORDER = "liquidateall_order_request"
     GOFLAT_ORDER = "goflat_order_request"
-    
+
+
 class SubScope(Enum):
     ORDERS = 0
     POSITIONS = 1
     ACCOUNT_SUMMARY = 2
 
+
 class Side(Enum):
     BUY = "BUY"
     SELL = "SELL"
+
 
 class OrderType(Enum):
     MKT = "Market"
     LMT = "Limit"
     STP = "Stop"
     STL = "Stop-Limit"
-    
+
+
 class Duration(Enum):
     DAY = "Day"
     GTC = "Good-Till-Cancel"
     GTD = "Good-Till-Date"
     FOK = "Fill-Or-Kill"
+
 
 class ExecInstruction(Enum):
     NONE = "None"
@@ -47,6 +54,7 @@ class ExecInstruction(Enum):
     ICEBERG = "Iceberg"
     TRAIL = "Trailing"
     POSTONLY = "Post-Only"
+
 
 class OrderStatus(Enum):
     # REJECTED, WORKING, CANCELLED, FILLED, EXPIRED: Big Five
@@ -59,4 +67,3 @@ class OrderStatus(Enum):
     EXPIRED = auto()
     PARTIAL = auto()
     ERROR = auto()
-    

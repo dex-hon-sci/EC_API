@@ -5,27 +5,21 @@ Created on Tue Jul 29 13:20:02 2025
 
 @author: dexter
 """
+
 from .trade_session import TradeSession
 from .base import LiveOrder
-from .enums import (
-    RequestType,
-    SubScope,
-    Side,
-    OrderType,
-    Duration,
-    ExecInstruction,
-    OrderStatus
-    )
+from .enums import RequestType, SubScope, Side, OrderType, Duration, ExecInstruction, OrderStatus
 
 __all__ = [
     "LiveOrder",
+    "TradeSession",
     "RequestType",
     "SubScope",
     "Side",
     "OrderType",
     "Duration",
     "ExecInstruction",
-    "OrderStatus"
-    ]
+    "OrderStatus",
+]
 
 __pdoc__ = {k: False for k in __all__}

@@ -5,16 +5,16 @@ Created on Wed Jul 30 10:23:04 2025
 
 @author: dexter
 """
+
 from typing import Protocol, Any
 from EC_API.connect.enums import ConnectionState
 from EC_API._typing import PongType
 
-class Connect(Protocol):
 
+class Connect(Protocol):
     # --- Properties ---
     @property
-    def state(self) -> ConnectionState:
-        ...
+    def state(self) -> ConnectionState: ...
 
     @property
     def client(self): ...
@@ -34,6 +34,7 @@ class Connect(Protocol):
         Usually setting up router loop as well
         """
         ...
+
     async def stop(self) -> bool:
         """
         Stop connection via the Transport layer's method.
@@ -41,14 +42,15 @@ class Connect(Protocol):
         ...
 
     # --- Session ---
-    async def logon(self, **kwargs) -> dict[str, Any] | None: 
+    async def logon(self, **kwargs) -> dict[str, Any] | None:
         """
-        User initiated Logon sequence. 
+        User initiated Logon sequence.
         if it is successful, State: CONNECTED -> CONNECTED_LOGON
         if it is not, State: CONNECTED -> CONNECTED
 
         """
         ...
+
     async def logoff(self) -> dict[str, Any] | None:
         """
         User initiated Logoff sequence.
@@ -57,9 +59,10 @@ class Connect(Protocol):
 
         """
         ...
-    async def restore_request(self, **kwargs) -> dict[str, Any] | None: 
+
+    async def restore_request(self, **kwargs) -> dict[str, Any] | None:
         """
-        A Necessary restore connection method. Usually it take in a 
+        A Necessary restore connection method. Usually it take in a
         session_token as an input to restore connection.
         State: DISCONNECTED -> RECONNECTING
         if it is successful, State: RECONNECTING -> CONNECTED
@@ -69,16 +72,17 @@ class Connect(Protocol):
         ...
 
     # --- Heartbeat ---
-    async def ping(self, token: str | None = None) -> PongType | None: 
+    async def ping(self, token: str | None = None) -> PongType | None:
         """
         Used for Connection health check. Expect a Pong response message from
         server and calculate the time between send and recieve.
         If the wait time is above some threshold, the state can change
         from State: CONNECTECTED -> DISCONNECTED
-        
+
         restore_request can then be called to attempt restoring connections.
         """
         ...
+
     async def pong(self, token: str, ping_utc_time: int, pong_utc_time: int) -> None: ...
 
     # --- Symbol ---

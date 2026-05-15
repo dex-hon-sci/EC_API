@@ -5,9 +5,11 @@ Created on Thu Aug  7 10:06:40 2025
 
 @author: dexter
 """
+
 import asyncio
 from typing import AsyncIterator
 import logging
+
 # Import EC_API scripts
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
@@ -16,19 +18,17 @@ from EC_API.connect.enums import ConnectionState
 from EC_API.monitor.base import Monitor
 from EC_API.monitor.enums import MktDataSubLevel
 from EC_API.monitor.cqg.enums import (
-    MktDataSubLevelCQG, 
-    )
-from EC_API.monitor.cqg.enum_mapping import (    
-    MKTDATASUBLEVEL_MAP_INT2CQG
-    )
+    MktDataSubLevelCQG,
+)
+from EC_API.monitor.cqg.enum_mapping import MKTDATASUBLEVEL_MAP_INT2CQG
 from EC_API.monitor.cqg.builders import (
     build_realtime_data_request_msg,
-    build_reset_tracker_request_msg
-    )
+    build_reset_tracker_request_msg,
+)
 from EC_API.monitor.cqg.parsers import (
     parse_market_data_subscription_statuses,
-    parse_real_time_market_data
-    )
+    parse_real_time_market_data,
+)
 from EC_API.utility.symbol_registry import SymbolRegistry
 from EC_API.utility.error_handlers import msg_io_error_handler
 from EC_API.exceptions import (
@@ -37,27 +37,25 @@ from EC_API.exceptions import (
     UnsupportedLevelError,
     MonitorDataRequestError,
     MonitorTimeOutError,
-    SymbolNotInRegistryError,
     FailRegisterError,
     MaxSymbolsExceededError,
     MaxSubscribersExceededError,
-    UnknownSubscriptionError, 
+    UnknownSubscriptionError,
     SubscriptionQueueMismatchError,
-    SymbolNotInRegistryError, 
-    MetaDataMissingError
-    )
-from EC_API._typing import (
-    ParsedRTMDCQG
-    )
+    SymbolNotInRegistryError,
+    MetaDataMissingError,
+)
+from EC_API._typing import ParsedRTMDCQG
 
 logger = logging.getLogger(__name__)
+
 
 class MonitorDataCQG(Monitor):
     def __init__(self, conn: ConnectCQG):
         # Connections
         self._conn: ConnectCQG = conn
         self._transport: TransportCQG = conn.transport
-        
+
         # Event Loop
         self._loop = asyncio.get_running_loop()
 
@@ -65,12 +63,12 @@ class MonitorDataCQG(Monitor):
         self._stream_router: StreamRouter = self._conn._mkt_data_stream_router
         self._msg_router: MessageRouter = self._conn._msg_router
         self._symbol_registry: SymbolRegistry = SymbolRegistry()
-        
-    # --- Property --- 
+
+    # --- Property ---
     @property
     def conn(self):
         return self._conn
-    
+
     @property
     def state(self):
         return self._conn._state_mgr.cur
@@ -78,67 +76,67 @@ class MonitorDataCQG(Monitor):
     @property
     def timeout(self):
         return self._conn._timeout
-    
+
     def rid(self) -> int:
         return self.conn.rid()
-        
+
     # --- Dunder methods overrides ---
-# =============================================================================
-#   Finalise this later
-#     def __del__(self):
-#         if self._symbol_registry.active_symbols:
-#             warnings.warn(
-#                 "MonitorDataCQG destroyed without cleanup. Use 'async with'.",
-#                 ResourceWarning
-#             )
-#             try:
-#                 loop = asyncio.get_event_loop()
-#                 if loop.is_running() and not loop.is_closed():
-#                     asyncio.ensure_future(self._cleanup())
-#             except Exception:
-#                 pass
-# =============================================================================
-    
+    # =============================================================================
+    #   Finalise this later
+    #     def __del__(self):
+    #         if self._symbol_registry.active_symbols:
+    #             warnings.warn(
+    #                 "MonitorDataCQG destroyed without cleanup. Use 'async with'.",
+    #                 ResourceWarning
+    #             )
+    #             try:
+    #                 loop = asyncio.get_event_loop()
+    #                 if loop.is_running() and not loop.is_closed():
+    #                     asyncio.ensure_future(self._cleanup())
+    #             except Exception:
+    #                 pass
+    # =============================================================================
+
     async def __aenter__(self):
-        # Note that this is prefered only because Data and Trade Channel are 
+        # Note that this is prefered only because Data and Trade Channel are
         # separated for CQG. It means the Connect Object is never shared
         # among services.
         await self._conn.__aenter__()
         return self
-    
+
     async def __aexit__(self, *args) -> bool:
         try:
             await self._cleanup()
         finally:
             await self._conn.__aexit__(*args)
         return False
-        
+
     # --- function calls ---
     async def stream(
-            self, 
-            symbol_name: str, 
-            level: MktDataSubLevel
-        ) -> AsyncIterator[ParsedRTMDCQG]:
-        
+        self, symbol_name: str, level: MktDataSubLevel
+    ) -> AsyncIterator[ParsedRTMDCQG]:
         if self.state != ConnectionState.CONNECTED_LOGON:
             logger.warning(f"stream for Symbol: {symbol_name} failed. Account not logon.")
-            return 
-        
+            return
+
         # ---- Symbol resolution and registration ----
         if symbol_name not in self._symbol_registry.sym_to_contract_ids.keys():
             try:
                 metadatas = await self.conn.resolve_symbol(symbol_name)
                 print("[stream()] metadata", metadatas)
                 for metadata in metadatas:
-                    print('entry', symbol_name, metadata['contract_metadata'],
-                          type(metadata['contract_metadata']))
-                    self._symbol_registry.register(
-                        symbol_name, 
-                        metadata['contract_metadata']
-                        )
-                    print("[stream()] symbol registry", 
-                          self._symbol_registry.active_symbols,
-                          self._symbol_registry.metatdata)
+                    print(
+                        "entry",
+                        symbol_name,
+                        metadata["contract_metadata"],
+                        type(metadata["contract_metadata"]),
+                    )
+                    self._symbol_registry.register(symbol_name, metadata["contract_metadata"])
+                    print(
+                        "[stream()] symbol registry",
+                        self._symbol_registry.active_symbols,
+                        self._symbol_registry.metatdata,
+                    )
             except SymbolResolutionError:
                 logger.warning(f"Cannot resolve the symbol: {symbol_name}.")
                 return
@@ -160,27 +158,24 @@ class MonitorDataCQG(Monitor):
         except MonitorDataRequestError:
             logger.warning(f"sub to market data of contract_id: {contract_id} failed.")
             self._stream_router.unsubscribe(contract_id, q)
-            return 
-        except (UnsupportedLevelError, 
-                MaxSymbolsExceededError, 
-                MaxSubscribersExceededError
-                ) as e:
+            return
+        except (UnsupportedLevelError, MaxSymbolsExceededError, MaxSubscribersExceededError) as e:
             self._stream_router.unsubscribe(contract_id, q)
             logger.warning(str(e))
-            return 
-            
+            return
+
         # ---- Data Streaming ----
         try:
             while not self._conn._stop_evt.is_set():
                 try:
-                    msg = await asyncio.wait_for(q.get(), timeout = self._conn._timeout)
+                    msg = await asyncio.wait_for(q.get(), timeout=self._conn._timeout)
                 except asyncio.TimeoutError:
                     continue
                 yield parse_real_time_market_data(msg)
-           
+
         # ---- Handle Shutdown ----
         # Note that stream() does not automatically unsubscribe to the
-        # Symbol resolution, but instead, only unsubscrine to market_data_requests. 
+        # Symbol resolution, but instead, only unsubscrine to market_data_requests.
         # Please use the graceful shutdown mechanism provided in _cleanup() to
         # handle symbol unsubriptions
         finally:
@@ -191,70 +186,55 @@ class MonitorDataCQG(Monitor):
             finally:
                 try:
                     self._stream_router.unsubscribe(contract_id, q)
-                except (UnknownSubscriptionError, 
-                        SubscriptionQueueMismatchError) as e:
+                except (UnknownSubscriptionError, SubscriptionQueueMismatchError) as e:
                     logger.warning(str(e))
-    
+
     # --- CQG function calls
     async def _realtime_data_request(
-            self, 
-            contract_id: int, 
-            level: MktDataSubLevel | MktDataSubLevelCQG
-        ) -> list[dict[str, str]]:
-        # !!! Import Note: Try not to have concurrent callers for the same 
-        # symbol at the same time. Message Router may fail. Space out the 
+        self, contract_id: int, level: MktDataSubLevel | MktDataSubLevelCQG
+    ) -> list[dict[str, str]]:
+        # !!! Import Note: Try not to have concurrent callers for the same
+        # symbol at the same time. Message Router may fail. Space out the
         # function calls.
         if not MKTDATASUBLEVEL_MAP_INT2CQG.get(level):
             raise UnsupportedLevelError(f"Level: {level} unsupported.")
-            
-        with msg_io_error_handler(
-                MonitorDataRequestError,
-                timeout_error = MonitorTimeOutError
-            ):
+
+        with msg_io_error_handler(MonitorDataRequestError, timeout_error=MonitorTimeOutError):
             msg = build_realtime_data_request_msg(contract_id, self.rid(), level)
-        
-            key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
+
+            key = ("sub", "market_data_subscription_statuses", "contract_id", contract_id)
             fut = self._msg_router.register_key(key)
 
-            await self._transport.send(msg)  
+            await self._transport.send(msg)
             confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
 
             return parse_market_data_subscription_statuses(confirm_msg)
-    
-    async def _unsubscribe_mkt_data(
-            self, 
-            contract_id: int
-        ) -> list[dict[str,str]]:
-        with msg_io_error_handler(
-                MonitorDataRequestError,
-                timeout_error = MonitorTimeOutError
-            ):
+
+    async def _unsubscribe_mkt_data(self, contract_id: int) -> list[dict[str, str]]:
+        with msg_io_error_handler(MonitorDataRequestError, timeout_error=MonitorTimeOutError):
             msg = build_reset_tracker_request_msg(contract_id, self.rid())
-        
-            key = ('sub', 'market_data_subscription_statuses', 'contract_id', contract_id)
+
+            key = ("sub", "market_data_subscription_statuses", "contract_id", contract_id)
             fut = self._msg_router.register_key(key)
             await self._transport.send(msg)
             confirm_msg = await asyncio.wait_for(fut, timeout=self.timeout)
             return parse_market_data_subscription_statuses(confirm_msg)
 
     # --- internal tracking and cleanup ---
-    async def _tracker_loop(self): return #<-- WIP
-    
+    async def _tracker_loop(self):
+        return  # <-- WIP
+
     async def _cleanup(self) -> None:
-        # Automatically unsubscirbe and destroy the queue copy of the 
+        # Automatically unsubscirbe and destroy the queue copy of the
         # symbol in stream
         active_symbols = self._symbol_registry.active_symbols
         if not active_symbols:
-            return 
-        
+            return
+
         for sym in list(active_symbols):
             try:
                 await self._conn.unsubscribe_symbol(sym)
                 self._symbol_registry.remove_symbol(sym)
                 self._symbol_registry.remove_metadata(sym)
-            except (SymbolNotInRegistryError, 
-                    MetaDataMissingError, 
-                    ConnectTimeOutError) as e:
+            except (SymbolNotInRegistryError, MetaDataMissingError, ConnectTimeOutError) as e:
                 logger.warning(str(e))
- 
-            

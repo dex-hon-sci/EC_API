@@ -5,9 +5,11 @@ Created on Wed Jul 23 16:32:53 2025
 
 @author: dexter
 """
+
 from typing import Protocol, Any, AsyncIterator
 from EC_API.connect.enums import ConnectionState
 from EC_API.monitor.enums import MktDataSubLevel
+
 
 class Monitor(Protocol):
     # --- Properties ---

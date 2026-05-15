@@ -5,6 +5,7 @@ Created on Mon Dec 29 00:23:11 2025
 
 @author: dexter
 """
+
 from enum import Enum, auto
 
 from EC_API.ext.WebAPI.market_data_2_pb2 import MarketDataSubscription as CQG_MDS
@@ -16,6 +17,7 @@ class MktDataSubLevelCQG(Enum):
     LEVEL_TRADES_BBA_DETAILED_DOM = auto()
     LEVEL_END_OF_DAY = auto()
 
+
 MKTDATASUBLEVEL_MAP_INT2CQG = {
     MktDataSubLevel.LEVEL_NONE: CQG_MDS.Level.LEVEL_NONE,
     MktDataSubLevel.LEVEL_TRADES: CQG_MDS.Level.LEVEL_TRADES,
@@ -24,5 +26,5 @@ MKTDATASUBLEVEL_MAP_INT2CQG = {
     MktDataSubLevel.LEVEL_TRADES_BBA_DOM: CQG_MDS.Level.LEVEL_TRADES_BBA_DOM,
     MktDataSubLevelCQG.LEVEL_SETTLEMENTS: CQG_MDS.Level.LEVEL_SETTLEMENTS,
     MktDataSubLevelCQG.LEVEL_TRADES_BBA_DETAILED_DOM: CQG_MDS.Level.LEVEL_TRADES_BBA_DETAILED_DOM,
-    MktDataSubLevelCQG.LEVEL_END_OF_DAY: CQG_MDS.Level.LEVEL_END_OF_DAY
-    }
+    MktDataSubLevelCQG.LEVEL_END_OF_DAY: CQG_MDS.Level.LEVEL_END_OF_DAY,
+}
