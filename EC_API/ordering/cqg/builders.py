@@ -7,7 +7,6 @@ Created on Fri Nov 28 21:14:37 2025
 """
 
 from datetime import datetime, timezone
-import logging
 
 # EC_API imports
 from EC_API.ext.WebAPI.webapi_2_pb2 import ClientMsg
@@ -39,7 +38,6 @@ from EC_API.ordering.cqg.fields import (
 )
 from EC_API.exceptions import MsgBuilderError
 
-logger = logging.getLogger(__name__)
 
 
 # Make CANCELALL, LIQUIDATEALL, SUSPEND
@@ -55,7 +53,6 @@ def build_trade_subscription_msg(
         assert_input_types(params, TRADE_SUBSCRIPTION_REQUIRED_FIELD)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_trade_subscription_msg invalid parameters: {str(e)}"
-        logger.error(msg)
         raise MsgBuilderError(msg)
 
     client_msg = ClientMsg()
@@ -293,7 +290,6 @@ def build_cancelall_order_request_msg(
         assert_input_types(params, CANCELALL_ORDER_REQUIRED_FIELDS, strict=True)
     except (TypeError, ValueError, KeyError, AttributeError) as e:
         msg = f"build_cancelall_order_request_msg invalid parameters: {str(e)}"
-        logger.error(msg)
         raise MsgBuilderError(msg)
 
     client_msg = ClientMsg()

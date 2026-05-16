@@ -63,7 +63,12 @@ from EC_API.exceptions import (
     KeyExtractorError,
     SymbolResolutionError,
 )
-from EC_API._typing import PongType
+from EC_API._typing import (
+    PongType, 
+    PONG_PINGTIME, 
+    PONG_PONGTIME
+    )
+
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +122,7 @@ class ConnectCQG(Connect):
 
         self._timeout: float | int = 0.2  # make make this a ping based decision
 
-        # State Control
+        # ---- State Control ----
         self._state_mgr = StateMgr(
             CONNECT_STATES_LIFECYCLE,
             start=ConnectionState.UNKNOWN,
@@ -125,7 +130,7 @@ class ConnectCQG(Connect):
             allowed_starts=[ConnectionState.UNKNOWN],
         )
 
-        # Generic Message parameter
+        # ---- Generic Message parameter ----
         self._rid: int = 10  # initial request ID
 
         # Define client and transport layer
@@ -136,7 +141,7 @@ class ConnectCQG(Connect):
             else transport
         )
 
-        # Routers. Use queues inside for message storage
+        # ---- Routers. Use queues inside for message storage ----
         self._mkt_data_stream_router = StreamRouter()
 
         self._exec_stream_router = StreamRouter(on_publish=self._trade_work_evt.set)
@@ -145,10 +150,12 @@ class ConnectCQG(Connect):
 
         self._msg_router = MessageRouter()
 
-        # queues for dead-letter server messages
+        # ---- queues for dead-letter server messages ----
         self._misc_queue: asyncio.Queue = asyncio.Queue()
 
-        # Latency/reaction attributes
+        # ---- Latency/reaction attributes ----
+        self.is_heartbeat_task_on: bool = False
+        self.ping_time_interval: int = 60 # seconds
         self.ping_RTTs: deque = deque(maxlen=20)
         self.inactivity_timeout: float = 100.0
 
@@ -410,13 +417,6 @@ class ConnectCQG(Connect):
                                         # (5) --- Unsolicited Messages ---
                                         await self._misc_queue.put(msg)
 
-                    # --- (5) Dust Bin/Unsolicited Message Collections ---
-                    # For server-side
-                    # 1. logged_off
-                    # 2. concurrent_connection_join_results
-                    # 3. information_reports:symbol_resolution_report
-                    # 4. market_data_subscription_statuses
-
             except asyncio.CancelledError as e:
                 logger.error(str(e))
                 raise
@@ -429,6 +429,15 @@ class ConnectCQG(Connect):
 
     # ----- DustBin -----------------------
     async def _dust_bin_handle(self) -> None: ...
+
+        # --- (5) Dust Bin/Unsolicited Message Collections ---
+        # For server-side
+        # 1. logged_off
+        # 2. concurrent_connection_join_results
+        # 3. information_reports:symbol_resolution_report
+        # 4. market_data_subscription_statuses
+
+    
     # ---- Failure Mode -------------------
     async def _on_transport_failure(self, exc: Exception) -> None:
         pass
@@ -441,7 +450,21 @@ class ConnectCQG(Connect):
         while not self._stop_evt.is_set():
             ...
 
-    async def _heartbeat_loop(self): ...
+    async def _heartbeat_loop(self):
+        while not self._stop_evt.is_set():
+            token = str(self.rid())
+            rtt = 0.0
+            try:
+                parsed_pong = await self.ping(token)
+                rtt = parsed_pong[PONG_PONGTIME] - parsed_pong[PONG_PINGTIME] 
+                
+                self.ping_rtts.append(rtt)
+            except ConnectRequestError as e:
+                logger.warning(f"Ping message of token: {token} failed due to {str(e)}.")
+            except ConnectTimeOutError as e:
+                logger.warning(f"Ping message of token: {token} failed due to Timeout Error:{str(e)}.")
+            finally:
+                await asyncio.sleep(max(0, self.ping_time_interval - rtt))
 
     # ---- CQG session messages function calls ----
     async def logon(
@@ -551,7 +574,6 @@ class ConnectCQG(Connect):
             await self._transport.send(ping_msg)
             server_msg = await asyncio.wait_for(fut, timeout=self._timeout)
 
-            self.ping_RTTs.append(server_msg.pong.pong_utc_time - server_msg.pong.ping_utc_time)
             return parse_pong(server_msg)
 
     async def pong(self, token: str, ping_utc_time: int, pong_utc_time: int) -> None:
