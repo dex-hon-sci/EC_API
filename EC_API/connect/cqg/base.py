@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from EC_API.ext.WebAPI import webapi_client
 from EC_API.connect.base import Connect
 from EC_API.connect.enums import ConnectionState
+from EC_API.connect.latency_util import latency_above_threshold, jitter_above_threshold
 from EC_API.transport.cqg.base import TransportCQG
 from EC_API.transport.routers import MessageRouter, StreamRouter
 from EC_API.protocol.cqg.router_util import (
@@ -106,21 +107,24 @@ class ConnectCQG(Connect):
         self._password = password
         self._account_id = account_id
 
-        # Sessions para
+        # ---- Sessions para ----
         self.session_token: Optional[str] = None
         self.client_app_id: Optional[str] = None
         self.protocol_version_major: Optional[int] = None
         self.protocol_version_minor: Optional[int] = None
 
-        # Event Loop
+        # ---- Event Loop ----
         self._loop = asyncio.get_running_loop()
         self._router_task: Optional[asyncio.Task] = None
-
-        self._stop_evt = asyncio.Event()
-        self._trade_work_evt = asyncio.Event()
-        self._dust_bin_evt = asyncio.Event()
-
         self._timeout: float | int = 0.2  # make make this a ping based decision
+
+        # ---- async events ----
+        self._stop_evt: asyncio.Event = asyncio.Event()
+        self._trade_work_evt: asyncio.Event = asyncio.Event()
+        self._dust_bin_evt: asyncio.Event = asyncio.Event()
+
+        self._ntwk_degrade_evt: asyncio.Event = asyncio.Event()
+        self._high_jitter_evt: asyncio.Event = asyncio.Event()
 
         # ---- State Control ----
         self._state_mgr = StateMgr(
@@ -155,8 +159,9 @@ class ConnectCQG(Connect):
 
         # ---- Latency/reaction attributes ----
         self.is_heartbeat_task_on: bool = False
-        self.ping_time_interval: int = 60 # seconds
-        self.ping_RTTs: deque = deque(maxlen=20)
+        self.ping_time_interval: int = 30 # seconds
+        self.server_heartbeat_rtts: deque = deque(maxlen=20) # in mili-seconds
+        self.client_heartbeat_rtts: deque = deque(maxlen=20) # in seconds
         self.inactivity_timeout: float = 100.0
 
         if immediate_connect:
@@ -371,7 +376,6 @@ class ConnectCQG(Connect):
                     # --- (3) order update-related dispatch ---
                     if is_order_update_stream(top_unique_field):
                         for ord_sts in msg.order_statuses:
-                            print("[router_loop] ord_sts", ord_sts)
                             await self._exec_stream_router.publish(ord_sts.chain_order_id, msg)
                             # one-shot future resolution — silent no-op if nobody registered
 
@@ -400,7 +404,6 @@ class ConnectCQG(Connect):
                     # --- (4) Expensive RPC type key matching ---
                     try:
                         keys = extract_router_keys(msg)
-                        print("[router_loop] keys", keys)
                     except KeyExtractorError as e:
                         logger.warning("Key Extraction Failed: %s.", str(e))
                     else:
@@ -416,6 +419,7 @@ class ConnectCQG(Connect):
                                     if not ticket_exist:
                                         # (5) --- Unsolicited Messages ---
                                         await self._misc_queue.put(msg)
+                                        await self._dust_bin_evt.set()
 
             except asyncio.CancelledError as e:
                 logger.error(str(e))
@@ -452,19 +456,28 @@ class ConnectCQG(Connect):
 
     async def _heartbeat_loop(self):
         while not self._stop_evt.is_set():
+            start = self._loop.time()
             token = str(self.rid())
-            rtt = 0.0
+            client_rtt = 0.0
             try:
                 parsed_pong = await self.ping(token)
-                rtt = parsed_pong[PONG_PONGTIME] - parsed_pong[PONG_PINGTIME] 
+                server_rtt = parsed_pong[PONG_PONGTIME] - parsed_pong[PONG_PINGTIME] 
+                client_rtt = self._loop.time() - start
                 
-                self.ping_rtts.append(rtt)
+                self.server_heartbeat_rtts.append(server_rtt)
+                self.client_heartbeat_rtts.append(client_rtt)
+                
+                # --- Latnecy checks
+                if latency_above_threshold():...
+                
+                if jitter_above_threshold():...
+                
             except ConnectRequestError as e:
                 logger.warning(f"Ping message of token: {token} failed due to {str(e)}.")
             except ConnectTimeOutError as e:
                 logger.warning(f"Ping message of token: {token} failed due to Timeout Error:{str(e)}.")
             finally:
-                await asyncio.sleep(max(0, self.ping_time_interval - rtt))
+                await asyncio.sleep(max(0, self.ping_time_interval - client_rtt))
 
     # ---- CQG session messages function calls ----
     async def logon(
