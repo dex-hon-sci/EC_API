@@ -31,11 +31,11 @@ class RedisChannel(Channel):
             self.out_stream = para.get("out_stream", "")
             self.in_stream = para.get("in_stream", "")
     
-    async def connect(self, url: str):
+    def connect(self, url: str):
         self.r = aioredis.Redis.from_url(self.host, decode_responses=False)
         self.pipe = self.r.pipeline()
 
-    async def disconnect(self):
+    def disconnect(self):
         self.r.close()
     
     async def broadcast(self, parsed_msg: tuple, data_name: str='data') -> None:
