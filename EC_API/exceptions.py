@@ -1,6 +1,16 @@
 class EC_APIError(Exception):
     """Base case for EC_API Error"""
 
+# --- Config ----
+class ConfigError(EC_APIError): ...
+
+class ConfigInputError(ConfigError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class ConfigFormatError(ConfigError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- State Control ---
 class StateControlError(EC_APIError): ...
