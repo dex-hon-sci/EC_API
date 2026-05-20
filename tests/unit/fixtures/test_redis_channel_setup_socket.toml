@@ -1,0 +1,6 @@
+[host_name]
+URL = "redis://localhost:6379"
+
+[streams]
+in_streams = ["mkt_data:cqg", "mkt_data:fix"]
+out_streams = ["processed_data"]
