@@ -240,7 +240,6 @@ class LiveOrderRequestError(LiveOrderError):
 # --- Payload
 class PayloadError(EC_APIError): ...
 
-
 # Safety check error
 class MissingVendorError(EC_APIError):
     def __init__(self, message: str):
@@ -253,6 +252,21 @@ class RiskViolationError(PayloadError):
 
 
 class ExecutePayloadError(PayloadError):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+# --- Channel
+class ChannelError(EC_APIError): ...
+
+class ChannelMissingSettingError(ChannelError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        
+class ChannelBroadcastError(ChannelError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        
+class ChannelListenError(ChannelError):
     def __init__(self, message: str):
         super().__init__(message)
 
