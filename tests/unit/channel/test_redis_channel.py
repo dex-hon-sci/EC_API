@@ -5,30 +5,42 @@ Created on Thu May 21 16:52:59 2026
 
 @author: dexter
 """
-
+import time
+import subprocess
 from pathlib import Path
 import pytest
+import msgpack
 import redis.asyncio as aioredis
 from EC_API.channel.redis import RedisChannel
 from EC_API.exceptions import (
     ConfigInputError, 
     ConfigFormatError,
-    ChannelMissingSettingError
+    ChannelMissingSettingError,
+    ChannelBroadcastError
     )
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 TEST_TOML_TCP_SOCKET = FIXTURES_DIR / "test_redis_channel_setup_tcp_socket.toml"
 TEST_TOML_UDS = FIXTURES_DIR / "test_redis_channel_setup_uds.toml"
 
-BAD_CONFIGS = [
-    # (toml_bytes, expected_exception)
-    (b"this is not valid toml ===", ConfigInputError),
-    (b'[streams]\nin_streams = ["s1"]', ConfigFormatError),  # no host_name
-    (b'[host_name]\nURL = "redis://localhost:16379"', ConfigFormatError),  # no streams
-    (b'[host_name]\nURL = "redis://localhost:16379"\n[streams]', ConfigFormatError),  # streams empty
-    (b'[host_name]\nURL = "redis://localhost:16379"\n[streams]\nin_streams=[]\nout_streams=[]', ConfigFormatError) # at least one of the streams has to be present
-]
 
+
+@pytest.fixture(scope="session", autouse=True)
+def redis_server():
+    proc = subprocess.Popen(["redis-server", "--port", "16379"])
+    time.sleep(0.5)  # wait for startup
+    yield
+    proc.terminate()
+    proc.wait()
+@pytest.fixture
+
+async def redis_client():
+    client = aioredis.Redis.from_url("redis://localhost:16379")
+    await client.flushdb()
+    yield client
+    await client.flushdb()
+    await client.aclose()
+    
 # ---- Lifecycle ----
 def test_redis_channel_load_tcp_valid() -> None:
     RC = RedisChannel()
@@ -47,6 +59,15 @@ def test_redis_channel_load_uds_valid() -> None:
     assert RC.out_streams == ["processed_data"]
     assert list(RC.last_ids.keys()) == ["mkt_data:cqg", "mkt_data:fix"]
     assert list(RC.last_ids.values()) == ["$", "$"]
+    
+BAD_CONFIGS = [
+    # (toml_bytes, expected_exception)
+    (b"this is not valid toml ===", ConfigInputError),
+    (b'[streams]\nin_streams = ["s1"]', ConfigFormatError),  # no host_name
+    (b'[host_name]\nURL = "redis://localhost:16379"', ConfigFormatError),  # no streams
+    (b'[host_name]\nURL = "redis://localhost:16379"\n[streams]', ConfigFormatError),  # streams empty
+    (b'[host_name]\nURL = "redis://localhost:16379"\n[streams]\nin_streams=[]\nout_streams=[]', ConfigFormatError) # at least one of the streams has to be present
+]
 
 @pytest.mark.parametrize("content, exc", BAD_CONFIGS)
 def test_redis_channel_load_invalid_config(tmp_path, content, exc):
@@ -91,6 +112,43 @@ async def test_redis_channel_disconnect_invalid_empty() -> None:
         await RC.disconnect()
 
 # ---- Function calls ----
-async def test_redis_channel_broadcast_valid() -> None:...
+@pytest.mark.asyncio  
+async def test_redis_channel_broadcast_valid(redis_client) -> None:
+    redis_client.from_url("redis://localhost:16379")
+    
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC.host_name = {'URL': "redis://localhost:16379"}
+    RC.out_streams = ["processed_data"]
+    RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
+    RC.last_ids = {"mkt_data:cqg": "$", "mkt_data:fix": "$"}
 
-async def test_redis_channel_broadcast_invalid() -> None:...
+    parsed_msg = ('1', 2, 3.0, True)
+    byte_msg = msgpack.packb(parsed_msg)
+    await RC.broadcast(parsed_msg, "processed_data")
+    data = await redis_client.xread(streams={"processed_data": "0"}, count=1)
+    print(data, byte_msg)
+    assert data[0][1][0][1][b'data'] == byte_msg
+    
+@pytest.mark.asyncio  
+async def test_redis_channel_broadcast_invalid_no_redis() -> None:
+    RC = RedisChannel()
+
+    parsed_msg = ('1', 2, 3.0, True)
+    with pytest.raises(ChannelMissingSettingError):
+        await RC.broadcast(parsed_msg, "processed_data")
+        
+@pytest.mark.asyncio  
+async def test_redis_channel_broadcast_invalid_exception(redis_client) -> None:
+    redis_client.from_url("redis://localhost:16379")
+    
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC.host_name = {'URL': "redis://localhost:16379"}
+    RC.out_streams = ["processed_data"]
+    RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
+    RC.last_ids = {"mkt_data:cqg": "$", "mkt_data:fix": "$"}
+    
+    unpacked_msg = (object(),)
+    with pytest.raises(ChannelBroadcastError):
+        await RC.broadcast(unpacked_msg, "processed_data") #<--non -existent stream

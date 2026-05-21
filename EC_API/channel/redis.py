@@ -27,10 +27,10 @@ class RedisChannel(Channel):
         self.r: Optional[aioredis.Redis] = None
         self.pipeline: Optional[Pipeline] = None
         self._pubsub: Optional[PubSub] = None
-        
-        self.host_name: Optional[dict[str, str]] = None
-        
+                
         # --- Redis Stream settings
+        self.host_name: Optional[dict[str, str]] = None
+
         self.out_streams: Optional[list[str]] = None
         self.in_streams: Optional[list[str]] = None
         
@@ -88,7 +88,6 @@ class RedisChannel(Channel):
         if not self.r:
             raise ChannelMissingSettingError("Redis server was not initiated.")
 
-        
         try:
            await self.r.xadd(stream_name, {data_name: msgpack.packb(parsed_msg)},
                              maxlen=self.maxlen_out_stream, approximate=True)
