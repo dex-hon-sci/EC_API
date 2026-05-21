@@ -23,23 +23,6 @@ FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 TEST_TOML_TCP_SOCKET = FIXTURES_DIR / "test_redis_channel_setup_tcp_socket.toml"
 TEST_TOML_UDS = FIXTURES_DIR / "test_redis_channel_setup_uds.toml"
 
-
-
-@pytest.fixture(scope="session", autouse=True)
-def redis_server():
-    proc = subprocess.Popen(["redis-server", "--port", "16379"])
-    time.sleep(0.5)  # wait for startup
-    yield
-    proc.terminate()
-    proc.wait()
-@pytest.fixture
-
-async def redis_client():
-    client = aioredis.Redis.from_url("redis://localhost:16379")
-    await client.flushdb()
-    yield client
-    await client.flushdb()
-    await client.aclose()
     
 # ---- Lifecycle ----
 def test_redis_channel_load_tcp_valid() -> None:
