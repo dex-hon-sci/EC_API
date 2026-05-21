@@ -8,7 +8,6 @@ Created on Thu May 21 16:52:59 2026
 
 from pathlib import Path
 import pytest
-import redis
 import redis.asyncio as aioredis
 from EC_API.channel.redis import RedisChannel
 from EC_API.exceptions import (
@@ -19,22 +18,18 @@ from EC_API.exceptions import (
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 TEST_TOML_TCP_SOCKET = FIXTURES_DIR / "test_redis_channel_setup_tcp_socket.toml"
-TEST_TOML_UDS = FIXTURES_DIR / "test_redis_channel_setup_UDS.toml"
+TEST_TOML_UDS = FIXTURES_DIR / "test_redis_channel_setup_uds.toml"
 
 BAD_CONFIGS = [
     # (toml_bytes, expected_exception)
-    (b"this is not valid toml ===",
-ConfigInputError),
-    (b'[streams]\nin_streams = ["s1"]',
-ConfigFormatError),  # no host_name
-    (b'[host_name]\nURL = "redis://localhost:6379"',
-ConfigFormatError),  # no streams
-    (b'[host_name]\nURL = "redis://localhost:6379"\n[streams]',
-ConfigFormatError),  # streams empty
+    (b"this is not valid toml ===", ConfigInputError),
+    (b'[streams]\nin_streams = ["s1"]', ConfigFormatError),  # no host_name
+    (b'[host_name]\nURL = "redis://localhost:6379"', ConfigFormatError),  # no streams
+    (b'[host_name]\nURL = "redis://localhost:6379"\n[streams]', ConfigFormatError),  # streams empty
 ]
 
 
-def test_redis_channel_load_valid() -> None:
+def test_redis_channel_load_tcp_valid() -> None:
     RC = RedisChannel()
     RC.load(TEST_TOML_TCP_SOCKET)
     assert RC.host_name['URL'] == "redis://localhost:16379"
@@ -43,6 +38,15 @@ def test_redis_channel_load_valid() -> None:
     assert list(RC.last_ids.keys()) == ["mkt_data:cqg", "mkt_data:fix"]
     assert list(RC.last_ids.values()) == ["$", "$"]
     
+def test_redis_channel_load_uds_valid() -> None:
+    RC = RedisChannel()
+    RC.load(TEST_TOML_UDS)
+    assert RC.host_name['URL'] == "unix:///tmp/redis.sock"
+    assert RC.in_streams == ["mkt_data:cqg", "mkt_data:fix"]
+    assert RC.out_streams == ["processed_data"]
+    assert list(RC.last_ids.keys()) == ["mkt_data:cqg", "mkt_data:fix"]
+    assert list(RC.last_ids.values()) == ["$", "$"]
+
 @pytest.mark.parametrize("content, exc", BAD_CONFIGS)
 def test_redis_channel_load_invalid_config(tmp_path, content, exc):
     f = tmp_path / "config.toml"

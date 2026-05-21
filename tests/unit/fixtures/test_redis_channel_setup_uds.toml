@@ -1,0 +1,6 @@
+[host_name]
+URL = "unix:///tmp/redis.sock"
+
+[streams]
+in_streams = ["mkt_data:cqg", "mkt_data:fix"]
+out_streams = ["processed_data"]
