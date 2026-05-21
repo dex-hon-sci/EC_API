@@ -24,8 +24,9 @@ BAD_CONFIGS = [
     # (toml_bytes, expected_exception)
     (b"this is not valid toml ===", ConfigInputError),
     (b'[streams]\nin_streams = ["s1"]', ConfigFormatError),  # no host_name
-    (b'[host_name]\nURL = "redis://localhost:6379"', ConfigFormatError),  # no streams
-    (b'[host_name]\nURL = "redis://localhost:6379"\n[streams]', ConfigFormatError),  # streams empty
+    (b'[host_name]\nURL = "redis://localhost:16379"', ConfigFormatError),  # no streams
+    (b'[host_name]\nURL = "redis://localhost:16379"\n[streams]', ConfigFormatError),  # streams empty
+    (b'[host_name]\nURL = "redis://localhost:16379"\n[streams]\nin_streams=[]\nout_streams=[]', ConfigFormatError) # at least one of the streams has to be present
 ]
 
 # ---- Lifecycle ----
@@ -89,5 +90,7 @@ async def test_redis_channel_disconnect_invalid_empty() -> None:
     with pytest.raises(ChannelMissingSettingError):
         await RC.disconnect()
 
-
 # ---- Function calls ----
+async def test_redis_channel_broadcast_valid() -> None:...
+
+async def test_redis_channel_broadcast_invalid() -> None:...

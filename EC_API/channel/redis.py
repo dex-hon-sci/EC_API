@@ -9,6 +9,7 @@ import tomllib
 from typing import Optional
 import msgpack
 import redis.asyncio as aioredis
+from redis.asyncio.client import PubSub, Pipeline
 from EC_API.channel.base import Channel
 from EC_API.utility.error_handlers import toml_loader_error_handler
 from EC_API.exceptions import (
@@ -24,10 +25,10 @@ class RedisChannel(Channel):
         
         # --- global settings
         self.r: Optional[aioredis.Redis] = None
-        self.pipeline: Optional[aioredis.client.Pipeline] = None
-        self._pubsub: Optional[aioredis.clinet.PubSub] = None
+        self.pipeline: Optional[Pipeline] = None
+        self._pubsub: Optional[PubSub] = None
         
-        self.host_name: str = None
+        self.host_name: Optional[dict[str, str]] = None
         
         # --- Redis Stream settings
         self.out_streams: Optional[list[str]] = None
@@ -75,6 +76,7 @@ class RedisChannel(Channel):
     async def disconnect(self):
         if not self.r:
             raise ChannelMissingSettingError("Redis server was not initiated.")
+        assert self._pubsub is not None
         await self._pubsub.close()
         await self.r.aclose()
         self.r = None          # explicit dead state
@@ -83,6 +85,10 @@ class RedisChannel(Channel):
 
     # --- Regular method. Redis default to stream
     async def broadcast(self, parsed_msg: tuple, stream_name:str, data_name: str='data') -> None:
+        if not self.r:
+            raise ChannelMissingSettingError("Redis server was not initiated.")
+
+        
         try:
            await self.r.xadd(stream_name, {data_name: msgpack.packb(parsed_msg)},
                              maxlen=self.maxlen_out_stream, approximate=True)
@@ -90,6 +96,12 @@ class RedisChannel(Channel):
             raise ChannelBroadcastError(str(e))
 
     async def listen(self, stream_name: str, data_name: str='data') -> tuple | None:
+        if not self.r:
+            raise ChannelMissingSettingError("Redis server was not initiated.")
+
+        if self.last_ids is None:
+            raise ChannelMissingSettingError("Streams not configured.")
+
         if stream_name in self._active_listeners:
             raise RuntimeError(f"{stream_name} already has an active listener")
         self._active_listeners.add(stream_name)
@@ -100,8 +112,9 @@ class RedisChannel(Channel):
             if not l:
                 return None
             
-            self.last_ids[stream_name]: str = l[0][1][-1][0]
-            return msgpack.unpackb(l[0][1][-1][1][data_name])
+
+            self.last_ids[stream_name] = l[0][1][-1][0]
+            return msgpack.unpackb(l[0][1][-1][1][data_name], raw=False)
         except Exception as e:
             raise ChannelListenError(str(e))
         
@@ -109,22 +122,34 @@ class RedisChannel(Channel):
             self._active_listeners.discard(stream_name)
 
     # --- Special method. For heartbeat or transient messages
-    async def subscribe_pubsub(self, channel: str) -> None:
+    async def subscribe_pubsub(self, channel: str) -> None:   
+        if not self._pubsub:
+            raise ChannelMissingSettingError("Redis server was not initiated.")
+
         await self._pubsub.subscribe(channel)
 
     async def unsubscribe_pubsub(self, channel: str) -> None:
+        if not self._pubsub:
+            raise ChannelMissingSettingError("Redis server was not initiated.")
+
         await self._pubsub.unsubscribe(channel)
     
     async def broadcast_pubsub(self, parsed_msg: tuple, stream_name: str, data_name: str='data') -> None:
+        if not self.r:
+            raise ChannelMissingSettingError("Redis server was not initiated.")
+
         try:
             await self.r.publish(stream_name, msgpack.packb(parsed_msg))
         except Exception as e:
             raise ChannelBroadcastError(str(e))
     
     async def listen_pubsub(self):
+        if not self._pubsub:
+            raise ChannelMissingSettingError("Redis server was not initiated.")
+
         try:
           async for message in self._pubsub.listen():
               if message['type'] == 'message':
-                  return msgpack.unpackb(message['data'])
+                  return msgpack.unpackb(message['data'], raw=False)
         except Exception as e:
             raise ChannelListenError(str(e))
