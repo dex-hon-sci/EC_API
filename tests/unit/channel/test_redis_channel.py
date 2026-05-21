@@ -28,7 +28,7 @@ BAD_CONFIGS = [
     (b'[host_name]\nURL = "redis://localhost:6379"\n[streams]', ConfigFormatError),  # streams empty
 ]
 
-
+# ---- Lifecycle ----
 def test_redis_channel_load_tcp_valid() -> None:
     RC = RedisChannel()
     RC.load(TEST_TOML_TCP_SOCKET)
@@ -90,4 +90,4 @@ async def test_redis_channel_disconnect_invalid_empty() -> None:
         await RC.disconnect()
 
 
-
+# ---- Function calls ----

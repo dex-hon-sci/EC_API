@@ -1,7 +1,7 @@
 python-dotenv>=1.0.1
 numpy>=2.3.1
 protobuf>=5.29.3
-asyncio-redis>=0.16.0
+redis>=4.2.0
 
 
 
