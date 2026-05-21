@@ -20,11 +20,12 @@ from EC_API.exceptions import (
     )
 
 class RedisChannel(Channel):
-    def __init__(self):        
+    def __init__(self, path: str = ""):        
+        
         # --- global settings
-        self.r: aioredis.Redis = None
-        self.pipeline = None
-        self._pubsub = None
+        self.r: Optional[aioredis.Redis] = None
+        self.pipeline: Optional[aioredis.client.Pipeline] = None
+        self._pubsub: Optional[aioredis.clinet.PubSub] = None
         
         self.host_name: str = None
         
@@ -39,7 +40,10 @@ class RedisChannel(Channel):
         # We only allow one active listener to stream at a time
         self._active_listeners: set[str] = set()
         
-    def load(self, path: str):
+        if path:
+            self.load(path)
+
+    def load(self, path: str) -> None:
         # add a load error handler here
         with toml_loader_error_handler(ConfigInputError, ConfigFormatError):
             with open(path, mode="rb") as f:
@@ -73,7 +77,10 @@ class RedisChannel(Channel):
             raise ChannelMissingSettingError("Redis server was not initiated.")
         await self._pubsub.close()
         await self.r.aclose()
-    
+        self.r = None          # explicit dead state
+        self._pubsub = None
+        self.pipeline = None
+
     # --- Regular method. Redis default to stream
     async def broadcast(self, parsed_msg: tuple, stream_name:str, data_name: str='data') -> None:
         try:
