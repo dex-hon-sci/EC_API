@@ -107,13 +107,13 @@ class RedisChannel(Channel):
 
         try:
             # [stream_name, [(id, fields_dict),...]]
-            l = await self.r.xread(count=1, block=0, streams = {stream_name: self.last_ids[stream_name]})
+            l = await self.r.xread(count=1, block=5000, streams = {stream_name: self.last_ids[stream_name]})
             if not l:
                 return None
             
-
             self.last_ids[stream_name] = l[0][1][-1][0]
             return msgpack.unpackb(l[0][1][-1][1][data_name], raw=False)
+        
         except Exception as e:
             raise ChannelListenError(str(e))
         

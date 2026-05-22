@@ -13,7 +13,7 @@ def redis_server():
     
 @pytest.fixture
 async def redis_client():
-    client = aioredis.Redis.from_url("redis://localhost:16379")
+    client = aioredis.Redis.from_url("redis://localhost:16379", socket_connect_timeout=2)
     await client.flushdb()
     yield client
     await client.flushdb()

@@ -6,6 +6,7 @@ Created on Thu May 21 16:52:59 2026
 @author: dexter
 """
 import time
+import asyncio
 import subprocess
 from pathlib import Path
 import pytest
@@ -23,7 +24,6 @@ FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 TEST_TOML_TCP_SOCKET = FIXTURES_DIR / "test_redis_channel_setup_tcp_socket.toml"
 TEST_TOML_UDS = FIXTURES_DIR / "test_redis_channel_setup_uds.toml"
 
-    
 # ---- Lifecycle ----
 def test_redis_channel_load_tcp_valid() -> None:
     RC = RedisChannel()
@@ -110,7 +110,6 @@ async def test_redis_channel_broadcast_valid(redis_client) -> None:
     byte_msg = msgpack.packb(parsed_msg)
     await RC.broadcast(parsed_msg, "processed_data")
     data = await redis_client.xread(streams={"processed_data": "0"}, count=1)
-    print(data, byte_msg)
     assert data[0][1][0][1][b'data'] == byte_msg
     
 @pytest.mark.asyncio  
@@ -135,3 +134,54 @@ async def test_redis_channel_broadcast_invalid_exception(redis_client) -> None:
     unpacked_msg = (object(),)
     with pytest.raises(ChannelBroadcastError):
         await RC.broadcast(unpacked_msg, "processed_data") #<--non -existent stream
+        
+
+@pytest.mark.asyncio      
+async def test_redis_channel_listen_valid(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC.host_name = {'URL': "redis://localhost:16379"}
+    RC.out_streams = ["processed_data"]
+    RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
+    RC.last_ids = {"mkt_data:cqg": "$", "mkt_data:fix": "$"}
+
+    parsed_msg = ('1', 2, 3.0, True)
+    await RC.r.xadd("mkt_data:cqg", {'data': msgpack.packb(parsed_msg)})
+    await asyncio.sleep(0)
+    
+    print(RC.last_ids)
+    data = await RC.listen("mkt_data:cqg",'data')
+    assert RC.last_ids
+
+    print(data)
+    #assert data
+    #assert 1 == 0
+    
+@pytest.mark.asyncio      
+async def test_redis_channel_listen_invalid_no_redis() -> None:
+    RC = RedisChannel()
+    with pytest.raises(ChannelMissingSettingError):
+        await RC.listen('stream_name')
+    
+@pytest.mark.asyncio      
+async def test_redis_channel_listen_invalid_no_last_ids(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+
+    with pytest.raises(ChannelMissingSettingError):
+        await RC.listen('stream_name')
+ 
+@pytest.mark.asyncio      
+async def test_redis_channel_listen_invalid_exceed_one_listener(redis_client) -> None:
+
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC.host_name = {'URL': "redis://localhost:16379"}
+    RC.out_streams = ["processed_data"]
+    RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
+    RC.last_ids = {"mkt_data:cqg": "$", "mkt_data:fix": "$"}
+    
+    RC._active_listeners.add("mkt_data:cqg")
+    
+    with pytest.raises(RuntimeError):
+        await RC.listen("mkt_data:cqg")
