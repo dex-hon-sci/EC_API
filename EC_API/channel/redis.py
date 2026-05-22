@@ -63,21 +63,27 @@ class RedisChannel(Channel):
                 if not (self.in_streams or self.out_streams):
                     raise KeyError("In field 'streams', at least one of these must be present: 'in_streams' and 'out_streams'.")
                 
-                self.last_ids = {name: '$' for name in self.in_streams}
+                self.last_ids = {name: '0' for name in self.in_streams}
 
-    def connect(self):
+    async def connect(self):
         if not self.host_name:
             raise ChannelMissingSettingError("Missing URL to start a redis server.")
             
         self.r = aioredis.Redis.from_url(self.host_name['URL'], decode_responses=False)
+        
         self._pubsub = self.r.pubsub()
         self.pipeline = self.r.pipeline()
+        
+        for stream_name in self.in_streams:
+            last = await self.r.xrevrange(stream_name, count=1)
+            self.last_ids[stream_name] = last[0][0] if last else "0"
+
 
     async def disconnect(self):
         if not self.r:
             raise ChannelMissingSettingError("Redis server was not initiated.")
         assert self._pubsub is not None
-        await self._pubsub.close()
+        await self._pubsub.aclose()
         await self.r.aclose()
         self.r = None          # explicit dead state
         self._pubsub = None
@@ -110,10 +116,9 @@ class RedisChannel(Channel):
             l = await self.r.xread(count=1, block=5000, streams = {stream_name: self.last_ids[stream_name]})
             if not l:
                 return None
-            
-            self.last_ids[stream_name] = l[0][1][-1][0]
-            return msgpack.unpackb(l[0][1][-1][1][data_name], raw=False)
-        
+            self.last_ids[stream_name] = l[0][1][-1][0]       
+            return tuple(msgpack.unpackb(l[0][1][-1][1][data_name.encode()], raw=False))
+                    
         except Exception as e:
             raise ChannelListenError(str(e))
         

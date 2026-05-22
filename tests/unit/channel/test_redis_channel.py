@@ -32,7 +32,7 @@ def test_redis_channel_load_tcp_valid() -> None:
     assert RC.in_streams == ["mkt_data:cqg", "mkt_data:fix"]
     assert RC.out_streams == ["processed_data"]
     assert list(RC.last_ids.keys()) == ["mkt_data:cqg", "mkt_data:fix"]
-    assert list(RC.last_ids.values()) == ["$", "$"]
+    assert list(RC.last_ids.values()) == ["0", "0"]
     
 def test_redis_channel_load_uds_valid() -> None:
     RC = RedisChannel()
@@ -41,7 +41,7 @@ def test_redis_channel_load_uds_valid() -> None:
     assert RC.in_streams == ["mkt_data:cqg", "mkt_data:fix"]
     assert RC.out_streams == ["processed_data"]
     assert list(RC.last_ids.keys()) == ["mkt_data:cqg", "mkt_data:fix"]
-    assert list(RC.last_ids.values()) == ["$", "$"]
+    assert list(RC.last_ids.values()) == ["0", "0"]
     
 BAD_CONFIGS = [
     # (toml_bytes, expected_exception)
@@ -62,18 +62,20 @@ def test_redis_channel_load_invalid_config(tmp_path, content, exc):
 def test_redis_channel_load_invalid_missing_file():
     with pytest.raises(ConfigInputError):
         RedisChannel(path="/nonexistent/config.toml")
-        
-def test_redis_channel_connect_valid() -> None:
+ 
+@pytest.mark.asyncio
+async def test_redis_channel_connect_valid() -> None:
     RC = RedisChannel(TEST_TOML_TCP_SOCKET)
-    RC.connect()
+    await RC.connect()
     assert isinstance(RC.r, aioredis.Redis)
     assert isinstance(RC.pipeline, aioredis.client.Pipeline)
     assert isinstance(RC._pubsub, aioredis.client.PubSub)
     
-def test_redis_channel_connect_invalid_hostname_empty() -> None:
+@pytest.mark.asyncio   
+async def test_redis_channel_connect_invalid_hostname_empty() -> None:
     RC = RedisChannel()
     with pytest.raises(ChannelMissingSettingError):
-        RC.connect()
+        await RC.connect()
         
 @pytest.mark.asyncio
 async def test_redis_channel_disconnect_valid() -> None:
@@ -143,19 +145,17 @@ async def test_redis_channel_listen_valid(redis_client) -> None:
     RC.host_name = {'URL': "redis://localhost:16379"}
     RC.out_streams = ["processed_data"]
     RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
-    RC.last_ids = {"mkt_data:cqg": "$", "mkt_data:fix": "$"}
+    RC.last_ids = {"mkt_data:cqg": "0", "mkt_data:fix": "0"}
 
     parsed_msg = ('1', 2, 3.0, True)
-    await RC.r.xadd("mkt_data:cqg", {'data': msgpack.packb(parsed_msg)})
+    # Not that the b'data' here is intensionaly because msgpack send only bytes
+    await RC.r.xadd("mkt_data:cqg", {b'data': msgpack.packb(parsed_msg)})
     await asyncio.sleep(0)
     
-    print(RC.last_ids)
     data = await RC.listen("mkt_data:cqg",'data')
     assert RC.last_ids
 
-    print(data)
-    #assert data
-    #assert 1 == 0
+    assert data == parsed_msg
     
 @pytest.mark.asyncio      
 async def test_redis_channel_listen_invalid_no_redis() -> None:
@@ -173,15 +173,31 @@ async def test_redis_channel_listen_invalid_no_last_ids(redis_client) -> None:
  
 @pytest.mark.asyncio      
 async def test_redis_channel_listen_invalid_exceed_one_listener(redis_client) -> None:
-
     RC = RedisChannel()
     RC.r = redis_client
     RC.host_name = {'URL': "redis://localhost:16379"}
     RC.out_streams = ["processed_data"]
     RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
-    RC.last_ids = {"mkt_data:cqg": "$", "mkt_data:fix": "$"}
+    RC.last_ids = {"mkt_data:cqg": "0", "mkt_data:fix": "0"}
     
     RC._active_listeners.add("mkt_data:cqg")
     
     with pytest.raises(RuntimeError):
         await RC.listen("mkt_data:cqg")
+
+@pytest.mark.asyncio      
+async def test_redis_channel_listen_invalid_empty_msg(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC.host_name = {'URL': "redis://localhost:16379"}
+    RC.out_streams = ["processed_data"]
+    RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
+    RC.last_ids = {"mkt_data:cqg": "0", "mkt_data:fix": "0"}
+
+    parsed_msg = ()
+    # Not that the b'data' here is intensionaly because msgpack send only bytes
+    await RC.r.xadd("mkt_data:cqg", {b'data': msgpack.packb(parsed_msg)})
+    await asyncio.sleep(0)
+    
+    data = await RC.listen("mkt_data:cqg",'data')
+    assert data
