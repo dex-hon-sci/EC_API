@@ -165,6 +165,6 @@ class RedisChannel(Channel):
         try:
           async for message in self._pubsub.listen():
               if message['type'] == 'message':
-                  return msgpack.unpackb(message['data'], raw=False)
+                  return tuple(msgpack.unpackb(message['data'], raw=False))
         except Exception as e:
             raise ChannelListenError(str(e))

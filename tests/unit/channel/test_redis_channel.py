@@ -10,6 +10,7 @@ import asyncio
 import subprocess
 from pathlib import Path
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 import msgpack
 import redis.asyncio as aioredis
 from EC_API.channel.redis import RedisChannel
@@ -212,7 +213,7 @@ async def test_redis_channel_listen_invalid_bad_data(redis_client) -> None:
     with pytest.raises(ChannelListenError):
         await RC.listen("mkt_data:cqg")
 
-# --- Pubsub
+# --- Pubsub sub/unsub
 @pytest.mark.asyncio
 async def test_redis_channel_subscribe_valid(redis_client) -> None:
     RC = RedisChannel()
@@ -252,9 +253,6 @@ async def test_redis_channel_unsubscribe_valid(redis_client) -> None:
     await RC.unsubscribe_pubsub("channel_1")
     counts = await redis_client.pubsub_numsub("channel_1", "channel_2")
 
-    print(list(RC._pubsub.channels.keys()), counts, RC._pubsub.channels)
-   #assert b"channel_1" not in list(RC._pubsub.channels.keys())
-    #assert b"channel_2" in RC._pubsub.channels
     assert counts[0] == (b'channel_1', 0)
     assert counts[1] == (b'channel_2', 1)
 
@@ -275,4 +273,74 @@ async def test_redis_channel_unsubscribe_invalid_channel_name_non_exist(redis_cl
     with pytest.raises(ChannelSubscriptionError):
         await RC.unsubscribe_pubsub("channel_1")
 
+@pytest.mark.asyncio
+async def test_redis_channel_unsubscribe_invalid_exception(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
 
+    mock_pubsub = MagicMock()
+    mock_pubsub.channels = {b"channel_1": MagicMock()}   # passes the line-143 guard
+    mock_pubsub.unsubscribe = AsyncMock(side_effect=Exception("forced error"))
+    RC._pubsub = mock_pubsub
+
+    with pytest.raises(ChannelSubscriptionError):
+        await RC.unsubscribe_pubsub("channel_1")
+
+# --- Pubsub function calls
+@pytest.mark.asyncio
+async def test_redis_channel_pubsub_round_trip_valid(redis_client) -> None:
+    RC_sub = RedisChannel()
+    RC_sub.r = redis_client
+    RC_sub._pubsub = redis_client.pubsub()
+    await RC_sub.subscribe_pubsub("test_channel")
+
+    RC_pub = RedisChannel()
+    RC_pub.r = redis_client
+
+    # Start listener as a background task
+    listen_task = asyncio.create_task(RC_sub.listen_pubsub())
+
+    # Yield to the event loop so listen_task actually enters .listen()
+    await asyncio.sleep(0.05)
+
+    # Now publish — the listener is already waiting
+    await RC_pub.broadcast_pubsub(('1', 2, 3.0, True), "test_channel")
+
+    result = await listen_task
+    assert result == ('1', 2, 3.0, True)
+    
+@pytest.mark.asyncio
+async def test_redis_channel_listen_pubsub_invalid_no_pubsub(redis_client) -> None:
+    RC_sub = RedisChannel()
+    RC_sub.r = redis_client
+
+    with pytest.raises(ChannelMissingSettingError):
+        await RC_sub.listen_pubsub()
+        
+@pytest.mark.asyncio
+async def test_redis_channel_broadcast_pubsub_invalid_no_redis(redis_client) -> None:
+    RC_pub = RedisChannel()
+    with pytest.raises(ChannelMissingSettingError):
+        await RC_pub.broadcast_pubsub(('1', 2, 3.0, True), "test_channel")
+
+@pytest.mark.asyncio
+async def test_redis_channel_broadcast_pubsub_invalid_exception() -> None:
+    RC = RedisChannel()
+    RC.r = MagicMock()
+    RC.r.publish = AsyncMock(side_effect=Exception("forced error"))
+
+    with pytest.raises(ChannelBroadcastError):
+        await RC.broadcast_pubsub(('1', 2, 3.0), "test_channel")
+
+@pytest.mark.asyncio
+async def test_redis_channel_listen_pubsub_invalid_exception() -> None:
+    async def failing_listen():
+        raise Exception("forced error")
+        yield   # never reached, but makes this an async generator
+
+    RC = RedisChannel()
+    RC._pubsub = MagicMock()
+    RC._pubsub.listen = failing_listen  # assign the function, not a call
+
+    with pytest.raises(ChannelListenError):
+        await RC.listen_pubsub()
