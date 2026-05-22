@@ -35,6 +35,7 @@ class RedisChannel(Channel):
         self.in_streams: Optional[list[str]] = None
         
         self.maxlen_out_stream: int = 50_000
+        self.xread_block: int = 5000
         # for redis stream message tracking
         self.last_ids: Optional[dict[str, str]] = None
         
@@ -108,12 +109,12 @@ class RedisChannel(Channel):
             raise ChannelMissingSettingError("Streams not configured.")
 
         if stream_name in self._active_listeners:
-            raise RuntimeError(f"{stream_name} already has an active listener")
+            raise ChannelListenError(f"{stream_name} already has an active listener")
         self._active_listeners.add(stream_name)
 
         try:
             # [stream_name, [(id, fields_dict),...]]
-            l = await self.r.xread(count=1, block=5000, streams = {stream_name: self.last_ids[stream_name]})
+            l = await self.r.xread(count=1, block=self.xread_block, streams = {stream_name: self.last_ids[stream_name]})
             if not l:
                 return None
             self.last_ids[stream_name] = l[0][1][-1][0]       

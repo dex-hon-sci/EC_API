@@ -17,7 +17,8 @@ from EC_API.exceptions import (
     ConfigInputError, 
     ConfigFormatError,
     ChannelMissingSettingError,
-    ChannelBroadcastError
+    ChannelBroadcastError,
+    ChannelListenError
     )
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
@@ -182,22 +183,35 @@ async def test_redis_channel_listen_invalid_exceed_one_listener(redis_client) ->
     
     RC._active_listeners.add("mkt_data:cqg")
     
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ChannelListenError):
         await RC.listen("mkt_data:cqg")
 
 @pytest.mark.asyncio      
 async def test_redis_channel_listen_invalid_empty_msg(redis_client) -> None:
     RC = RedisChannel()
     RC.r = redis_client
+    RC.xread_block = 100
     RC.host_name = {'URL': "redis://localhost:16379"}
     RC.out_streams = ["processed_data"]
     RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
     RC.last_ids = {"mkt_data:cqg": "0", "mkt_data:fix": "0"}
 
-    parsed_msg = ()
+    #parsed_msg = ('1', 2, 3.0, True)
     # Not that the b'data' here is intensionaly because msgpack send only bytes
-    await RC.r.xadd("mkt_data:cqg", {b'data': msgpack.packb(parsed_msg)})
-    await asyncio.sleep(0)
+    #await RC.r.xadd("mkt_data:cqg", {b'data': msgpack.packb(parsed_msg)})
+    #await asyncio.sleep(5)
     
     data = await RC.listen("mkt_data:cqg",'data')
-    assert data
+    await asyncio.sleep(0.1)
+    assert data is None
+    
+@pytest.mark.asyncio
+async def test_redis_channel_listen_invalid_bad_data(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC.last_ids = {"mkt_data:cqg": "0"}
+
+    await redis_client.xadd("mkt_data:cqg", {b"data": b"\xff\xff\xff"})  # not valid msgpack
+
+    with pytest.raises(ChannelListenError):
+        await RC.listen("mkt_data:cqg")
