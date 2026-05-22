@@ -18,7 +18,8 @@ from EC_API.exceptions import (
     ConfigFormatError,
     ChannelMissingSettingError,
     ChannelBroadcastError,
-    ChannelListenError
+    ChannelListenError,
+    ChannelSubscriptionError
     )
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
@@ -195,11 +196,6 @@ async def test_redis_channel_listen_invalid_empty_msg(redis_client) -> None:
     RC.out_streams = ["processed_data"]
     RC.in_streams = ["mkt_data:cqg", "mkt_data:fix"]
     RC.last_ids = {"mkt_data:cqg": "0", "mkt_data:fix": "0"}
-
-    #parsed_msg = ('1', 2, 3.0, True)
-    # Not that the b'data' here is intensionaly because msgpack send only bytes
-    #await RC.r.xadd("mkt_data:cqg", {b'data': msgpack.packb(parsed_msg)})
-    #await asyncio.sleep(5)
     
     data = await RC.listen("mkt_data:cqg",'data')
     await asyncio.sleep(0.1)
@@ -215,3 +211,68 @@ async def test_redis_channel_listen_invalid_bad_data(redis_client) -> None:
 
     with pytest.raises(ChannelListenError):
         await RC.listen("mkt_data:cqg")
+
+# --- Pubsub
+@pytest.mark.asyncio
+async def test_redis_channel_subscribe_valid(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC._pubsub = redis_client.pubsub()
+    
+    await RC.subscribe_pubsub("channel_1")
+    await RC.subscribe_pubsub("channel_2")
+    assert "channel_1".encode() in RC._pubsub.channels.keys()
+    assert "channel_2".encode() in RC._pubsub.channels.keys()
+ 
+@pytest.mark.asyncio
+async def test_redis_channel_subscribe_invalid_no_pubsub(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    with pytest.raises(ChannelMissingSettingError):
+        await RC.subscribe_pubsub("channel_1")
+        
+@pytest.mark.asyncio
+async def test_redis_channel_subscribe_invalid_subscription(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC._pubsub = redis_client.pubsub()
+
+    with pytest.raises(ChannelSubscriptionError):
+        await RC.subscribe_pubsub([]) # <-- invalid, unhashable
+        
+@pytest.mark.asyncio
+async def test_redis_channel_unsubscribe_valid(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC._pubsub = redis_client.pubsub()
+    
+    await RC.subscribe_pubsub("channel_1")
+    await RC.subscribe_pubsub("channel_2")
+      
+    await RC.unsubscribe_pubsub("channel_1")
+    counts = await redis_client.pubsub_numsub("channel_1", "channel_2")
+
+    print(list(RC._pubsub.channels.keys()), counts, RC._pubsub.channels)
+   #assert b"channel_1" not in list(RC._pubsub.channels.keys())
+    #assert b"channel_2" in RC._pubsub.channels
+    assert counts[0] == (b'channel_1', 0)
+    assert counts[1] == (b'channel_2', 1)
+
+@pytest.mark.asyncio
+async def test_redis_channel_unsubscribe_invalid_no_pubsub(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+
+    with pytest.raises(ChannelMissingSettingError):
+        await RC.unsubscribe_pubsub("channel_1")
+        
+@pytest.mark.asyncio
+async def test_redis_channel_unsubscribe_invalid_channel_name_non_exist(redis_client) -> None:
+    RC = RedisChannel()
+    RC.r = redis_client
+    RC._pubsub = redis_client.pubsub()
+
+    with pytest.raises(ChannelSubscriptionError):
+        await RC.unsubscribe_pubsub("channel_1")
+
+

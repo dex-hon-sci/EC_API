@@ -272,6 +272,10 @@ class ChannelMissingSettingError(ChannelError):
     def __init__(self, message: str):
         super().__init__(message)
         
+class ChannelSubscriptionError(ChannelError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        
 class ChannelBroadcastError(ChannelError):
     def __init__(self, message: str):
         super().__init__(message)

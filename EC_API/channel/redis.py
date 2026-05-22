@@ -14,6 +14,7 @@ from EC_API.channel.base import Channel
 from EC_API.utility.error_handlers import toml_loader_error_handler
 from EC_API.exceptions import (
     ChannelMissingSettingError,
+    ChannelSubscriptionError,
     ChannelBroadcastError,
     ChannelListenError,
     ConfigInputError,
@@ -130,15 +131,24 @@ class RedisChannel(Channel):
     async def subscribe_pubsub(self, channel: str) -> None:   
         if not self._pubsub:
             raise ChannelMissingSettingError("Redis server was not initiated.")
-
-        await self._pubsub.subscribe(channel)
+        try:
+            await self._pubsub.subscribe(channel)
+        except Exception as e:
+            raise ChannelSubscriptionError(str(e))
 
     async def unsubscribe_pubsub(self, channel: str) -> None:
         if not self._pubsub:
             raise ChannelMissingSettingError("Redis server was not initiated.")
+            
+        if channel.encode() not in self._pubsub.channels.keys():
+            raise ChannelSubscriptionError(f"Not subscribed to '{channel}'")
 
-        await self._pubsub.unsubscribe(channel)
-    
+        try:
+            await self._pubsub.unsubscribe(channel.encode())
+            #await self._pubsub.get_message(ignore_subscribe_messages=False, timeout=0.1)
+        except Exception as e:
+            raise ChannelSubscriptionError(str(e))
+
     async def broadcast_pubsub(self, parsed_msg: tuple, stream_name: str, data_name: str='data') -> None:
         if not self.r:
             raise ChannelMissingSettingError("Redis server was not initiated.")
