@@ -74,6 +74,17 @@ async def test_redis_channel_connect_valid() -> None:
     assert isinstance(RC.pipeline, aioredis.client.Pipeline)
     assert isinstance(RC._pubsub, aioredis.client.PubSub)
     
+@pytest.mark.asyncio
+async def test_redis_channel_connect_last_ids_from_existing_stream(redis_client) -> None:
+    await redis_client.xadd("mkt_data:cqg", {b"data": b"x"})
+    await redis_client.xadd("mkt_data:fix", {b"data": b"x"})
+
+    RC = RedisChannel(TEST_TOML_TCP_SOCKET)
+    await RC.connect()
+
+    assert RC.last_ids["mkt_data:cqg"] != "0"
+    assert RC.last_ids["mkt_data:fix"] != "0"
+
 @pytest.mark.asyncio   
 async def test_redis_channel_connect_invalid_hostname_empty() -> None:
     RC = RedisChannel()
@@ -344,3 +355,17 @@ async def test_redis_channel_listen_pubsub_invalid_exception() -> None:
 
     with pytest.raises(ChannelListenError):
         await RC.listen_pubsub()
+        
+@pytest.mark.asyncio
+async def test_redis_channel_listen_pubsub_invalid_bad_data() -> None:
+    async def bad_data_listen():
+        yield {'type': 'message', 'data': b'\xff\xff\xff'}  # corrupt msgpack
+
+    RC = RedisChannel()
+    RC._pubsub = MagicMock()
+    RC._pubsub.listen = bad_data_listen
+
+    with pytest.raises(ChannelListenError):
+        await RC.listen_pubsub()
+    assert "mkt_data:cqg" not in RC._active_listeners
+
