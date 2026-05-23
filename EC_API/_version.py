@@ -8,4 +8,4 @@ Created on Wed Jul 23 15:54:32 2025
 
 # %% VERSIONS
 # Default/Latest/Current version
-__version__ = "0.2.0"
+__version__ = "0.2.1"

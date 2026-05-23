@@ -291,22 +291,19 @@ from EC_API.channel.redis import RedisChannel
 
 class TradeEngine:
     def __init__(self):
-        # IPC Channel setting
+        # ---- IPC Channel setting ----
         self.channel = RedisChannel("channel_config.toml")
         
-        # Sessions setting
+        # ---- Sessions setting ----
         self.conn = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID)
-        self.trade_session = TradeSessionCQG(conn)
+        self.trade_session = TradeSessionCQG(self.conn)
         
-        # risk checks
+        # ---- Risk checks ----
         self.PREC = PreTradeRiskCheck('cqg')
         self.PREC.load("risk_para.toml")
         
-        # async tasks and event
-        self._loop_task = asyncio.create_task(self._send_order_loop)
-
-    async _package_and_send(self, order_type: RequestType, order_info: dict):
-        async with TradeSessionCQG(conn) as TS:
+    async def _package_and_send(self, order_type: RequestType, order_info: dict):
+        async with self.trade_session as TS:
             PL = Payload(
               order_request_type = order_type,
               order_info = order_info,
@@ -317,17 +314,27 @@ class TradeEngine:
             await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL)
 
     async def _send_order_loop(self):
-        
         while True:
             # Continuous listening to the latest order instruction from redis stream
-            order_type, order_info = await self.channel.listen('order_info:WTI') 
+            msg = await self.channel.listen('order_info:WTI') 
             
             # If there is something, an event is triggered
-            
+            if msg is None:
+                continue
             # package and send (fire and forget)
+            order_type, order_info = msg
             await self._package_and_send(order_type, order_info)
+                
+    async def run(self):
+        self.conn.start()
+        self._engine_task = asyncio.create_task(self._send_order_loop())
+
+        await self._engine_task
             
 ```
+Note that this engine is made for the purpose of demonstration. In a production
+environment, addiional tasks, state control, and event-driven architecture
+are advisable to be included in the engine.
 
 ### **3. Strategy Building (planned v0.3.0 feature)**
 `EC_API` provide useful templates: `OpStrategy` and `OpSignal` 
