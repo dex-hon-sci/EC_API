@@ -256,7 +256,7 @@ async with TradeSessionCQG(conn) as TS:
     await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL1)
     
 ```
-### **2. Communications (planned v0.3.0 feature)**
+### **2. Inter-Process Communications**
 Since data ingestion via `MonitorData` and trading via `TradeSession` often
 rely on separate account ids and connections, it is advisable to setup your 
 operations in separate processes to minimise congestion or interference.
@@ -270,8 +270,63 @@ communication protocols (planned):
 | 1. | Redis | `RedisChannel` | in-memory DB (msgpack+RESP) | ![Status](https://img.shields.io/badge/Done-2BB33D) | Docs |
 | 2. | Unix Domain Socket | `UDSChannel` | in-memory direct comm | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
 
+In the example of redis, you would need to supply the `Channel` object with 
+a toml file that contains the followings:
+```toml
+# channel_config.toml
+[host_name]
+URL = "redis://localhost:16379"
 
+[streams]
+in_streams = ["mkt_data:WTI", "mkt_data:Brent"]
+out_streams = ["order_info:WTI"]
+
+```
+In a trade system, you can expect a setup similar to the followig example. We
+assume the trading decision is made elsewhere in a strategy processing unit, 
+and order_info is sent through the `RedisChannel` and the `TradeEninge` will
+package it and send it through to the broker.
 ```python
+from EC_API.channel.redis import RedisChannel
+
+class TradeEngine:
+    def __init__(self):
+        # IPC Channel setting
+        self.channel = RedisChannel("channel_config.toml")
+        
+        # Sessions setting
+        self.conn = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID)
+        self.trade_session = TradeSessionCQG(conn)
+        
+        # risk checks
+        self.PREC = PreTradeRiskCheck('cqg')
+        self.PREC.load("risk_para.toml")
+        
+        # async tasks and event
+        self._loop_task = asyncio.create_task(self._send_order_loop)
+
+    async _package_and_send(self, order_type: RequestType, order_info: dict):
+        async with TradeSessionCQG(conn) as TS:
+            PL = Payload(
+              order_request_type = order_type,
+              order_info = order_info,
+              check_method = self.PREC # Static risk check done upon creation
+              )
+            await TS.trade_subscription_request(sub_id=1, sub_scope = SubScope.ORDERS)
+            await TS.resolve_symbol(order_info['symbol_name']) 
+            await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL)
+
+    async def _send_order_loop(self):
+        
+        while True:
+            # Continuous listening to the latest order instruction from redis stream
+            order_type, order_info = await self.channel.listen('order_info:WTI') 
+            
+            # If there is something, an event is triggered
+            
+            # package and send (fire and forget)
+            await self._package_and_send(order_type, order_info)
+            
 ```
 
 ### **3. Strategy Building (planned v0.3.0 feature)**
