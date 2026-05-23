@@ -87,7 +87,7 @@ class RedisChannel(Channel):
         assert self._pubsub is not None
         await self._pubsub.aclose()
         await self.r.aclose()
-        self.r = None          # explicit dead state
+        self.r = None
         self._pubsub = None
         self.pipeline = None
 
@@ -145,7 +145,7 @@ class RedisChannel(Channel):
 
         try:
             await self._pubsub.unsubscribe(channel.encode())
-            #await self._pubsub.get_message(ignore_subscribe_messages=False, timeout=0.1)
+            #!!! add our own tracker
         except Exception as e:
             raise ChannelSubscriptionError(str(e))
 

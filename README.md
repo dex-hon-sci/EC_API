@@ -265,10 +265,10 @@ operations in separate processes to minimise congestion or interference.
 constructs in the `channel` module. The followings are the supported 
 communication protocols (planned):
 
-| #  | Name | Folder Label | Protocol | Status | Docs |
+| #  | Name | Object Name | IPC Protocol | Status | Docs |
 |:---|:----:|:------------:|:--------:|:------:| ----:|
-| 0. | Internal | `` | Single Process Communication | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
-| 1. | Redis | `` | In-Memory IPC | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
+| 1. | Redis | `RedisChannel` | in-memory DB (msgpack+RESP) | ![Status](https://img.shields.io/badge/Done-2BB33D) | Docs |
+| 2. | Unix Domain Socket | `UDSChannel` | in-memory direct comm | ![Status](https://img.shields.io/badge/To_Be_Started-F54927) | Docs |
 
 
 ```python
