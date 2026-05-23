@@ -24,3 +24,18 @@ class DataBus:
     ) -> None: ...
 
     def push(self, raw: tuple) -> None: ...
+
+    def __init__(self):
+        _registry: dict[str, dict[str, tuple[DataFeed, Callable]]]
+        # symbol -> {feed_id -> (feed, callback)}
+
+    def register(self, symbol: str, feed_id: str, feed: DataFeed, on_tick: Callable) -> None:
+        self._registry.setdefault(symbol, {})[feed_id] = (feed, on_tick)
+  
+    def deregister(self, symbol: str, feed_id: str) -> None:
+        self._registry[symbol].pop(feed_id, None)
+  
+    def push(self, symbol: str, raw: tuple) -> None:
+        for feed, cb in self._registry.get(symbol, {}).values():
+            feed.update(raw)
+            cb(symbol)
