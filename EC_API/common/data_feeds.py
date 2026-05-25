@@ -22,6 +22,9 @@ class DataFeed:
     # symbol_registry in monitor object hold translation (symbol_name -> contract_id)
     # DataEngine calls MonitorData stream()
     # DataEngine runs broadcast_loop via channel.broadcast('stream_name', data)
+    # Data Engine holds a dict for (current_symbol_name<->long_term_symbol_name)
+    # stream_name is the long term name
+    # DataFeed only care for the long term nanme
     def __init__(
         self,
         tick_buffer: TickBuffer=[],
@@ -46,6 +49,8 @@ class DataFeed:
         self._std = 0
         self._median = 0
 
+
+        self.snapshot = dict() # update
     # @property
     def tick_buffer_stat(self, horizon: float, current_time: float) -> dict[str, float | None]:
         # Only Getter method is needed in this class
@@ -65,10 +70,59 @@ class DataFeed:
     def vwamp() -> float:
         ...
         
-    def update(self) -> None: # main methods to updates all attribute and statistics
+    def update(self, raw: tuple) -> None: # main methods to updates all attribute and statistics
+       
+        # extractor call
+        
+        # loading them to buffers
+        
+        # run calculations
+        
+        # update them to attributes
+        
+        
         ...
 
-
+# =============================================================================
+#       def update(self, raw: tuple) -> None:
+#           ts, price, vol = raw          # or vendor-specific unpacking
+#           self._buffer.add_tick(ts, price, vol)
+#           self._snap = self._buffer.stats   # cached, O(1)
+# 
+#       @property
+#       def snapshot(self) -> FeedSnapshot:
+#           return self._snap
+# 
+#   Strategy side:
+# 
+#   def on_tick(symbol: str) -> None:    # this IS the DataBus callback
+#       snap = feed.snapshot
+#       if snap.vwap > snap.mean_price * 1.002:
+#           ...
+# =============================================================================
+# =============================================================================
+# 
+#   class SlidingWindowBuffer:
+#       def __init__(self, window_seconds: float):
+#           self._window = window_seconds
+#           self._ticks: deque[Tick] = deque()   # time-ordered
+#           self._acc = RunningAccumulator()     # single object, all running sums
+# 
+#       def add_tick(self, ts: float, price: float, vol: float) -> None:
+#           # 1. expire old ticks first (subtract from acc)
+#           cutoff = ts - self._window
+#           while self._ticks and self._ticks[0].timestamp < cutoff:
+#               old = self._ticks.popleft()
+#               self._acc.remove(old.price, old.volume)
+#           # 2. add new tick
+#           t = Tick(price, vol, ts)
+#           self._ticks.append(t)
+#           self._acc.add(price, vol)
+# 
+#       @property
+#       def stats(self) -> AccumulatorSnapshot:
+#           return self._acc.snapshot()    # returns a NamedTuple, O(1)
+# =============================================================================
 # =============================================================================
 #     @property
 #     def tick_buffer_stat(self): # Only Getter method is needed in this class
@@ -84,8 +138,16 @@ class DataFeed:
 # buf_stat_method()
 # self._tick_buffer_stat: dict = {}
 # =============================================================================
-
-
+# =============================================================================
+#   Strategy side:
+# 
+#   def on_tick(symbol: str) -> None:    # this IS the DataBus callback
+#       snap = feed.snapshot
+#       if snap.vwap > snap.mean_price * 1.002:
+#           ...
+# 
+# 
+# =============================================================================
 class CrossFeeds:  # WIP
     """
     An Object that process dervied data from more than one DataFeed. For
