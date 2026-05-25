@@ -16,7 +16,12 @@ class DataFeed:
 
     DataFeed is meant to be taken by OpStrategy for trade logic calculation.
     """
-
+    # Extract relevant data based on vendor (extractor and policy)
+    # trasnform raw ticks into usable streaming data for OpSIgnala and OpStrategy
+    # ID translation contract_id (0) -> symbol_name (CLEV26) -> stream_name (CLE)
+    # symbol_registry in monitor object hold translation (symbol_name -> contract_id)
+    # DataEngine calls MonitorData stream()
+    # DataEngine runs broadcast_loop via channel.broadcast('stream_name', data)
     def __init__(
         self,
         tick_buffer: TickBuffer=[],

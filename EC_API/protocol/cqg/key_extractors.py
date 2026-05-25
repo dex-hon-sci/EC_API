@@ -21,7 +21,6 @@ def register_extractor(msg_name: str):
     def decorator(func: Callable[..., None]):
         extractors[msg_name] = func
         return func
-
     return decorator
 
 
