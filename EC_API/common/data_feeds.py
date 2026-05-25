@@ -13,20 +13,13 @@ from EC_API.common.tick_stats import TickBufferStat
 class DataFeed:
     """
     DataFeed is a container class.
-    It does not modify the behaviours/data of ticks.
-
-    Standard: One Data Feed object contains only one TickBuffer and one set of
-    Stats. This is mainly a format class.
-
-    Monitor object modify tickbuffer and tickbuffer stat. The DataFeed is a
-    container class. So the tick_buffer attributes will change accordingly.
 
     DataFeed is meant to be taken by OpStrategy for trade logic calculation.
     """
 
     def __init__(
         self,
-        tick_buffer: TickBuffer,
+        tick_buffer: TickBuffer=[],
         calculators: dict = {},
         min_n: int = 20,
         symbol: str = "",
@@ -56,14 +49,19 @@ class DataFeed:
     def latest(self) -> None:
         return self._latest
 
+    @property
     def mean(self) -> float:
         return self._median
 
+    @property
     def std(self) -> float:
         return
 
-    def mean_last(self, seconds: float, now: float) -> float:
-        return
+    def vwamp() -> float:
+        ...
+        
+    def update(self) -> None: # main methods to updates all attribute and statistics
+        ...
 
 
 # =============================================================================
