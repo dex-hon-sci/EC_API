@@ -6,12 +6,12 @@ Created on Mon May 25 19:47:56 2026
 @author: dexter
 """
 import pytest
-from EC_API.common.data_feeds import DataFeed
+from EC_API.common.data_feeds import DataFeed, CrossFeeds
 from EC_API.common.data_bus import DataBus
 from EC_API.exceptions import DataBusRegisterError
 
 
-def test_data_bus_register_valid() -> None:
+def test_data_bus_register_valid_datafeed() -> None:
     DB = DataBus()
     df = DataFeed()
     
@@ -21,6 +21,16 @@ def test_data_bus_register_valid() -> None:
     assert DB.registry["symbol_1"].get("feed_id_1")
     assert DB.registry["symbol_1"]["feed_id_1"] == (df, None)
     
+def test_data_bus_register_valid_crossfeeds() -> None:
+    DB = DataBus()
+    cf = CrossFeeds()
+    
+    DB.register("symbol_1", "feed_id_1", cf, None)
+    
+    assert DB.registry.get("symbol_1")
+    assert DB.registry["symbol_1"].get("feed_id_1")
+    assert DB.registry["symbol_1"]["feed_id_1"] == (cf, None)
+
     
 def test_data_bus_register_invalid_wrong_symbol_type() -> None:
     DB = DataBus()
