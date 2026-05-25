@@ -36,6 +36,9 @@ OrderStatusType: TypeAlias = dict[str, Any]  # tuple
 PositionStatusType: TypeAlias = dict[str, Any]  # tuple
 AccountSummaryType: TypeAlias = dict[str, Any]  # tuple
 
+# ----- Channel -----
+OrderIntent: TypeAlias = tuple[int, dict[str, Any]] # (Request_type, Order_Info)
+
 
 # ====== Vendor-Specific Types ======
 # ------------- CQG -----------------

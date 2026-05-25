@@ -30,6 +30,12 @@ class InvalidNextStateError(StateControlError):
     def __init__(self, message: str):
         super().__init__(message)
 
+# --- Common ---
+class DataBusError(EC_APIError):...
+
+class DataBusRegisterError(DataBusError):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 # --- Transport ---
 class TransportError(EC_APIError): ...

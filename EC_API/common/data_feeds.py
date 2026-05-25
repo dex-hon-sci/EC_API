@@ -42,6 +42,11 @@ class DataFeed:
         self.buf_stat_method: TickBufferStat = TickBufferStat(
             self.tick_buffer, calculators=self.calculators, min_n=self.min_n
         )
+        # ----
+        self._latest = 0
+        self._mean = 0
+        self._std = 0
+        self._median = 0
 
     # @property
     def tick_buffer_stat(self, horizon: float, current_time: float) -> dict[str, float | None]:
@@ -49,13 +54,10 @@ class DataFeed:
         return self.buf_stat_method.stats(horizon, current_time)
 
     def latest(self) -> None:
-        return
-
-    def history(self) -> None:
-        return
+        return self._latest
 
     def mean(self) -> float:
-        return
+        return self._median
 
     def std(self) -> float:
         return
