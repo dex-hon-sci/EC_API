@@ -3,16 +3,13 @@
 #include <string>
 #include <pybind11/pybind11.h>
 #include <data_fields_cqg.h>
-
-enum class DataExtractionPolicy {
-
-};
+#include <data_extractors_cqg.h>
 
 /*Extraction -> tick -> buffers*/
 struct TradeTick {double timestamp, price, volume};
 struct Tick {double timestamp, price, volume};
 
-Tick extract_raw_tick(PyObject* obj, std::string instruction) {
+Tick extract_raw_tick(py::tuple* obj, std::string instruction) {
 // Pick the right list first, then loop through it 
 // only read the right indices, copy them to a Tick struct 
     if !PyList_Check(obj) {

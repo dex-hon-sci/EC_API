@@ -1,3 +1,5 @@
+#pragma once 
+
 namespace QuoteCQG {
     constexpr int Q_CONTRACT_ID = 0;
     constexpr int Q_TYPE = 1;
@@ -13,7 +15,7 @@ namespace QuoteCQG {
     constexpr int Q_SCALED_CURRENCY_RATE_PRICE = 11;
     constexpr int Q_SCALED_PREMIUM = 12;
     constexpr int Q_MARKET_STATE = 13;
-    constexpr int CORRECT_PRICE_SCALE = 14;
+    constexpr int Q_CORRECT_PRICE_SCALE = 14;
     constexpr int Q_IS_SNAPSHOT = 15;
     }
     
