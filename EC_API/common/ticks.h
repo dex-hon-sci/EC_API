@@ -1,8 +1,10 @@
 #pragma once 
+#include <variant>
+
 
 struct TradeTick {
     double timestamp, price, volume;
-    int side
+    int side;
     };
 
 struct SpreadTick {
@@ -10,7 +12,7 @@ struct SpreadTick {
     };
 
 struct OHLCVTick {
-    double timestamp, open, high, low, close, volume
+    double timestamp, open, high, low, close, volume;
     };
 
 /*struct BidAskTick {
@@ -20,3 +22,6 @@ struct OHLCVTick {
   double bid_size,       //← volume from significand/exponent         (when Q_TYPE is bid)
   double ask_size       //← volume from significand/exponent         (when Q_TYPE is ask)
   };*/
+  
+using Tick = std::variant<TradeTick, OHLCVTick, SpreadTick>;
+

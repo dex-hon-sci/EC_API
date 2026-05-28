@@ -1,5 +1,12 @@
 #pragma once 
 
+namespace ParsedRTMDCQG {
+    constexpr int Quote = 0;
+    constexpr int MarketValue = 1;
+    constexpr int DetailedDOM = 2;
+    constexpr int Corrections = 3;
+}
+
 namespace QuoteCQG {
     constexpr int Q_CONTRACT_ID = 0;
     constexpr int Q_TYPE = 1;
