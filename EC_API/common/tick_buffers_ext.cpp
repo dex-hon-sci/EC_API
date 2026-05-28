@@ -62,5 +62,5 @@ public:
 };
 
 PYBIND11_MODULE(tick_buffers_ext, m) {
-    py.class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer");
+    py::class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer");
 }
