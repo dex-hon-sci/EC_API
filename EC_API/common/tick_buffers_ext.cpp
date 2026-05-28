@@ -1,91 +1,66 @@
-#include <Python.h>
 #include <deque>
 #include <string>
+#inclide <array>
+#include <Python.h>
 #include <pybind11/pybind11.h>
-#include <data_fields_cqg.h>
-#include <data_extractors_cqg.h>
+#include "ticks.h"
+#include "data_fields_cqg.h"
+#include "data_extractors_cqg.h"
 
 /*Extraction -> tick -> buffers*/
-struct TradeTick {double timestamp, price, volume};
-struct Tick {double timestamp, price, volume};
-
-Tick extract_raw_tick(py::tuple* obj, std::string instruction) {
-// Pick the right list first, then loop through it 
-// only read the right indices, copy them to a Tick struct 
-    if !PyList_Check(obj) {
-        throw std::invalid_argument("Expected a list")
-    }
-    if instruction == NULL {
-        std::string instruction = "policy_1";
-    }
-    
-    if instruction == "policy_1" {
-        Tick extracted_tick = Tick{obj[0],obj[1],obj[2]};
-    }
-    else if instruction == "policy_2" {
-        Tick extracted_tick = Tick{obj[4],obj[5],obj[6]};
-    }
-    else if instruction == "policy_2" {
-        Tick extracted_tick = Tick{obj[4],obj[5],obj[6]};
-    
-    return extracted_tick
-};
-
-
-
 class SlidingWindowBuffer {
 private:
-    double _window; // time window
-    std::deque<Tick> _ticks;
-    double _sum_price = 0, sum_price = 0; 
-    double _sum_pricevol = 0, _sum_vol = 0;
-    int _n = 0;
+    DataExtractionPolicy policy_;
+    int rtmd_idx;
+
+    std::deque<Tick> buffer_;
+    
+    double window_; // time window
+    double sum_price_ = 0
+    double sum_pricevol_ = 0, sum_vol_ = 0;
+    int n_ = 0;
+    double vwap = 0;
     
 public:
     /* 0. Constructor*/
-    SlidingWindowBuffer() {}
-    
-    void add_tick(PyObject* obj) {
-        extract_raw_tick();
+    SlidingWindowBuffer(DataExtractionPolicy policy): 
+        policy_{policy},
+        rtmd_idx{get_parsed_rtmd_index_from_policy(policy)} {}
 
-    /* 1. Copy Constructor*/
-    //SlidingWindowBuffer(const SldingWindowBuffer& other) {}
-    /* 2. Copy Assignment*/
-    //SlidingWindowBuffer& operator=(const SldingWindowBuffer& other) {}
-    /* 3. Move Constructor*/
-    //SlidingWindowBuffer(SlidingWindowBuffer&& other) : {}
-    /* 4. Move Assignment*/
-    //SlidingWindowBuffer& operator=(SldingWindowBuffer&& other) {}
-    /* 5. Destructor*/
-    //~SldingWindowBuffer() {}
-
+    void compute_and_update(Tick tick) {//accumulator calcultator
     
-    };
+    }
+    
+    void add_tick(py::tuple& parsed_rtmd) {
+        py::list data = parsed_rtmd[rtmd_idx];
+        for (auto& raw : data) {
+            auto tick = extract_raw_tick(raw.cast<py::tuple>(), policy_);
+            if (tick) buffer_.push_back(*tick); //send them to the buffer
+            compute_and_update(*tick); //update private attributes
+            }
+    }
 
 };
 
 
 class RingBuffer {
 private:
-    double _sum_price = 0, sum_price = 0; 
-    double _sum_pricevol = 0, _sum_vol = 0;
-    int _n = 0;
+    DataExtractionPolicy policy_;
+    int rtmd_idx;
+
+    std::array<Tick, 1024> buffer_;  // fixed size, no heap management needed
+    int head_ = 0;
+     
+    double sum_price_ = 0
+    double sum_pricevol_ = 0, sum_vol_ = 0;
+    int n_ = 0;
 
 public:
-    /* 1. Copy Constructor*/
-    //RingBuffer(const RingBuffer& other) {}
-    /* 2. Copy Assignment*/
-    //RingBuffer& operator=(const RingBuffer& other) {}
-    /* 3. Move Constructor*/
-    //RingBuffer(RingBuffer&& other) : {}
-    /* 4. Move Assignment*/
-    //RingBuffer& operator=(RingBuffer&& other) {}
-    /* 5. Destructor*/
-    //~RingBuffer() {}
+    void compute_and_update() {}
+    void add_tick() {}
 
 };
 
-PYBIND11_MOFULE(tick_buffers_exy, m, py::mod_gil_not_used()) {
-
-    m.class_("SlidingWindowBuffer", &SlidingWindowBuffer)
+PYBIND11_MODULE(tick_buffers_exy, m, py::mod_gil_not_used()) {
+    m.class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer");
 }
