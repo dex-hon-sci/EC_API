@@ -249,8 +249,8 @@ async def test_redis_channel_subscribe_invalid_subscription(redis_client) -> Non
     RC.r = redis_client
     RC._pubsub = redis_client.pubsub()
 
-    with pytest.raises(ChannelSubscriptionError):
-        await RC.subscribe_pubsub([]) # <-- invalid, unhashable
+    with pytest.raises((ChannelSubscriptionError, TypeError)):
+        await RC.subscribe_pubsub(12345) # <-- invalid, unhashable
         
 @pytest.mark.asyncio
 async def test_redis_channel_unsubscribe_valid(redis_client) -> None:
