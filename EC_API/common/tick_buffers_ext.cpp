@@ -1,6 +1,6 @@
 #include <deque>
 #include <string>
-#inclide <array>
+#include <array>
 #include <Python.h>
 #include <pybind11/pybind11.h>
 #include "ticks.h"
@@ -16,7 +16,7 @@ private:
     std::deque<Tick> buffer_;
     
     double window_; // time window
-    double sum_price_ = 0
+    double sum_price_ = 0;
     double sum_pricevol_ = 0, sum_vol_ = 0;
     int n_ = 0;
     double vwap = 0;
@@ -51,7 +51,7 @@ private:
     std::array<Tick, 1024> buffer_;  // fixed size, no heap management needed
     int head_ = 0;
      
-    double sum_price_ = 0
+    double sum_price_ = 0;
     double sum_pricevol_ = 0, sum_vol_ = 0;
     int n_ = 0;
 
@@ -61,6 +61,6 @@ public:
 
 };
 
-PYBIND11_MODULE(tick_buffers_exy, m, py::mod_gil_not_used()) {
+PYBIND11_MODULE(tick_buffers_ext, m) {
     m.class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer");
 }

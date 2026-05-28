@@ -1,6 +1,8 @@
 #pragma once 
 #include <optional>
-#inclide "ticks.h"
+#include "ticks.h"
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 
 enum class DataExtractionPolicy : uint8_t {
     ExtractTradeTickCQG = 0,
