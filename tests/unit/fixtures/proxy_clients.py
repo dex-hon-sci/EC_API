@@ -43,7 +43,7 @@ class FakeCQGClient:
         msg = self._incoming.get()
         if msg is None or self._closed:
             # Treat sentinel as "no more messages"
-            raise OSError("Client closed.")
+            return None
         return msg
 
     def push_incoming(self, msg: ServerMsgType):
