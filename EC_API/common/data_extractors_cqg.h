@@ -1,8 +1,10 @@
 #pragma once 
+#include <Python.h>
 #include <optional>
 #include "ticks.h"
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
+
+
 
 enum class DataExtractionPolicy : uint8_t {
     ExtractTradeTickCQG = 0,
@@ -20,7 +22,7 @@ enum class QuoteTypeCQG : int {
     ImpliedAsk = 11,
 };
 
-std::optional<TradeTick> extract_trade_tick_CQG(const py::tuple& quote);
-std::optional<Tick> extract_raw_tick(const py::tuple& quote, DataExtractionPolicy policy);
+std::optional<TradeTick> extract_trade_tick_CQG(const PyObject* quote);
+std::optional<Tick> extract_raw_tick(const PyObject* quote, DataExtractionPolicy policy);
 
-int get_parsed_rtmd_index_from_policy(DataExtractionPolicy policy);
+std::optional<int> get_parsed_rtmd_index_from_policy(DataExtractionPolicy policy);

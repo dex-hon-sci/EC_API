@@ -4,7 +4,6 @@
 
 struct TradeTick {
     double timestamp, price, volume;
-    int side;
     };
 
 struct SpreadTick {
@@ -24,4 +23,5 @@ struct OHLCVTick {
   };*/
   
 using Tick = std::variant<TradeTick, OHLCVTick, SpreadTick>;
+
 
