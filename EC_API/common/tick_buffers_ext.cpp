@@ -25,8 +25,8 @@ public:
     /* 0. Constructor*/
     SlidingWindowBuffer(DataExtractionPolicy policy, double window): 
         policy_{policy},
-        window_{window},
-        rtmd_idx{get_parsed_rtmd_index_from_policy(policy)} {}
+        rtmd_idx{get_parsed_rtmd_index_from_policy(policy)},
+        window_{window} {}
 
     void compute_and_update(const Tick& tick) {//accumulator calcultator
     

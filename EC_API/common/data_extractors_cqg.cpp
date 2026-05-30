@@ -2,7 +2,8 @@
 #include <optional>
 #include <Python.h>
 #include <pybind11/pybind11.h>
-#include "ticks.h"
+#include "ticks.h" 
+#include "data_fields_cqg.h"
 #include "data_extractors_cqg.h"
 
 namespace py = pybind11;
