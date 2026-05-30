@@ -25,4 +25,4 @@ enum class QuoteTypeCQG : int {
 std::optional<TradeTick> extract_trade_tick_CQG(const PyObject* quote);
 std::optional<Tick> extract_raw_tick(const PyObject* quote, DataExtractionPolicy policy);
 
-std::optional<int> get_parsed_rtmd_index_from_policy(DataExtractionPolicy policy);
+int get_parsed_rtmd_index_from_policy(DataExtractionPolicy policy);

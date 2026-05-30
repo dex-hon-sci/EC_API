@@ -11,7 +11,7 @@ double make_float(double significand, double exponent, int sign) {
     return (sign == 0 ? 1.0 : -1.0) * significand * pow(10, exponent);
 }
 
-std::optional<int> get_parsed_rtmd_index_from_policy(DataExtractionPolicy policy) {
+int get_parsed_rtmd_index_from_policy(DataExtractionPolicy policy) {
     switch (policy) {
         case DataExtractionPolicy::ExtractTradeTickCQG:
             return ParsedRTMDCQG::Quote;
