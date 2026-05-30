@@ -4,8 +4,11 @@ from pybind11.setup_helpers import Pybind11Extension, build_ext
 ext_modules = [
     Pybind11Extension(
         "EC_API.common.tick_buffers_ext",
-        sources=["EC_API/common/tick_buffers_ext.cpp"],
-        include_dirs=["EC_API"],                 
+        sources=[
+            "EC_API/common/tick_buffers_ext.cpp",
+            "EC_API/common/data_extractors_cqg.cpp"
+            ],
+        include_dirs=["EC_API/common"],                 
     ),
 ]
 
