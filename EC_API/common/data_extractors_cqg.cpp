@@ -39,8 +39,8 @@ std::optional<TradeTick> extract_trade_tick_CQG(const PyObject* raw_tick) {
     PyObject* v_sig = PyTuple_GET_ITEM(raw_tick, QuoteCQG::Q_VOL_SIGNIFICAND);
     PyObject* v_exp = PyTuple_GET_ITEM(raw_tick, QuoteCQG::Q_VOL_EXPONENT);
     
-    if (!PyFloat_Check(ts) || !PyFloat_Check(px) || !PyFloat_Check(scl) || \
-        !PyFloat_Check(v_sig) || !PyFloat_Check(v_exp)) {return std::nullopt;}
+    if (!PyFloat_Check(ts) || !PyFloat_Check(px) || !PyFloat_Check(scl) || 
+     !PyFloat_Check(v_sig) || !PyFloat_Check(v_exp)) {return std::nullopt;}
     
     double timestamp = PyFloat_AS_DOUBLE(ts);
     double price = PyFloat_AS_DOUBLE(px) * PyFloat_AS_DOUBLE(scl);
@@ -59,4 +59,3 @@ std::optional<Tick> extract_raw_tick(const PyObject* raw_tick, DataExtractionPol
     }
     
 };
-\
