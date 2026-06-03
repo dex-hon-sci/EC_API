@@ -1,7 +1,10 @@
 #include <stats.h>
 #include <ticks.h>
 #include <algorithm>
+#include <cmath>
 
+
+//
 class OHLCVStat : public StateBase {
 private:
     Buffer* buffer_;
@@ -12,9 +15,6 @@ public:
         buffer_{&buf},
         tick_size_{tick_size},
         ohlcv_snapshot{} {};
-    OHLCVSnapshot get_snapshot() {
-        return ohlcv_snapshot;
-    };
 
     void update(const Tick& t) {
         if (t.price >= ohlcv_snapshot.high) {ohlcv_snapshot.high = t.price};
@@ -37,21 +37,75 @@ public:
     
         ohlcv_snapshot.volume -= t.volume;
     };
+    
+    OHLCVSnapshot get_snapshot() const {return ohlcv_snapshot;};
+
 };
 
-class VWAPStat : public StateBase {
-
-};
-
-class FirstSecondOrderStat : StateBase {
+// O(1) on both update and evict
+class MomentStat : public StateBase {
 private:
-        Buffer* buffer_;
+    Buffer* buffer_;
+    double sum_p;
+    double sum_p_2;
+    double sum_p_3;
+    double sum_p_4;
+    int count;
+    MomentSnapshot moment_snapshot;
 
 public:
-    void get_snapshot(const Tick t) {};
-    void update(const Tick t) {};
-    void evict(const Tick t) {};
+    MomentStat(Buffer& buf):
+        buffer_{&buf}, 
+        sum_p{}, sum_p_2{}, sum_p_3{}, sum_p_4{}, 
+        count{} {
+          for (const Tick& t : *buffer_)
+              update(t);
+        };
+    
+    void update(const Tick& t) {
+        double p = t.price;
+        sum_p += p;
+        sum_p_2 += std::pow(p,2);
+        sum_p_3 += std::pow(p,3);
+        sum_p_4 += std::pow(p,4);
+        count++;
+        
+        double mean_ = sum_p / count;
+        double variance_ = (sum_p_2/count) - std::pow(mean_, 2); 
+        
+        moment_snapshot.mean = mean_;
+        moment_snapshot.variance = variance_;
+        moment_snapshot.skewness = (((sum_p_3/count) - 3*mean_*(sum_p_2 / count) + 2* std::pow(mean_, 3)) / pow(variance_, 1.5)); 
+        moment_snapshot.kurtosis = (((sum_p_4 -4 * mean_ * sum_p_3 + 6 * sum_p_2 * std::pow(mean_,2))/count) - 3* std::pow(mean_,4)) /  pow(variance_, 2);
+    };
+    void evict(const Tick& t) {
+        double p = t.price;
+        sum_p -= p;
+        sum_p_2 -= std::pow(p, 2);
+        sum_p_3 -= std::pow(p, 3);
+        sum_p_4 -= std::pow(p, 4);
+        count--;
+                
+        double mean_ = sum_p / count;
+        double variance_ = (sum_p_2/count) - std::pow(mean_, 2); 
+        
+        moment_snapshot.mean = mean_;
+        moment_snapshot.variance = variance_;
+        moment_snapshot.skewness = (((sum_p_3/count) - 3*mean_*(sum_p_2 / count) + 2* std::pow(mean_, 3)) / pow(variance_, 1.5)); 
+        moment_snapshot.kurtosis = (((sum_p_4 -4 * mean_ * sum_p_3 + 6 * sum_p_2 * std::pow(mean_,2))/count) - 3* std::pow(mean_,4)) /  pow(variance_, 2);
+    };
+    
+    MomentSnapshot get_snapshot() const {return moment_snapshot;};
+};
+
+
+class VWAPStat : public StateBase {
+private:
+    Buffer* buffer_;
+    VWAPSnapshot vwap_snapshot;
+public:
 
 };
+
 //VWAPStat
 //OHLCV
