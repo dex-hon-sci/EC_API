@@ -1,9 +1,11 @@
 #include <deque>
 #include <string>
 #include <array>
+#include <vector>
 #include <Python.h>
 #include <pybind11/pybind11.h>
 #include "ticks.h"
+#include "stats.h"
 #include "data_fields_cqg.h"
 #include "data_extractors_cqg.h"
 namespace py = pybind11;
@@ -13,13 +15,11 @@ class SlidingWindowBuffer {
 private:
     DataExtractionPolicy policy_;
     int rtmd_idx;
-    std::deque<Tick> buffer_;
+    std::deque<TradeTick> buffer_;
     
     double window_; // time window
-    double sum_price_ = 0;
-    double sum_pricevol_ = 0, sum_vol_ = 0;
-    int n_ = 0;
-    double vwap = 0;
+    std::vector<StatBase*> stats_;
+
     
 public:
     /* 0. Constructor*/
@@ -28,8 +28,17 @@ public:
         rtmd_idx{get_parsed_rtmd_index_from_policy(policy)},
         window_{window} {}
 
-    void compute_and_update(const Tick& tick) {//accumulator calcultator
-    
+    void compute_and_update(const TradeTick& tick) {//accumulator calcultator
+        if (buffer_.size() > window_) {
+            TradeTick evicted_tick = buffer_.front();
+            buffer_.pop_front();
+            for (auto& sts : stats_) {
+                sts->evict(evicted_tick);
+            };
+        for (auto& sts : stats_) {
+            sts->update(tick);
+            };
+        }
     }
     
     void add_tick(const py::object& parsed_rtmd) {
@@ -48,6 +57,7 @@ public:
             if (tick) {
                 buffer_.push_back(*tick); //send them to the buffer
                 compute_and_update(*tick); //update private attributes
+                
                 } 
             }
     }
@@ -59,13 +69,9 @@ private:
     DataExtractionPolicy policy_;
     int rtmd_idx;
 
-    std::array<Tick, 1024> buffer_;  // fixed size, no heap management needed
+    std::array<TradeTick, 1024> buffer_;  // fixed size, no heap management needed
     int head_ = 0;
      
-    double sum_price_ = 0;
-    double sum_pricevol_ = 0, sum_vol_ = 0;
-    int n_ = 0;
-
 public:
     RingBuffer(DataExtractionPolicy policy):
         policy_{policy},

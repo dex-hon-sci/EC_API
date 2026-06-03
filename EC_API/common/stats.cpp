@@ -5,7 +5,7 @@
 
 
 // O(1) for update, O(N) at worst in evict
-class OHLCVStat : public StateBase {
+class OHLCVStat : public StatBase {
 private:
     Buffer* buffer_;
     double tick_size_;
@@ -16,7 +16,7 @@ public:
         tick_size_{tick_size},
         ohlcv_snapshot{} {};
 
-    void update(const Tick& t) {
+    void update(const TradeTick& t) {
         if (t.price >= ohlcv_snapshot.high) {ohlcv_snapshot.high = t.price};
         else if (t.price <= ohlcv_snapshot.low) {ohlcv_snapshot.low = t.price};
         
@@ -25,13 +25,13 @@ public:
         ohlcv_snapshot.volume += t.volume;
     };
     
-    void evict(const Tick& t) {
+    void evict(const TradeTick& t) {
         if (std::abs(t.price - ohlcv_snapshot.high) <= 0.5*tick_size_) { 
-            auto it = std::max_element(buffer_->begin(), buffer_->end(), [](const Tick& a, const Tick& b) {return a.price < b.price;}); 
+            auto it = std::max_element(buffer_->begin(), buffer_->end(), [](const TradeTick& a, const TradeTick& b) {return a.price < b.price;}); 
             ohlcv_snapshot.high = it->price;
             };
         else if (std::abs(t.price - ohlcv_snapshot.low) <= 0.5*tick_size_) {
-            auto it = std::min_element(buffer_->begin(), buffer_->end(),[](const Tick& a, const Tick& b) {return a.price < b.price;});
+            auto it = std::min_element(buffer_->begin(), buffer_->end(),[](const TradeTick& a, const TradeTick& b) {return a.price < b.price;});
             ohlcv_snapshot.low = it->price;
             };
     
@@ -43,7 +43,7 @@ public:
 };
 
 // O(1) on both update and evict
-class MomentStat : public StateBase {
+class MomentStat : public StatBase {
 private:
     Buffer* buffer_;
     double sum_p;
@@ -59,11 +59,11 @@ public:
         sum_p{}, sum_p_2{}, sum_p_3{}, sum_p_4{}, 
         count{}, 
         moment_snapshot{} {
-          for (const Tick& t : *buffer_)
+          for (const TradeTick& t : *buffer_)
               update(t);
         };
     
-    void update(const Tick& t) {
+    void update(const TradeTick& t) {
         double p = t.price;
         sum_p += p;
         sum_p_2 += std::pow(p,2);
@@ -79,7 +79,7 @@ public:
         moment_snapshot.skewness = (((sum_p_3/count) - 3*mean_*(sum_p_2 / count) + 2* std::pow(mean_, 3)) / pow(variance_, 1.5)); 
         moment_snapshot.kurtosis = (((sum_p_4 -4 * mean_ * sum_p_3 + 6 * sum_p_2 * std::pow(mean_,2))/count) - 3* std::pow(mean_,4)) /  pow(variance_, 2);
     };
-    void evict(const Tick& t) {
+    void evict(const TradeTick& t) {
         double p = t.price;
         sum_p -= p;
         sum_p_2 -= std::pow(p, 2);
@@ -100,9 +100,9 @@ public:
 };
 
 
-class VWAPStat : public StateBase {
+class VWAPStat : public StatBase {
 private:
-    //Buffer* buffer_;
+    Buffer* buffer_;
     double sum_pv;
     double sum_v;
     VWAPSnapshot vwap_snapshot;
@@ -112,17 +112,17 @@ public:
         sum_pv{}, 
         sum_v{},
         vwap_snapshot{} {
-         for (const Tick& t : *buffer_)
+         for (const TradeTick& t : *buffer_)
              update(t);
         };
 
-    void update(const Tick& t) {
+    void update(const TradeTick& t) {
       sum_pv += t.price * t.volume;
       sum_v  += t.volume;
       vwap_snapshot.vwap = sum_pv / sum_v;
     };
 
-    void evict(const Tick& t) {
+    void evict(const TradeTick& t) {
       sum_pv -= t.price * t.volume;
       sum_v  -= t.volume;         
       vwap_snapshot.vwap = sum_pv / sum_v;
@@ -132,16 +132,13 @@ public:
 
 };
 
-class MedianStat : public StateBase {
+class MedianStat : public StatBase {
 private:
     Buffer* buffer_;
-    MedianSnapshot vwap_snapshot;
-    
+    MedianSnapshot median_snapshot;
 public:
 
 };
 
 
 
-//VWAPStat
-//OHLCV
