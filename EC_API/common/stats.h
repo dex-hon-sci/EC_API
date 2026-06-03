@@ -13,10 +13,12 @@ struct OHLCVSnapshot {
 
 
 struct MomentSnapshot {
-    double mean, variance, skewness, kurtosis
+    double mean, variance, skewness, kurtosis;
 }
 
-struct VWAPSnapshot {};
+struct VWAPSnapshot {
+    double vwap;
+};
 
 struct MedianSnapshot {};
 
@@ -66,6 +68,20 @@ public:
     MomentSnapshot get_snapshot() const;
 };
 
+// 
+class VWAPStat : public StateBase {
+private:
+    //Buffer* buffer_;
+    double sum_pv;
+    int sum_v;
+    VWAPSnapshot vwap_snapshot;
+public:
+    VWAPStat(Buffer& buf);
+    void update(const Tick& t) override;
+    void evict(const Tick& t) override;
+    VWAPSnapshot get_snapshot() const;
+};
+
+
 class MedianStat : public StateBase {};
 
-class VWAPStat : public StateBase {};

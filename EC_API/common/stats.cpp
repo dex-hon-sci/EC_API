@@ -4,7 +4,7 @@
 #include <cmath>
 
 
-//
+// O(1) for update, O(N) at worst in evict
 class OHLCVStat : public StateBase {
 private:
     Buffer* buffer_;
@@ -57,7 +57,8 @@ public:
     MomentStat(Buffer& buf):
         buffer_{&buf}, 
         sum_p{}, sum_p_2{}, sum_p_3{}, sum_p_4{}, 
-        count{} {
+        count{}, 
+        moment_snapshot{} {
           for (const Tick& t : *buffer_)
               update(t);
         };
@@ -101,11 +102,46 @@ public:
 
 class VWAPStat : public StateBase {
 private:
-    Buffer* buffer_;
+    //Buffer* buffer_;
+    double sum_pv;
+    double sum_v;
     VWAPSnapshot vwap_snapshot;
+public:
+    VWAPStat(Buffer& buf): 
+        buffer_{&buf},
+        sum_pv{}, 
+        sum_v{},
+        vwap_snapshot{} {
+         for (const Tick& t : *buffer_)
+             update(t);
+        };
+
+    void update(const Tick& t) {
+      sum_pv += t.price * t.volume;
+      sum_v  += t.volume;
+      vwap_snapshot.vwap = sum_pv / sum_v;
+    };
+
+    void evict(const Tick& t) {
+      sum_pv -= t.price * t.volume;
+      sum_v  -= t.volume;         
+      vwap_snapshot.vwap = sum_pv / sum_v;
+    };
+    
+    VWAPSnapshot get_snapshot() const {return vwap_snapshot;}
+
+};
+
+class MedianStat : public StateBase {
+private:
+    Buffer* buffer_;
+    MedianSnapshot vwap_snapshot;
+    
 public:
 
 };
+
+
 
 //VWAPStat
 //OHLCV
