@@ -333,8 +333,8 @@ class TradeEngine:
             
 ```
 Note that this engine is made for the purpose of demonstration. In a production
-environment, addiional tasks, state control, and event-driven architecture
-are advisable to be included in the engine.
+environment, additional tasks, state control, and event-driven architecture
+are advisable to be included.
 
 ### **3. Strategy Building (planned v0.3.0 feature)**
 `EC_API` provide useful templates: `OpStrategy` and `OpSignal` 
