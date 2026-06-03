@@ -33,6 +33,7 @@ std::optional<TradeTick> extract_trade_tick_CQG(const PyObject* raw_tick) {
     if (!PyLong_Check(q_type)) {return std::nullopt;}
     if (PyLong_AsLong(q_type)!=static_cast<int>(QuoteTypeCQG::Trade)) {return std::nullopt;}
     
+    // C-style Extract (for speed) then calculate
     PyObject* ts = PyTuple_GET_ITEM(raw_tick, QuoteCQG::Q_UTC_TIME);
     PyObject* px = PyTuple_GET_ITEM(raw_tick, QuoteCQG::Q_SCALED_PRICE);
     PyObject* scl = PyTuple_GET_ITEM(raw_tick, QuoteCQG::Q_CORRECT_PRICE_SCALE);
