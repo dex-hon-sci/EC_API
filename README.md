@@ -91,7 +91,7 @@ Make sure your Python version is at least 3.12.
 
 To install via `pip`, run this in your terminal:
 ```bash
-pip install git+https://github.com/dex-hon-sci/EC_API
+pip install git+https://github.com/EulerCapitalAU/EC_API
 
 ```
 
