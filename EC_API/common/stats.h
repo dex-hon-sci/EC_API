@@ -1,9 +1,10 @@
 #pragma once 
-#include <ticks.h>
+#include <cstdint>
 #include <deque>
 #include <array>
+#include <ticks.h>
 
-using Buffer = std::variant<std::deque<TradeTick>,std::array<TradeTick, 1024>>;
+//using Buffer = std::variant<std::deque<TradeTick>,std::array<TradeTick, 1024>>;
 
 /* Snapshots collections */
 struct OHLCVSnapshot {
@@ -26,8 +27,8 @@ struct GreeksSnapshot {};
 
 
 //
-enum class StatConfig: uint32_t {
-
+enum class StatConfig : uint32_t {
+    cal_OHLCV = 0,
 };
 
 /* Concrete classes for Stat*/
@@ -35,26 +36,28 @@ class StatBase {
 public:
     virtual void update(const TradeTick& t) {};
     virtual void evict(const TradeTick& t) {};
-    ~StatBase() {};
+    virtual ~StatBase() {};
 };
 
 // OHLCV, update O(1), evict O(N) worst case
+template <typename ContainerT>
 class OHLCVStat : public StatBase {
 private:
-    Buffer* buffer_;
-    double tick_size;
+    ContainerT* container_;
+    double tick_size_;
     OHLCVSnapshot ohlcv_snapshot;
 public:      
-    OHLCVStat(Buffer& buf, double tick_size);
+    OHLCVStat(ContainerT& buf, double tick_size);
     void update(const TradeTick& t) override;
     void evict(const TradeTick& t) override;
     OHLCVSnapshot get_snapshot() const;
 };
 
 // 1st-4nd order moments normalised
+template <typename ContainerT>
 class MomentStat : public StatBase {
 private:
-    Buffer* buffer_;
+    ContainerT* container_;
     double sum_p;
     double sum_p_2;
     double sum_p_3;
@@ -62,21 +65,22 @@ private:
     int count;
     MomentSnapshot moment_snapshot;
 public:
-    MomentStat(Buffer& buf);
+    MomentStat(ContainerT& buf);
     void update(const TradeTick& t) override;
     void evict(const TradeTick& t) override;
     MomentSnapshot get_snapshot() const;
 };
 
 // 
+template <typename ContainerT>
 class VWAPStat : public StatBase {
 private:
-    Buffer* buffer_;
+    ContainerT* container_;
     double sum_pv;
     double sum_v;
     VWAPSnapshot vwap_snapshot;
 public:
-    VWAPStat(Buffer& buf);
+    VWAPStat(ContainerT& buf);
     void update(const TradeTick& t) override;
     void evict(const TradeTick& t) override;
     VWAPSnapshot get_snapshot() const;
