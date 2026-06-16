@@ -5,10 +5,18 @@ Created on Mon Aug 25 18:58:16 2025
 
 @author: dexter
 """
-
-from EC_API.common.tick import TickBuffer
+from typing import Union
+#from EC_API.common.tick import TickBuffer
 from EC_API.common.tick_stats import TickBufferStat
 
+from EC_API.common.tick_buffers_ext import (
+    SlidingWindowBuffer, RingBuffer, 
+    DataExtractionPolicy
+    )
+
+
+type TickBuffer = Union[SlidingWindowBuffer, RingBuffer]
+default_buf = SlidingWindowBuffer(DataExtractionPolicy.ExtractTradeTickCQG, 10)
 
 class DataFeed:
     """
@@ -27,8 +35,9 @@ class DataFeed:
     # DataFeed only care for the long term nanme
     def __init__(
         self,
-        tick_buffer: TickBuffer=[],
+        tick_buffer: TickBuffer = default_buf,
         calculators: dict = {},
+        buf_config: dict = {},
         min_n: int = 20,
         symbol: str = "",
     ):
@@ -44,12 +53,6 @@ class DataFeed:
             self.tick_buffer, calculators=self.calculators, min_n=self.min_n
         )
         # ----
-        self._latest = 0
-        self._mean = 0
-        self._std = 0
-        self._median = 0
-
-
         self.snapshot = dict() # update
     # @property
     def tick_buffer_stat(self, horizon: float, current_time: float) -> dict[str, float | None]:

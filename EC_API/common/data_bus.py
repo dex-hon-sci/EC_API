@@ -49,6 +49,6 @@ class DataBus:
     def push(self, symbol: str, raw: tuple) -> None:
         # filter and transform raw tick data to the intented format given by the eninge
         
-        for feed, cb in self._registry.get(symbol, {}).values():
+        for feed, callback in self._registry.get(symbol, {}).values():
             feed.update(raw)
-            cb(symbol)
+            callback(symbol)
