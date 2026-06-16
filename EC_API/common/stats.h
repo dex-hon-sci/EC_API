@@ -4,7 +4,13 @@
 #include <array>
 #include <ticks.h>
 
-//using Buffer = std::variant<std::deque<TradeTick>,std::array<TradeTick, 1024>>;
+
+struct StatConfig {
+    const bool cal_ohlcv = false;
+    const bool cal_moment = false;
+    const bool cal_vwap = false;
+    const bool cal_median = false;
+};
 
 /* Snapshots collections */
 struct OHLCVSnapshot {
@@ -26,10 +32,6 @@ struct MedianSnapshot {};
 struct GreeksSnapshot {};
 
 
-//
-enum class StatConfig : uint32_t {
-    cal_OHLCV = 0,
-};
 
 /* Concrete classes for Stat*/
 class StatBase {

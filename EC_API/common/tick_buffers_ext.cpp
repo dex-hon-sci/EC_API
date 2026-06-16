@@ -18,15 +18,18 @@ private:
     std::deque<TradeTick> buffer_;
     
     double window_; // time window
+    
+    //Stats
+    StatConfig stat_config_; 
     std::vector<StatBase*> stats_;
 
-    
 public:
     /* 0. Constructor*/
-    SlidingWindowBuffer(DataExtractionPolicy policy, double window): 
+    SlidingWindowBuffer(DataExtractionPolicy policy, double window, StatConfig stat_config = {}): 
         policy_{policy},
         rtmd_idx{get_parsed_rtmd_index_from_policy(policy)},
-        window_{window} {}
+        window_{window},
+        stat_config_{stat_config} {}
 
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
         if (buffer_.size() > window_) {
@@ -71,7 +74,10 @@ private:
 
     std::array<TradeTick, 1024> buffer_;  // fixed size, no heap management needed
     int head_ = 0;
-     
+    
+    StatConfig stat_config; 
+    std::vector<StatBase*> stats_;
+
 public:
     RingBuffer(DataExtractionPolicy policy):
         policy_{policy},
@@ -85,7 +91,16 @@ public:
 PYBIND11_MODULE(tick_buffers_ext, m) {
     py::enum_<DataExtractionPolicy>(m, "DataExtractionPolicy")
         .value("ExtractTradeTickCQG", DataExtractionPolicy::ExtractTradeTickCQG);
-
+        
+    py::class_<StatConfig>(m, "StatConfig")
+        .def(py::init([](bool cal_ohlcv, bool cal_moment, bool cal_vwap, bool cal_median) {
+                 return StatConfig{cal_ohlcv, cal_moment, cal_vwap, cal_median};
+             }),
+             py::arg("cal_ohlcv")  = false,
+             py::arg("cal_moment") = false,
+             py::arg("cal_vwap")   = false,
+             py::arg("cal_median") = false);
+           
     py::class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer")
         .def(py::init<DataExtractionPolicy, double>())
         .def("add_tick", &SlidingWindowBuffer::add_tick);
