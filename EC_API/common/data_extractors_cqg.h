@@ -4,12 +4,9 @@
 #include "ticks.h"
 #include <pybind11/pybind11.h>
 
-
-
 enum class DataExtractionPolicy : uint8_t {
     ExtractTradeTickCQG = 0,
 };
-
 
 enum class QuoteTypeCQG : int {
     Trade = 0,
