@@ -6,17 +6,25 @@ Created on Mon Aug 25 18:58:16 2025
 @author: dexter
 """
 from typing import Union
+from dataclasses import dataclass, asdict
+
 #from EC_API.common.tick import TickBuffer
 from EC_API.common.tick_stats import TickBufferStat
-
 from EC_API.common.tick_buffers_ext import (
     SlidingWindowBuffer, RingBuffer, 
     DataExtractionPolicy
     )
-
+from EC_API.common.tick_buffers_ext import StatConfig as CPPStatConfig
 
 type TickBuffer = Union[SlidingWindowBuffer, RingBuffer]
 default_buf = SlidingWindowBuffer(DataExtractionPolicy.ExtractTradeTickCQG, 10)
+
+@dataclass
+class StatConfig:
+    cal_ohlcv:  bool = False
+    cal_moment: bool = False
+    cal_vwap:   bool = False
+    cal_median: bool = False
 
 class DataFeed:
     """
@@ -40,10 +48,17 @@ class DataFeed:
         buf_config: dict = {},
         min_n: int = 20,
         symbol: str = "",
+        stat_config: StatConfig = StatConfig()
     ):
+        # Buffers
         self._ring_price: list = []  # np.ndarray  shape (window,)
         self._ring_time: list = []  # np.ndarray  shape (window,)
         self._ptr: int = 0
+
+        # Configs
+        self.stat_config: StatConfig = stat_config
+        self.cpp_stat_config = CPPStatConfig(**self.stat_config)
+        self.cpp_buffer = None
 
         self.tick_buffer: TickBuffer = tick_buffer
         self.symbol: str = symbol
