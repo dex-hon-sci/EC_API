@@ -89,7 +89,7 @@ void MomentStat<ContainerT>::evict(const TradeTick& t) {
 template <typename ContainerT>
 MomentSnapshot MomentStat<ContainerT>::get_snapshot() const {return moment_snapshot;}
 
-// VWAPStat O(1) on both update and evict
+// VWAPStat: O(1) on both update and evict
 template <typename ContainerT>
 VWAPStat<ContainerT>::VWAPStat(ContainerT& container): 
     container_{&container},

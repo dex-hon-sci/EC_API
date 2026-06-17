@@ -33,7 +33,7 @@ struct GreeksSnapshot {};
 
 
 
-/* Concrete classes for Stat*/
+/* Stat classes for Stat in DataFeed*/
 class StatBase {
 public:
     virtual void update(const TradeTick& t) {};
@@ -90,4 +90,7 @@ public:
 
 
 class MedianStat : public StatBase {};
+
+/* Stat classes for Stat in DataFeed*/
+
 
