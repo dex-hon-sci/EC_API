@@ -13,15 +13,15 @@ namespace py = pybind11;
 /*Extraction -> tick -> buffers*/
 class SlidingWindowBuffer {
 private:
+    // Buffer setups
     DataExtractionPolicy policy_;
-    int rtmd_idx;
-    std::deque<TradeTick> buffer_;
-    
-    double window_; // time window
+    int rtmd_idx; // The index of interest in rtmd tuple, initialised by policy_
+    double window_; // time window. eviction condition
+    std::deque<TradeTick> container_; // Data Container
     
     //Stats
-    StatConfig stat_config_; 
-    std::vector<StatBase*> stats_;
+    StatConfig stat_config_; // A list of bools, input via Python
+    std::vector<StatBase*> stats_; // StatBase Child objects
 
 public:
     /* 0. Constructor*/
@@ -32,9 +32,9 @@ public:
         stat_config_{stat_config} {}
 
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
-        if (buffer_.size() > window_) {
-            TradeTick evicted_tick = buffer_.front();
-            buffer_.pop_front();
+        if (container_.size() > window_) {
+            TradeTick evicted_tick = container_.front();
+            container_.pop_front();
             for (auto& sts : stats_) {
                 sts->evict(evicted_tick);
             };
@@ -58,7 +58,7 @@ public:
             
             auto tick = extract_raw_tick(raw_data_ptr, policy_);
             if (tick) {
-                buffer_.push_back(*tick); //send them to the buffer
+                container_.push_back(*tick); //send them to the buffer
                 compute_and_update(*tick); //update private attributes
                 
                 } 
@@ -69,12 +69,13 @@ public:
 
 class RingBuffer {
 private:
+    // Buffer Setups
     DataExtractionPolicy policy_;
     int rtmd_idx;
-
-    std::array<TradeTick, 1024> buffer_;  // fixed size, no heap management needed
+    std::array<TradeTick, 1024> container_;  // fixed size, no heap management needed
     int head_ = 0;
     
+    // Stats
     StatConfig stat_config; 
     std::vector<StatBase*> stats_;
 

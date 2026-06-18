@@ -3,7 +3,7 @@
 #include <deque>
 #include <array>
 #include <ticks.h>
-
+namespace py = pybind11;
 
 struct StatConfig {
     const bool cal_ohlcv = false;
@@ -38,6 +38,7 @@ class StatBase {
 public:
     virtual void update(const TradeTick& t) {};
     virtual void evict(const TradeTick& t) {};
+    virtual py::object get_py_snapshot() {};
     virtual ~StatBase() {};
 };
 
@@ -91,6 +92,6 @@ public:
 
 class MedianStat : public StatBase {};
 
-/* Stat classes for Stat in DataFeed*/
+/* Stat classes for Stat in CrossFeed*/
 
 
