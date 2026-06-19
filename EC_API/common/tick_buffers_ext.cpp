@@ -64,6 +64,10 @@ public:
                 } 
             }
     }
+    
+    py::object get_stat_snapshot(const std::string& stat_name) const {
+    py::tuple tu(5);
+    return tu;}
 };
 
 
@@ -90,6 +94,12 @@ public:
 };
 
 PYBIND11_MODULE(tick_buffers_ext, m) {
+    py::enum_<StatType>(m, "StatType")
+        .value("OHLCV", StatType::OHLCV)
+        .value("VWAP", StatType::VWAP)
+        .value("MOMENT", StatType::MOMENT)
+        .value("MEDIAN", StatType::MEDIAN);
+
     py::enum_<DataExtractionPolicy>(m, "DataExtractionPolicy")
         .value("ExtractTradeTickCQG", DataExtractionPolicy::ExtractTradeTickCQG);
         

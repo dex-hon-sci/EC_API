@@ -12,19 +12,13 @@ from dataclasses import dataclass, asdict
 from EC_API.common.tick_stats import TickBufferStat
 from EC_API.common.tick_buffers_ext import (
     SlidingWindowBuffer, RingBuffer, 
-    DataExtractionPolicy
+    DataExtractionPolicy, 
+    StatType
     )
 from EC_API.common.tick_buffers_ext import StatConfig as CPPStatConfig
 
 type TickBuffer = Union[SlidingWindowBuffer, RingBuffer]
 default_buf = SlidingWindowBuffer(DataExtractionPolicy.ExtractTradeTickCQG, 10)
-
-@dataclass
-class StatConfig:
-    cal_ohlcv:  bool = False
-    cal_moment: bool = False
-    cal_vwap:   bool = False
-    cal_median: bool = False
 
 class DataFeed:
     """
@@ -45,10 +39,7 @@ class DataFeed:
         self,
         symbol: str = "",
         tick_buffer: TickBuffer = default_buf,
-        stat_config: StatConfig = StatConfig(),
-        #calculators: dict = {},
-        #buf_config: dict = {},
-        #min_n: int = 20,
+        stat_config: CPPStatConfig = CPPStatConfig(),
     ):
         # Buffers
         #self._ring_price: list = []  # np.ndarray  shape (window,)
@@ -56,8 +47,8 @@ class DataFeed:
         #self._ptr: int = 0
 
         # Configs
-        self.stat_config: StatConfig = stat_config
-        self.cpp_stat_config = CPPStatConfig(**asdict(self.stat_config))
+        self.stat_config: CPPStatConfig = stat_config
+        self.cpp_stat_config = stat_config
         self.cpp_buffer = tick_buffer # only one buffer per DataFeed
 
         self.symbol: str = symbol
@@ -71,21 +62,12 @@ class DataFeed:
         #)
         # ----
         
-    # @property
-    #def tick_buffer_stat(self, horizon: float, current_time: float) -> dict[str, float | None]:
-    #    # Only Getter method is needed in this class
-    #    return self.buf_stat_method.stats(horizon, current_time)
-
-    #def latest(self) -> None:
-    #    return self._latest
-
-    def get_stat_snapshot(self, stat_name: str) -> tuple:
-        return self.cpp_buffer.get_stat_snapshot()[stat_name]
+    def get_stat_snapshot(self, stat_name: StatType) -> tuple:
+        return self.cpp_buffer.get_stat_snapshot(stat_name)
             
     def update(self, raw: tuple) -> None: # main methods to updates all attribute and statistics
         # add tick, compute new stat, tick eviction
         self.cpp_buffer.add_tick(raw)
-        # update stat_snapshot
 
 # =============================================================================
 #       def update(self, raw: tuple) -> None:

@@ -3,7 +3,8 @@
 #include <deque>
 #include <array>
 #include <ticks.h>
-namespace py = pybind11;
+
+enum class StatType { OHLCV, MOMENT, VWAP, MEDIAN };
 
 struct StatConfig {
     const bool cal_ohlcv = false;
@@ -39,7 +40,6 @@ class StatBase {
 public:
     virtual void update(const TradeTick& t) {};
     virtual void evict(const TradeTick& t) {};
-    //virtual py::object get_py_snapshot() {};
     virtual ~StatBase() {};
 };
 
