@@ -5,7 +5,7 @@ Created on Mon Aug 25 18:58:16 2025
 
 @author: dexter
 """
-from typing import Union
+from typing import Union, Any
 from dataclasses import dataclass, asdict
 
 #from EC_API.common.tick import TickBuffer
@@ -43,63 +43,49 @@ class DataFeed:
     # DataFeed only care for the long term nanme
     def __init__(
         self,
-        tick_buffer: TickBuffer = default_buf,
-        calculators: dict = {},
-        buf_config: dict = {},
-        min_n: int = 20,
         symbol: str = "",
-        stat_config: StatConfig = StatConfig()
+        tick_buffer: TickBuffer = default_buf,
+        stat_config: StatConfig = StatConfig(),
+        #calculators: dict = {},
+        #buf_config: dict = {},
+        #min_n: int = 20,
     ):
         # Buffers
-        self._ring_price: list = []  # np.ndarray  shape (window,)
-        self._ring_time: list = []  # np.ndarray  shape (window,)
-        self._ptr: int = 0
+        #self._ring_price: list = []  # np.ndarray  shape (window,)
+        #self._ring_time: list = []  # np.ndarray  shape (window,)
+        #self._ptr: int = 0
 
         # Configs
         self.stat_config: StatConfig = stat_config
-        self.cpp_stat_config = CPPStatConfig(**self.stat_config)
-        self.cpp_buffer = None
+        self.cpp_stat_config = CPPStatConfig(**asdict(self.stat_config))
+        self.cpp_buffer = tick_buffer # only one buffer per DataFeed
 
-        self.tick_buffer: TickBuffer = tick_buffer
         self.symbol: str = symbol
-        self.min_n: int = min_n
-        self.calculators: dict = calculators
-        self.buf_stat_method: TickBufferStat = TickBufferStat(
-            self.tick_buffer, calculators=self.calculators, min_n=self.min_n
-        )
+        self.stat_snapshot: dict[str,tuple[Any]] = dict() # update
+
+        #self.tick_buffer: TickBuffer = tick_buffer
+        #self.min_n: int = min_n
+        #self.calculators: dict = calculators
+        #self.buf_stat_method: TickBufferStat = TickBufferStat(
+        #    self.tick_buffer, calculators=self.calculators, min_n=self.min_n
+        #)
         # ----
-        self.snapshot = dict() # update
+        
     # @property
-    def tick_buffer_stat(self, horizon: float, current_time: float) -> dict[str, float | None]:
-        # Only Getter method is needed in this class
-        return self.buf_stat_method.stats(horizon, current_time)
+    #def tick_buffer_stat(self, horizon: float, current_time: float) -> dict[str, float | None]:
+    #    # Only Getter method is needed in this class
+    #    return self.buf_stat_method.stats(horizon, current_time)
 
-    def latest(self) -> None:
-        return self._latest
+    #def latest(self) -> None:
+    #    return self._latest
 
-    @property
-    def mean(self) -> float:
-        return self._median
-
-    @property
-    def std(self) -> float:
-        return
-
-    def vwamp() -> float:
-        ...
-        
+    def get_stat_snapshot(self, stat_name: str) -> tuple:
+        return self.cpp_buffer.get_stat_snapshot()[stat_name]
+            
     def update(self, raw: tuple) -> None: # main methods to updates all attribute and statistics
-       
-        # extractor call
-        
-        # loading them to buffers
-        
-        # run calculations
-        
-        # update them to attributes
-        
-        
-        ...
+        # add tick, compute new stat, tick eviction
+        self.cpp_buffer.add_tick(raw)
+        # update stat_snapshot
 
 # =============================================================================
 #       def update(self, raw: tuple) -> None:

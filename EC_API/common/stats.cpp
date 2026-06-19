@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-
 // OHLCVStat: O(1) for update, O(N) at worst in evict
 template <typename ContainerT>
 OHLCVStat<ContainerT>::OHLCVStat(ContainerT& container, double tick_size):

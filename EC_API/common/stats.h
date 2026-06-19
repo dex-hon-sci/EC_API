@@ -18,7 +18,6 @@ struct OHLCVSnapshot {
     int volume;
 };
 
-
 struct MomentSnapshot {
     double mean, variance, skewness, kurtosis;
 };
@@ -27,7 +26,9 @@ struct VWAPSnapshot {
     double vwap;
 };
 
-struct MedianSnapshot {};
+struct MedianSnapshot {
+    double median;
+};
 
 struct GreeksSnapshot {};
 
@@ -38,7 +39,7 @@ class StatBase {
 public:
     virtual void update(const TradeTick& t) {};
     virtual void evict(const TradeTick& t) {};
-    virtual py::object get_py_snapshot() {};
+    //virtual py::object get_py_snapshot() {};
     virtual ~StatBase() {};
 };
 
@@ -89,7 +90,7 @@ public:
     VWAPSnapshot get_snapshot() const;
 };
 
-
+template <typename ContainerT>
 class MedianStat : public StatBase {};
 
 /* Stat classes for Stat in CrossFeed*/
