@@ -10,19 +10,20 @@
 #include "data_extractors_cqg.h"
 namespace py = pybind11;
 
-/*Extraction -> tick -> buffers*/
 class SlidingWindowBuffer {
 private:
     // Buffer setups
     DataExtractionPolicy policy_;
     int rtmd_idx; // The index of interest in rtmd tuple, initialised by policy_
-    double window_; // time window. eviction condition
-    std::deque<TradeTick> container_; // Data Container
-    
-    //Stats
+    double window_; // time window. (micro-seconds)
+    std::deque<TradeTick> tick_container_; // Tick Data Container
+    std::vector<TradeTick> scratch_tick_container_; // temporary eviction room 
+        
+    // Stats
     StatConfig stat_config_; // A list of bools, input via Python
-    std::vector<StatBase*> stats_; // StatBase Child objects
-
+    std::array<StatType*, static_cast<int>(StatType::COUNT_)> stats_; // StatBase Child objects all stat
+    std::vector<StatType*> active_stats_; // Active Stats only
+    
 public:
     /* 0. Constructor*/
     SlidingWindowBuffer(DataExtractionPolicy policy, double window, StatConfig stat_config = {}): 
@@ -32,42 +33,62 @@ public:
         stat_config_{stat_config} {}
 
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
-        if (container_.size() > window_) {
-            TradeTick evicted_tick = container_.front();
-            container_.pop_front();
-            for (auto& sts : stats_) {
-                sts->evict(evicted_tick);
-            };
-        for (auto& sts : stats_) {
+        // Evict stat data given old ticks in the scratch buffer
+        while (!scratch_tick_container_.empty()) {
+            auto ev = scratch_tick_container_.back();
+            scratch_tick_container_.pop_back();
+            for (auto& sts : stats_) { // evict for all stat objects
+                sts->evict(ev);
+            }
+        }         
+        for (auto& sts : stats_) {// update for all stat objects
             sts->update(tick);
-            };
-        }
+            }; 
     }
     
-    void add_tick(const py::object& parsed_rtmd) {
+    void add_tick(const TradeTick& tick) {
+        tick_container_.push_back(tick);
+        }
+
+    void evict_tick(const double threshold) { // loop throigh the front of the container
+        while (!tick_container_.empty() && tick_container_.front().timestamp < threshold) {
+            TradeTick evicted_tick = tick_container_.front();
+            tick_container_.pop_front();
+            scratch_tick_container_.push_back(evicted_tick);
+            };
+        }   
+    
+    void on_tick(const py::object& parsed_rtmd) {
         if (!PyTuple_Check(parsed_rtmd.ptr())) return;
         
         const PyObject* data = PyTuple_GET_ITEM(parsed_rtmd.ptr(), rtmd_idx);
 
         if (!PyList_Check(data)) return;
         Py_ssize_t n = PyList_GET_SIZE(data);
-        
         for (Py_ssize_t i = 0; i < n; i++) {
             PyObject* raw_data_ptr = PyList_GET_ITEM(data, i);
             if (!PyTuple_Check(raw_data_ptr)) continue;  //
             
             auto tick = extract_raw_tick(raw_data_ptr, policy_);
+            
             if (tick) {
-                container_.push_back(*tick); //send them to the buffer
-                compute_and_update(*tick); //update private attributes
+                double threshold_ = tick->timestamp - window_;
                 
-                } 
+                add_tick(*tick);
+                evict_tick(threshold_);
+                compute_and_update(*tick);
+                }
             }
     }
     
-    py::object get_stat_snapshot(const std::string& stat_name) const {
-    py::tuple tu(5);
-    return tu;}
+    py::object get_stat_snapshot(const StatType& stat_name) const {
+        if (stat_name == StatType::OHLCV) {
+            py::tuple tu(5);
+            // ... to be continued     
+            return tu;
+
+        }
+    }
 };
 
 
@@ -76,7 +97,7 @@ private:
     // Buffer Setups
     DataExtractionPolicy policy_;
     int rtmd_idx;
-    std::array<TradeTick, 1024> container_;  // fixed size, no heap management needed
+    std::array<TradeTick, 1024> tick_container_;  // fixed size, no heap management needed
     int head_ = 0;
     
     // Stats
@@ -90,6 +111,8 @@ public:
 
     void compute_and_update() {}
     void add_tick() {}
+    void evict_tick() {}
+    void on_tick() {}
 
 };
 
@@ -114,9 +137,9 @@ PYBIND11_MODULE(tick_buffers_ext, m) {
            
     py::class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer")
         .def(py::init<DataExtractionPolicy, double>())
-        .def("add_tick", &SlidingWindowBuffer::add_tick);
+        .def("on_tick", &SlidingWindowBuffer::on_tick);
         
     py::class_<RingBuffer>(m, "RingBuffer")
         .def(py::init<DataExtractionPolicy>())
-        .def("add_tick", &RingBuffer::add_tick);
+        .def("on_tick", &RingBuffer::on_tick);
 }
