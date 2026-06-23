@@ -18,7 +18,7 @@ from EC_API.common.tick_buffers_ext import (
 from EC_API.common.tick_buffers_ext import StatConfig as CPPStatConfig
 
 type TickBuffer = Union[SlidingWindowBuffer, RingBuffer]
-default_buf = SlidingWindowBuffer(DataExtractionPolicy.ExtractTradeTickCQG, 10)
+default_buf = SlidingWindowBuffer(DataExtractionPolicy.ExtractTradeTickCQG, 10.0,0.0)
 
 class DataFeed:
     """
