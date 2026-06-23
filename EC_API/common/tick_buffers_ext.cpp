@@ -21,16 +21,29 @@ private:
         
     // Stats
     StatConfig stat_config_; // A list of bools, input via Python
-    std::array<StatType*, static_cast<int>(StatType::COUNT_)> stats_; // StatBase Child objects all stat
-    std::vector<StatType*> active_stats_; // Active Stats only
-    
+    std::array<StatBase*, static_cast<int>(StatType::COUNT_)> stats_; // StatBase Child objects all stat
+    std::vector<std::unique_ptr<StatBase>> active_stats_; // Active Stats only
 public:
     /* 0. Constructor*/
-    SlidingWindowBuffer(DataExtractionPolicy policy, double window, StatConfig stat_config = {}): 
+    SlidingWindowBuffer(
+        DataExtractionPolicy policy, 
+        double window, 
+        double tick_size, 
+        StatConfig stat_config = {}
+        ): 
+        
         policy_{policy},
         rtmd_idx{get_parsed_rtmd_index_from_policy(policy)},
         window_{window},
-        stat_config_{stat_config} {}
+        stat_config_{stat_config} {
+            init_stats(  
+                stat_config_, 
+                tick_container_,
+                stats_, 
+                active_stats_,
+                tick_size
+                );
+        }
 
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
         // Evict stat data given old ticks in the scratch buffer
@@ -136,7 +149,7 @@ PYBIND11_MODULE(tick_buffers_ext, m) {
              py::arg("cal_median") = false);
            
     py::class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer")
-        .def(py::init<DataExtractionPolicy, double>())
+        .def(py::init<DataExtractionPolicy, double, double, StatConfig>())
         .def("on_tick", &SlidingWindowBuffer::on_tick);
         
     py::class_<RingBuffer>(m, "RingBuffer")
