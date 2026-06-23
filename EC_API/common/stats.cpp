@@ -1,6 +1,7 @@
 #include <stats.h>
 #include <ticks.h>
 #include <algorithm>
+#include <deque>
 #include <cmath>
 
 // OHLCVStat: O(1) for update, O(N) at worst in evict
@@ -133,26 +134,31 @@ void init_stats(
         auto p_ = std::make_unique<OHLCVStat<C>>(tick_container, tick_size);
         stats_array[static_cast<size_t>(StatType::OHLCV)] = p_.get(); // hold unique pointers
         active_.push_back(std::move(p_));
-    }
+        }
     
     if (config.cal_moment) {
         auto p_ = std::make_unique<MomentStat<C>>(tick_container);
         stats_array[static_cast<size_t>(StatType::MOMENT)] = p_.get();
         active_.push_back(std::move(p_));
-    }
+        }
     
     if (config.cal_vwap) {
         auto p_ = std::make_unique<VWAPStat<C>>(tick_container);
         stats_array[static_cast<size_t>(StatType::VWAP)] = p_.get();
         active_.push_back(std::move(p_));
-    }
+        }
     
-    if (config.cal_median) {
+    /*if (config.cal_median) {
         auto p_ = std::make_unique<MedianStat<C>>(tick_container);
         stats_array[static_cast<size_t>(StatType::MEDIAN)] = p_.get();
         active_.push_back(std::move(p_));
+        }*/
     }
 
-    }
 
-
+template void init_stats<std::deque<TradeTick>>(
+    StatConfig&,
+    std::deque<TradeTick>&,
+    std::array<StatBase*, kStatTypeCount>&,
+    std::vector<std::unique_ptr<StatBase>>&,
+    double);

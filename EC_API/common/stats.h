@@ -109,4 +109,4 @@ void init_stats(
     std::array<StatBase*, kStatTypeCount>& stats_array, 
     std::vector<std::unique_ptr<StatBase>>& active_stats,
     double tick_size_
-    ) ;
+    );
