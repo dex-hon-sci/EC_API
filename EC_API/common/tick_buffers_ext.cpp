@@ -149,7 +149,11 @@ PYBIND11_MODULE(tick_buffers_ext, m) {
              py::arg("cal_median") = false);
            
     py::class_<SlidingWindowBuffer>(m, "SlidingWindowBuffer")
-        .def(py::init<DataExtractionPolicy, double, double, StatConfig>())
+        .def(py::init<DataExtractionPolicy, double, double, StatConfig>(),
+             py::arg("policy"),
+             py::arg("window"),
+             py::arg("tick_size"),
+             py::arg("stat_config") = StatConfig{}) 
         .def("on_tick", &SlidingWindowBuffer::on_tick);
         
     py::class_<RingBuffer>(m, "RingBuffer")
