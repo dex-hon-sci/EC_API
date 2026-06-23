@@ -1,10 +1,14 @@
 #pragma once 
 #include <cstdint>
+#include <memory>
 #include <deque>
 #include <array>
+#include <vector>
 #include <ticks.h>
 
-enum class StatType { OHLCV, MOMENT, VWAP, MEDIAN };
+enum class StatType { OHLCV, MOMENT, VWAP, MEDIAN, COUNT_ };
+
+inline constexpr size_t kStatTypeCount = static_cast<size_t>(StatType::COUNT_);
 
 struct StatConfig {
     const bool cal_ohlcv = false;
@@ -14,6 +18,7 @@ struct StatConfig {
 };
 
 /* Snapshots collections */
+/* DataFeed SnapShots */
 struct OHLCVSnapshot {
     double open, high, low, close;
     int volume;
@@ -30,7 +35,7 @@ struct VWAPSnapshot {
 struct MedianSnapshot {
     double median;
 };
-
+/* CrossFeed SnapShots */
 struct GreeksSnapshot {};
 
 
@@ -48,7 +53,7 @@ template <typename ContainerT>
 class OHLCVStat : public StatBase {
 private:
     ContainerT* container_;
-    double tick_size_;
+    double tick_size_; // price precision
     OHLCVSnapshot ohlcv_snapshot;
 public:      
     OHLCVStat(ContainerT& buf, double tick_size);
@@ -96,3 +101,12 @@ class MedianStat : public StatBase {};
 /* Stat classes for Stat in CrossFeed*/
 
 
+/* setup functions */
+template<typename C>
+void init_stats(
+    StatConfig& config, 
+    C& tick_container,
+    std::array<StatBase*, kStatTypeCount>& stats_array, 
+    std::vector<std::unique_ptr<StatBase>>& active_stats,
+    double tick_size_
+    ) ;

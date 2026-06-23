@@ -117,3 +117,42 @@ template <typename ContainerT>
 VWAPSnapshot VWAPStat<ContainerT>::get_snapshot() const {return vwap_snapshot;}
 
 
+/* Stat setup */
+
+/* SlidingWindowBuffer */
+template <typename C>
+void init_stats(
+    StatConfig& config, 
+    C& tick_container,
+    std::array<StatBase*, kStatTypeCount>& stats_array, 
+    std::vector<std::unique_ptr<StatBase>>& active_,
+    double tick_size
+    ) {
+    
+    if (config.cal_ohlcv) {
+        auto p_ = std::make_unique<OHLCVStat<C>>(tick_container, tick_size);
+        stats_array[static_cast<size_t>(StatType::OHLCV)] = p_.get(); // hold unique pointers
+        active_.push_back(std::move(p_));
+    }
+    
+    if (config.cal_moment) {
+        auto p_ = std::make_unique<MomentStat<C>>(tick_container);
+        stats_array[static_cast<size_t>(StatType::MOMENT)] = p_.get();
+        active_.push_back(std::move(p_));
+    }
+    
+    if (config.cal_vwap) {
+        auto p_ = std::make_unique<VWAPStat<C>>(tick_container);
+        stats_array[static_cast<size_t>(StatType::VWAP)] = p_.get();
+        active_.push_back(std::move(p_));
+    }
+    
+    if (config.cal_median) {
+        auto p_ = std::make_unique<MedianStat<C>>(tick_container);
+        stats_array[static_cast<size_t>(StatType::MEDIAN)] = p_.get();
+        active_.push_back(std::move(p_));
+    }
+
+    }
+
+
