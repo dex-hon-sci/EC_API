@@ -55,6 +55,7 @@ std::optional<TradeTick> extract_raw_tick(const PyObject* raw_tick, DataExtracti
     switch (policy) {
         case DataExtractionPolicy::ExtractTradeTickCQG:
             return extract_trade_tick_CQG(raw_tick);
+        /* other extraction policy*/ 
         default:
             return std::nullopt;
     }

@@ -44,17 +44,23 @@ public:
                 tick_size
                 );
         }
-
+    /* Disable Move and Copy*/    
+    SlidingWindowBuffer(const SlidingWindowBuffer&)              = delete;
+    SlidingWindowBuffer& operator=(const SlidingWindowBuffer&)   = delete;
+    SlidingWindowBuffer(const SlidingWindowBuffer&&)             = delete;
+    SlidingWindowBuffer&& operator=(SlidingWindowBuffer&&)       = delete;
+    
+    /*Methods*/
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
         // Evict stat data given old ticks in the scratch buffer
         while (!scratch_tick_container_.empty()) {
             auto ev = scratch_tick_container_.back();
             scratch_tick_container_.pop_back();
-            for (auto& sts : stats_) { // evict for all stat objects
+            for (auto& sts : active_stats_) { // evict for all stat objects
                 sts->evict(ev);
             }
         }         
-        for (auto& sts : stats_) {// update for all stat objects
+        for (auto& sts : active_stats_) {// update for all stat objects
             sts->update(tick);
             }; 
     }
@@ -110,7 +116,8 @@ private:
     // Buffer Setups
     DataExtractionPolicy policy_;
     int rtmd_idx;
-    std::array<TradeTick, 1024> tick_container_;  // fixed size, no heap management needed
+    const int buffer_size_;
+    std::vector<TradeTick> tick_container_;  // fixed size, no heap management needed
     int head_ = 0;
     
     // Stats
@@ -118,15 +125,20 @@ private:
     std::vector<StatBase*> stats_;
 
 public:
-    RingBuffer(DataExtractionPolicy policy):
+    RingBuffer(DataExtractionPolicy policy, int buffer_size):
         policy_{policy},
-        rtmd_idx{get_parsed_rtmd_index_from_policy(policy)} {}
+        rtmd_idx{get_parsed_rtmd_index_from_policy(policy)},
+        buffer_size_{buffer_size} {}
 
     void compute_and_update() {}
     void add_tick() {}
     void evict_tick() {}
     void on_tick() {}
-
+    py::object get_stat_snapshot() {
+        py::tuple tu(5);
+        // ... to be continued     
+        return tu;
+    }
 };
 
 PYBIND11_MODULE(tick_buffers_ext, m) {
@@ -157,6 +169,10 @@ PYBIND11_MODULE(tick_buffers_ext, m) {
         .def("on_tick", &SlidingWindowBuffer::on_tick);
         
     py::class_<RingBuffer>(m, "RingBuffer")
-        .def(py::init<DataExtractionPolicy>())
+        .def(py::init<DataExtractionPolicy, int>(),
+             py::arg("policy"),
+             py::arg("buffer_size")
+             )
+            
         .def("on_tick", &RingBuffer::on_tick);
 }
