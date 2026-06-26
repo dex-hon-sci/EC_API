@@ -14,7 +14,7 @@ OHLCVStat<ContainerT>::OHLCVStat(ContainerT& container, double tick_size):
 template <typename ContainerT>
 void OHLCVStat<ContainerT>::update(const TradeTick& t) {
     if (t.price >= ohlcv_snapshot.high) {ohlcv_snapshot.high = t.price;}
-    else if (t.price <= ohlcv_snapshot.low) {ohlcv_snapshot.low = t.price;}
+    if (t.price <= ohlcv_snapshot.low) {ohlcv_snapshot.low = t.price;}
     
     ohlcv_snapshot.open = container_->front().price;
     ohlcv_snapshot.close = container_->back().price;

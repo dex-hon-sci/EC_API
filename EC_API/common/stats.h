@@ -3,6 +3,7 @@
 #include <memory>
 #include <deque>
 #include <array>
+#include <limits>
 #include <vector>
 #include <ticks.h>
 
@@ -20,7 +21,10 @@ struct StatConfig {
 /* Snapshots collections */
 /* DataFeed SnapShots */
 struct OHLCVSnapshot {
-    double open, high, low, close;
+    double open = 0; 
+    double high = std::numeric_limits<double>::lowest();
+    double low = std::numeric_limits<double>::max();
+    double close = 0;
     int volume;
 };
 
