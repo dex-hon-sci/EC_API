@@ -9,6 +9,7 @@
 #include "data_fields_cqg.h"
 #include "data_extractors_cqg.h"
 namespace py = pybind11;
+//python setup.py build_ext --inplace
 
 class SlidingWindowBuffer {
 private:
@@ -21,8 +22,8 @@ private:
         
     // Stats
     StatConfig stat_config_; // A list of bools, input via Python
-    std::array<StatBase*, static_cast<int>(StatType::COUNT_)> stats_; // StatBase Child objects all stat
-    std::vector<std::unique_ptr<StatBase>> active_stats_; // Active Stats only
+    std::array<StatBase*, static_cast<int>(StatType::COUNT_)> stats_; // StatBase Child objects all stat, for easy lookup
+    std::vector<std::unique_ptr<StatBase>> active_stats_; // Active Stats only, for the update loop
 public:
     /* 0. Constructor*/
     SlidingWindowBuffer(
@@ -44,11 +45,12 @@ public:
                 tick_size
                 );
         }
+        
     /* Disable Move and Copy*/    
     SlidingWindowBuffer(const SlidingWindowBuffer&)              = delete;
     SlidingWindowBuffer& operator=(const SlidingWindowBuffer&)   = delete;
     SlidingWindowBuffer(const SlidingWindowBuffer&&)             = delete;
-    SlidingWindowBuffer&& operator=(SlidingWindowBuffer&&)       = delete;
+    SlidingWindowBuffer& operator=(SlidingWindowBuffer&&)       = delete;
     
     /*Methods*/
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
@@ -93,7 +95,7 @@ public:
             if (tick) {
                 double threshold_ = tick->timestamp - window_;
                 
-                add_tick(*tick);
+                add_tick(*tick); // fix this via timed eviction
                 evict_tick(threshold_);
                 compute_and_update(*tick);
                 }
@@ -101,11 +103,40 @@ public:
     }
     
     py::object get_stat_snapshot(const StatType& stat_name) const {
+        using ContainerT = std::deque<TradeTick>;
         if (stat_name == StatType::OHLCV) {
-            py::tuple tu(5);
-            // ... to be continued     
+            if (stat_config_.cal_ohlcv != true) {return py::none();}
+            auto* ss = static_cast<OHLCVStat<ContainerT>*>(stats_[static_cast<size_t>(StatType::OHLCV)]);
+            OHLCVSnapshot ohlcv_snapshot = ss->get_snapshot();
+            py::tuple tu = py::make_tuple(
+                ohlcv_snapshot.open, 
+                ohlcv_snapshot.high,
+                ohlcv_snapshot.low,
+                ohlcv_snapshot.close,
+                ohlcv_snapshot.volume);
             return tu;
-
+        }
+        if (stat_name == StatType::MOMENT) {
+            if (stat_config_.cal_moment != true) {return py::none();}
+            auto* ss = static_cast<MomentStat<ContainerT>*>(stats_[static_cast<size_t>(StatType::MOMENT)]);
+            MomentSnapshot moment_snapshot = ss->get_snapshot();
+            py::tuple tu = py::make_tuple(
+                moment_snapshot.mean, 
+                moment_snapshot.variance, 
+                moment_snapshot.skewness, 
+                moment_snapshot.kurtosis
+            );
+            return tu;
+        }
+        
+        if (stat_name == StatType::VWAP) {
+            if (stat_config_.cal_vwap != true) {return py::none();}
+            auto* ss = static_cast<VWAPStat<ContainerT>*>(stats_[static_cast<size_t>(StatType::VWAP)]);
+            VWAPSnapshot vwap_snapshot = ss->get_snapshot();
+            py::tuple tu = py::make_tuple(
+                vwap_snapshot.vwap
+            );
+            return tu;
         }
     }
 };
