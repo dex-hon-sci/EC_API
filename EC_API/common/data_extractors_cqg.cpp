@@ -59,5 +59,4 @@ std::optional<TradeTick> extract_raw_tick(const PyObject* raw_tick, DataExtracti
         default:
             return std::nullopt;
     }
-    
 };

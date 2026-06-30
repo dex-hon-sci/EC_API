@@ -103,43 +103,19 @@ public:
     }
     
     py::object get_stat_snapshot(const StatType& stat_name) const {
-        using ContainerT = std::deque<TradeTick>;
-        if (stat_name == StatType::OHLCV) {
-            if (stat_config_.cal_ohlcv != true) {return py::none();}
-            auto* ss = static_cast<OHLCVStat<ContainerT>*>(stats_[static_cast<size_t>(StatType::OHLCV)]);
-            OHLCVSnapshot ohlcv_snapshot = ss->get_snapshot();
-            py::tuple tu = py::make_tuple(
-                ohlcv_snapshot.open, 
-                ohlcv_snapshot.high,
-                ohlcv_snapshot.low,
-                ohlcv_snapshot.close,
-                ohlcv_snapshot.volume);
-            return tu;
-        }
-        if (stat_name == StatType::MOMENT) {
-            if (stat_config_.cal_moment != true) {return py::none();}
-            auto* ss = static_cast<MomentStat<ContainerT>*>(stats_[static_cast<size_t>(StatType::MOMENT)]);
-            MomentSnapshot moment_snapshot = ss->get_snapshot();
-            py::tuple tu = py::make_tuple(
-                moment_snapshot.mean, 
-                moment_snapshot.variance, 
-                moment_snapshot.skewness, 
-                moment_snapshot.kurtosis
-            );
-            return tu;
-        }
-        
-        if (stat_name == StatType::VWAP) {
-            if (stat_config_.cal_vwap != true) {return py::none();}
-            auto* ss = static_cast<VWAPStat<ContainerT>*>(stats_[static_cast<size_t>(StatType::VWAP)]);
-            VWAPSnapshot vwap_snapshot = ss->get_snapshot();
-            py::tuple tu = py::make_tuple(
-                vwap_snapshot.vwap
-            );
-            return tu;
-        }
-    }
+        auto* ss = stats_[static_cast<size_t>(stat_name)];
+        return ss ? ss->to_py_tuple() : py::none();
+    };
+    
+    py::object get_stat_snapshot_batch() const {
+        py::dict out; 
+        for (size_t i = 0; i < stats_.size(); ++i)
+            if (stats_[i])
+                out[py::cast(static_cast<StatType>(i))] = stats_[i]->to_py_tuple();        
+        return out;
+        };    
 };
+
 
 
 class RingBuffer {
@@ -197,7 +173,9 @@ PYBIND11_MODULE(tick_buffers_ext, m) {
              py::arg("window"),
              py::arg("tick_size"),
              py::arg("stat_config") = StatConfig{}) 
-        .def("on_tick", &SlidingWindowBuffer::on_tick);
+        .def("on_tick", &SlidingWindowBuffer::on_tick)
+        .def("get_stat_snapshot", &SlidingWindowBuffer::get_stat_snapshot)
+        .def("get_stat_snapshot_batch", &SlidingWindowBuffer::get_stat_snapshot_batch);
         
     py::class_<RingBuffer>(m, "RingBuffer")
         .def(py::init<DataExtractionPolicy, int>(),
