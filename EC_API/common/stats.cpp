@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <deque>
 #include <cmath>
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 
 // OHLCVStat: O(1) for update, O(N) at worst in evict
 template <typename ContainerT>
@@ -38,6 +40,16 @@ void OHLCVStat<ContainerT>::evict(const TradeTick& t) {
 template <typename ContainerT>
 OHLCVSnapshot OHLCVStat<ContainerT>::get_snapshot() const {return ohlcv_snapshot;}
 
+template <typename ContainerT>
+py::object OHLCVStat<ContainerT>::to_py_tuple() const {
+    OHLCVSnapshot ohlcv_snapshot = get_snapshot();
+    return py::make_tuple(
+        ohlcv_snapshot.open, 
+        ohlcv_snapshot.high,
+        ohlcv_snapshot.low,
+        ohlcv_snapshot.close,
+        ohlcv_snapshot.volume);
+    }
 
 // MomentStat: O(1) on both update and evict
 template <typename ContainerT>
@@ -89,6 +101,17 @@ void MomentStat<ContainerT>::evict(const TradeTick& t) {
 template <typename ContainerT>
 MomentSnapshot MomentStat<ContainerT>::get_snapshot() const {return moment_snapshot;}
 
+template <typename ContainerT>
+py::object MomentStat<ContainerT>::to_py_tuple() const {
+    MomentSnapshot moment_snapshot = get_snapshot();
+    return py::make_tuple(
+        moment_snapshot.mean, 
+        moment_snapshot.variance, 
+        moment_snapshot.skewness, 
+        moment_snapshot.kurtosis
+    );
+}
+
 // VWAPStat: O(1) on both update and evict
 template <typename ContainerT>
 VWAPStat<ContainerT>::VWAPStat(ContainerT& container): 
@@ -117,7 +140,13 @@ void VWAPStat<ContainerT>::evict(const TradeTick& t) {
 template <typename ContainerT>
 VWAPSnapshot VWAPStat<ContainerT>::get_snapshot() const {return vwap_snapshot;}
 
-
+template <typename ContainerT>
+py::object VWAPStat<ContainerT>::to_py_tuple() const {
+    VWAPSnapshot vwap_snapshot = get_snapshot();
+    return py::make_tuple(
+        vwap_snapshot.vwap
+    );
+}
 /* Stat setup */
 
 /* SlidingWindowBuffer */

@@ -6,6 +6,8 @@
 #include <limits>
 #include <vector>
 #include <ticks.h>
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 
 enum class StatType { 
     OHLCV, 
@@ -54,7 +56,9 @@ class StatBase {
 public:
     virtual void update(const TradeTick& t) {};
     virtual void evict(const TradeTick& t) {};
+    virtual py::object to_py_tuple() const {return py::none();}
     virtual ~StatBase() {};
+
 };
 
 // OHLCV, update O(1), evict O(N) worst case
@@ -69,6 +73,7 @@ public:
     void update(const TradeTick& t) override;
     void evict(const TradeTick& t) override;
     OHLCVSnapshot get_snapshot() const;
+    py::object to_py_tuple() const override;
 };
 
 // 1st-4nd order moments normalised
@@ -87,6 +92,8 @@ public:
     void update(const TradeTick& t) override;
     void evict(const TradeTick& t) override;
     MomentSnapshot get_snapshot() const;
+    py::object to_py_tuple() const override;
+
 };
 
 // 
@@ -102,6 +109,7 @@ public:
     void update(const TradeTick& t) override;
     void evict(const TradeTick& t) override;
     VWAPSnapshot get_snapshot() const;
+    py::object to_py_tuple() const override;
 };
 
 template <typename ContainerT>
