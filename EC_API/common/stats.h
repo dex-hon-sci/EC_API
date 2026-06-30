@@ -7,7 +7,12 @@
 #include <vector>
 #include <ticks.h>
 
-enum class StatType { OHLCV, MOMENT, VWAP, MEDIAN, COUNT_ };
+enum class StatType { 
+    OHLCV, 
+    MOMENT, 
+    VWAP, 
+    MEDIAN, 
+    COUNT_ };
 
 inline constexpr size_t kStatTypeCount = static_cast<size_t>(StatType::COUNT_);
 
@@ -25,7 +30,7 @@ struct OHLCVSnapshot {
     double high = std::numeric_limits<double>::lowest();
     double low = std::numeric_limits<double>::max();
     double close = 0;
-    int volume;
+    int volume = 0;
 };
 
 struct MomentSnapshot {
@@ -103,7 +108,6 @@ template <typename ContainerT>
 class MedianStat : public StatBase {};
 
 /* Stat classes for Stat in CrossFeed*/
-
 
 /* setup functions */
 template<typename C>

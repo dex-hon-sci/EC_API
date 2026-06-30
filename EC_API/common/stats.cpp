@@ -27,7 +27,7 @@ void OHLCVStat<ContainerT>::evict(const TradeTick& t) {
         auto it = std::max_element(container_->begin(), container_->end(), [](const TradeTick& a, const TradeTick& b) {return a.price < b.price;}); 
         ohlcv_snapshot.high = it->price;
         }
-    else if (std::abs(t.price - ohlcv_snapshot.low) <= 0.5*tick_size_) {
+    if (std::abs(t.price - ohlcv_snapshot.low) <= 0.5*tick_size_) {
         auto it = std::min_element(container_->begin(), container_->end(),[](const TradeTick& a, const TradeTick& b) {return a.price < b.price;});
         ohlcv_snapshot.low = it->price;
         }
