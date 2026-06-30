@@ -11,6 +11,7 @@
 namespace py = pybind11;
 //python setup.py build_ext --inplace
 
+/* Time-based Tick Buffer */
 class SlidingWindowBuffer {
 private:
     // Buffer setups
@@ -36,7 +37,8 @@ public:
         policy_{policy},
         rtmd_idx{get_parsed_rtmd_index_from_policy(policy)},
         window_{window},
-        stat_config_{stat_config} {
+        stat_config_{stat_config},
+        stats_{} {
             init_stats(  
                 stat_config_, 
                 tick_container_,
@@ -52,7 +54,12 @@ public:
     SlidingWindowBuffer(const SlidingWindowBuffer&&)             = delete;
     SlidingWindowBuffer& operator=(SlidingWindowBuffer&&)       = delete;
     
-    /*Methods*/
+    /* Buffer Properties*/
+    int size() {return tick_container_.size();};
+    bool empty() {return !tick_container_.empty();};
+    void reset() {tick_container_.clear();};
+    
+    /*Statistical Computation Methods*/
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
         // Evict stat data given old ticks in the scratch buffer
         while (!scratch_tick_container_.empty()) {
@@ -67,6 +74,7 @@ public:
             }; 
     }
     
+    /*Tick Advancement Methods*/
     void add_tick(const TradeTick& tick) {
         tick_container_.push_back(tick);
         }
@@ -102,6 +110,7 @@ public:
             }
     }
     
+    /* Getter methods for statistics snapshots*/
     py::object get_stat_snapshot(const StatType& stat_name) const {
         auto* ss = stats_[static_cast<size_t>(stat_name)];
         return ss ? ss->to_py_tuple() : py::none();
@@ -117,7 +126,7 @@ public:
 };
 
 
-
+/* Fixed-Number entry Tick Buffer */
 class RingBuffer {
 private:
     // Buffer Setups
