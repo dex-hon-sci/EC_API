@@ -25,6 +25,13 @@ void OHLCVStat<ContainerT>::update(const TradeTick& t) {
 
 template <typename ContainerT>
 void OHLCVStat<ContainerT>::evict(const TradeTick& t) {
+    ohlcv_snapshot.volume -= t.volume;
+    
+    if (container_->empty()) {//guard gainst empty window
+        ohlcv_snapshot = OHLCVSnapshot{};
+        return;
+    }
+
     if (std::abs(t.price - ohlcv_snapshot.high) <= 0.5*tick_size_) { 
         auto it = std::max_element(container_->begin(), container_->end(), [](const TradeTick& a, const TradeTick& b) {return a.price < b.price;}); 
         ohlcv_snapshot.high = it->price;
@@ -34,7 +41,6 @@ void OHLCVStat<ContainerT>::evict(const TradeTick& t) {
         ohlcv_snapshot.low = it->price;
         }
 
-    ohlcv_snapshot.volume -= t.volume;
 }
 
 template <typename ContainerT>
@@ -127,7 +133,8 @@ template <typename ContainerT>
 void VWAPStat<ContainerT>::update(const TradeTick& t) {
   sum_pv += t.price * t.volume;
   sum_v  += t.volume;
-  vwap_snapshot.vwap = sum_pv / sum_v;
+  vwap_snapshot.vwap =  (sum_v > 0.0) ? sum_pv / sum_v
+                        : std::numeric_limits<double>::quiet_NaN();
 }
 
 template <typename ContainerT>
