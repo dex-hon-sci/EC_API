@@ -58,6 +58,7 @@ public:
     int size() {return tick_container_.size();};
     bool empty() {return !tick_container_.empty();};
     void reset() {tick_container_.clear();};
+    TradeTick last() {tick_container_.back();}
     
     /*Statistical Computation Methods*/
     void compute_and_update(const TradeTick& tick) {//accumulator calcultator
