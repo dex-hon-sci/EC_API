@@ -144,6 +144,9 @@ vendor's server. The recommended way to start/stop the service is via
 and async context manager. Alternatively, you may also start/stop the 
 service through `conn.start()` and `conn.stop()` function calls, respectively.
 
+The conncetion object follows this state machine life cycle:
+![plot](./images/connect_state_lifecycle_v1.jpg)
+
 #### **1.2 Monitoring and Data Feed**
 To stream real-time market Data:
 ```python
