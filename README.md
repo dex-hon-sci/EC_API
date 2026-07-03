@@ -46,7 +46,7 @@ Currently supported vendors:
 
 
 `EC_API` consists of two layers:
-![plot](./images/message_flow_v3.jpg)
+![plot](./images/message_flow_v4.jpg)
 
 1. **The Infrastructure Layer**
 
@@ -141,7 +141,7 @@ asyncio.run(main())
 ```
 The `Connect` objects manages message dispatch and communication to 
 vendor's server. The recommended way to start/stop the service is via
-and async context manager. Alternatively, you may also start/stop the 
+an async context manager. Alternatively, you may also start/stop the 
 service through `conn.start()` and `conn.stop()` function calls, respectively.
 
 The conncetion object follows this state machine life cycle:
