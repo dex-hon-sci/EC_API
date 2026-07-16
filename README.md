@@ -265,8 +265,10 @@ rely on separate account ids and connections, it is advisable to setup your
 operations in separate processes to minimise congestion or interference.
 
 `EC_API` has a standard way of setting up communications between services via
-constructs in the `channel` module. The followings are the supported 
-communication protocols (planned):
+constructs in the `channel` module. We use `MessagePack` to encode/decode byte sequences 
+before/aftre sending the data through the IPC.
+
+The followings are the supported communication protocols (planned):
 
 | #  | Name | Object Name | IPC Protocol | Status | Docs |
 |:---|:----:|:------------:|:--------:|:------:| ----:|
