@@ -11,8 +11,12 @@ from datetime import datetime, timedelta
 # Pyhton Package imports
 import numpy as np
 # EC_API imports
-from EC_API.common.tick import TimeTickBuffer
-from EC_API.common.tick_stats import TickBufferStat
+from EC_API.common.tick_buffers_ext import (
+    SlidingWindowBuffer, RingBuffer, 
+    DataExtractionPolicy, 
+    StatType
+    )
+from EC_API.common.tick_buffers_ext import StatConfig as CPPStatConfig
 from EC_API.common.stat_metrics import (
     VWAP, OHLC, 
     MeanPrice, MeanVolume, 
@@ -40,6 +44,12 @@ class IncomingTicks:
                         self.timestamps)
         return self._feed
         
+def test_addto_slidingwindowbuffer() -> None:
+    DF = DataFeed(
+        symbol = "test_symbol",
+        tick_buffer = SlidingWindowBuffer(),
+        stat_config = CPPStatConfig()
+        )
 # =============================================================================
 # def test_addto_tickbuffer() -> None:
 #     IT = IncomingTicks()

@@ -6,6 +6,7 @@ Created on Fri Jan  9 20:45:59 2026
 @author: dexter
 
 """
+from typing import Any
 from datetime import datetime, timezone
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg
 from EC_API.ext.common.shared_1_pb2 import OrderStatus, TransactionStatus
@@ -442,6 +443,44 @@ def build_market_data_subscription_statuses_server_msg(
     market_data_subscription_statuses.level = level
         
     return server_msg
+#--------
+from google.protobuf.descriptor import FieldDescriptor
+def build_real_time_market_data_flexible_quotes(
+        server_msg: ServerMsg,
+        contract_id: int,
+        in_array: list[dict[Any]] # A list of parameters to be packed in Server Message
+    ) -> ServerMsg:
+    real_time_market_data = server_msg.real_time_market_data.add()
+    real_time_market_data.contract_id = contract_id
+    
+    def set_attr(obj, name: str, val: Any) -> None:
+        if val is None:
+            return 
+        fd = obj.DESCRIPTOR.fields_by_name[name]
+        if fd.label == FieldDescriptor.LABEL_REPEATED:
+            getattr(obj, name).extend(val if isinstance(val, list) else [val])
+        else:
+            setattr(obj, name, val)
+
+    for para in in_array:
+        quotes = real_time_market_data.quotes.add()
+        quotes.quote_utc_time = int(datetime.now().timestamp())
+        
+        set_attr(quotes, para.get('q_type')) #Quote.Type.TYPE_TRADE
+        set_attr(quotes, 'q_scaled_price', para)
+        set_attr(quotes, 'q_scaled_source_price', para)
+        set_attr(quotes, 'q_price_yield', para)
+        set_attr(quotes, 'q_volume_significand', para)
+        set_attr(quotes, 'q_volume_exponent', para)
+        
+        set_attr(quotes, 'q_indicators', quotes.indicators)
+        set_attr(quotes, 'q_sales_condition', quotes.sales_condition)
+        set_attr(quotes, 'q_scaled_currency_rate_price', quotes.scaled_currency_rate_price)
+        set_attr(quotes, 'q_scaled_premium', quotes.scaled_premium)
+    return server_msg
+    
+    
+# -------
 
 def build_simple_real_time_market_data_only_1quote_server_msg(
         server_msg: ServerMsg,
