@@ -47,7 +47,7 @@ class IncomingTicks:
 def test_addto_slidingwindowbuffer() -> None:
     DF = DataFeed(
         symbol = "test_symbol",
-        tick_buffer = SlidingWindowBuffer(),
+        tick_buffer = SlidingWindowBuffer(DataExtractionPolicy.ExtractTradeTickCQG, 10.0,0.0),
         stat_config = CPPStatConfig()
         )
 # =============================================================================
