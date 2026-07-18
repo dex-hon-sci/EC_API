@@ -39,7 +39,7 @@ class SQLSchemaTable:
                 raise ValueError(f"column name: {col_name} not in the accepted data type: {col_typ}.")
         
     def create_query(self) -> str:
-        cols = ", \n".join(f"{col} {typ}" for col, typ in self.columns)
+        cols = ",\n".join(f"{col} {typ}" for col, typ in self.columns)
         return f"CREATE TABLE IF NOT EXISTS {self.table_name} (\n {cols}\n)"
         
     def insert_query(self, db_type: str) -> str:
@@ -49,9 +49,7 @@ class SQLSchemaTable:
                 placeholder = ", ".join(["?" for _ in self.columns]) 
             case "asyncpg":
                 placeholder = ", ".join([f"${i+1}" for i, _ in enumerate(self.columns)]) 
-            case "psycopg":
-                placeholder = ", ".join(["%s" for _ in self.columns]) 
-            case "pymysql" | "mysqlclient":
+            case "psycopg" | "pymysql" | "mysqlclient":
                 placeholder = ", ".join(["%s" for _ in self.columns]) 
             case _:
                 raise ValueError(f"Invalid db_type: {db_type}. Only the following db are supported: {self._ALLOWED_DB}.")

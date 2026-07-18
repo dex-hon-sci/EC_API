@@ -8,15 +8,14 @@ Created on Fri Jul 17 03:11:13 2026
 import time
 from typing import Optional, Any, Callable
 import aiosqlite
-from EC_API.recorder.base import SQLSchemaTable
-
+from EC_API.recorder.base import SQLSchemaTable, Recorder
 
 def _from_dict_to_row(msg: dict[str, Any], schema: SQLSchemaTable) -> tuple[Any,...]:
     # This assume the schema colums name are exactly the same 
     # as the field names in a parsed message.
     return tuple([msg[col_name] for col_name, _ in schema.columns])
 
-class SQLiteRecorder:
+class SQLiteRecorder(Recorder):
     def __init__(
             self, 
             schema: SQLSchemaTable,
@@ -65,7 +64,7 @@ class SQLiteRecorder:
             ):
             await self._flush()
         
-    def _flush(self) -> None:
+    async def _flush(self) -> None:
         await self._db.executemany(self._insert_query, self._buf)
         await self._db.commit()
         self._buf.clear()
