@@ -4,6 +4,7 @@ protobuf>=5.29.3
 redis>=4.2.0
 msgpack
 pybind11
+aiosqlite
 
 
 
