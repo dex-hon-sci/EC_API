@@ -6,77 +6,69 @@ Created on Fri Jul 17 03:11:13 2026
 @author: dexter
 """
 import time
+from typing import Optional, Any, Callable
 import aiosqlite
 from EC_API.recorder.base import SQLSchemaTable
 
+
+def _from_dict_to_row(msg: dict[str, Any], schema: SQLSchemaTable) -> tuple[Any,...]:
+    # This assume the schema colums name are exactly the same 
+    # as the field names in a parsed message.
+    return tuple([msg[col_name] for col_name, _ in schema.columns])
+
 class SQLiteRecorder:
-    def __init__(self, db_address: str, batch_size: int = 100):
-        self._schema: SQLSchemaTable = None
+    def __init__(
+            self, 
+            schema: SQLSchemaTable,
+            db_address: str, 
+            batch_size: int = 100, 
+            flush_interval: float=5.0,
+            to_row: Optional[Callable[[Any], tuple[Any]]] = None
+        ):
+        # DB setup
+        self._schema: SQLSchemaTable = schema
         self._db_address: str = db_address
-        
+        self._db: Optional[aiosqlite.Connection] = None
+
+        # Recorder Config
         self._batch_size: int= batch_size
+        self._flush_interval: int = flush_interval #seconds
+        
+        # message format for logging
+        # Conversion from raw message to DB format
+        self._to_row: Callable[[Any], tuple[Any]] = to_row if to_row is not None else _from_dict_to_row
+        
+        # SQL commands
         self._insert_query: str = self._schema.insert_query('sqlite3')
         
-        self._buf: list[str] = list()
+        # Containers
+        self._buf: list[tuple[Any],...] = list()
 
+        
     async def start(self) -> None:
-        self.db = await aiosqlite.connect(self._db_address)
+        self._db = await aiosqlite.connect(self._db_address)
+        await self._db.execute("PRAGMA journal_mode=WAL") # WAL
+        await self._db.execute("PRAGMA synchronous=NORMAL") 
+        await self._db.execute(self._schema.create_query())
+        await self._db.commit()
+        self._last_flush = time.monotonic()
 
     async def stop(self) -> None:
         await self._flush()
         await self.db.close()
     
-    async def record(self, msg) -> None:
-        self._buf.append(msg)
+    async def record(self, msg: Any) -> None:
+        self._buf.append(self._to_row(msg))
         
-        if len(self._buf)>=self._batch_size:
+        if (len(self._buf)>=self._batch_size or 
+            time.monotonic() - self._last_flush >= self._flush_interval
+            ):
             await self._flush()
         
     def _flush(self) -> None:
-        await self.db.executemany(self._insert_query, self._buf)
-        await self.db.commit()
+        await self._db.executemany(self._insert_query, self._buf)
+        await self._db.commit()
         self._buf.clear()
         
         self._last_flush = time.monotonic()
-        
-        
-        
-# =============================================================================
-# 
-# class SQLiteRecorder:
-#     def __init__(self, schema, path, batch_size=1000, flush_interval=1.0):
-#         self._schema = schema
-#         self._path = path
-#         self._insert = schema.insert_query()
-#         self._batch_size = batch_size
-#         self._flush_interval = flush_interval
-#         self._buf: list[tuple] = []
-#         self._last_flush = 0.0
-#         self._db: aiosqlite.Connection | None = None
-# 
-#     async def start(self) -> None:
-#         self._db = await aiosqlite.connect(self._path)
-#         await self._db.execute("PRAGMA journal_mode=WAL")      # concurrent reads, faster writes
-#         await self._db.execu")     # safe under WAL, farfewer fsyncs than FULL
-#         await self._db.execu))
-#         await self._db.commit()
-#         self._last_flush = t
-# 
-#     async def record(self, r
-#         self._buf.append(row)
-#         if (len(self._buf) >
-#                 or time.monotonic() - self._last_flush >= self._flush_interval):
-#             await self._flus
-# 
-#     async def _flush(self) -
-#         if not self._buf:
-#             return
-#         await self._db.executemany(self._insert, self._buf)
-#         await self._db.commi
-#         self._buf.clear()
-#         self._last_flush = t
-# 
-#     async def stop(self) ->
-#         await self._flush()          # never lose the tail
-#         await self._db.close
-# =============================================================================
+    
