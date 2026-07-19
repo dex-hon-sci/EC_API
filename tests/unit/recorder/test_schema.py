@@ -51,7 +51,7 @@ def test_sql_schema_wrong_type_in_column_invalid() -> None:
                 (111, 'INTEGER'),  #<-- wrong type
             ))
         
-def test_sql_schema_invlaud() -> None:
+def test_sql_schema_wrong_data_type_invalid() -> None:
     with pytest.raises(ValueError):
         SQLSchemaTable(
             table_name = "test_table",
@@ -60,4 +60,16 @@ def test_sql_schema_invlaud() -> None:
                 ('field_1', 'JUNK'),  #<-- wrong type
             ))
 
-        
+def test_sql_schema_() -> None:
+    ST = SQLSchemaTable(
+        table_name = "test_table",
+        columns = (
+            ('field_0', 'NULL'), 
+            ('field_1', 'INTEGER'), 
+            ('field_2', 'REAL'), 
+            ('field_3', 'TEXT'), 
+            ('field_4', 'BLOB')
+        )
+        )
+    with pytest.raises(ValueError):
+        ST.insert_query("wrong_db")

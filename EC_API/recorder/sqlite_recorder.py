@@ -43,7 +43,10 @@ class SQLiteRecorder(Recorder):
         # Containers
         self._buf: list[tuple[Any],...] = list()
 
-        
+    @property
+    def schema(self):
+        return self._schema
+    
     async def start(self) -> None:
         self._db = await aiosqlite.connect(self._db_address)
         await self._db.execute("PRAGMA journal_mode=WAL") # WAL
@@ -54,10 +57,10 @@ class SQLiteRecorder(Recorder):
 
     async def stop(self) -> None:
         await self._flush()
-        await self.db.close()
+        await self._db.close()
     
     async def record(self, msg: Any) -> None:
-        self._buf.append(self._to_row(msg))
+        self._buf.append(self._to_row(msg, self._schema))
         
         if (len(self._buf)>=self._batch_size or 
             time.monotonic() - self._last_flush >= self._flush_interval
