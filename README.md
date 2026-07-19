@@ -19,8 +19,8 @@ trades, real-time data monitoring, open positions tracking, etc.
   - [1.3 Monitoring and Data Feed](#monitoring-and-data-feed)
   - [1.4 Payload and Pre-Trade Risk Check](#risk-and-safety)
 - [2. Communications](#comm)
-  -[2.1 Inter-Process Communication](#IPC)
-  -[2.2 Recording/logging to Disk](#log-disk)
+  - [2.1 Inter-Process Communication](#IPC)
+  - [2.2 Recording/logging to Disk](#log-disk)
 - [3. Strategy Building](#strategy-building)
   - [3.1 DataFeed and Tick Buffer](#datafeed)
   - [3.2 Action Node](#action-node)
@@ -310,18 +310,22 @@ class TradeEngine:
         self.PREC = PreTradeRiskCheck('cqg')
         self.PREC.load("risk_para.toml")
         
-    async def _package_and_send(self, order_type: RequestType, order_info: dict):
-        async with self.trade_session as TS:
+    async def _package_and_send(
+        self, 
+        trade_session: TradeSessionCQG, 
+        order_type: RequestType, 
+        order_info: dict
+        ) -> None:
             PL = Payload(
               order_request_type = order_type,
               order_info = order_info,
               check_method = self.PREC # Static risk check done upon creation
               )
-            await TS.trade_subscription_request(sub_id=1, sub_scope = SubScope.ORDERS)
-            await TS.resolve_symbol(order_info['symbol_name']) 
-            await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL)
+            await trade_session.trade_subscription_request(sub_id=1, sub_scope = SubScope.ORDERS)
+            await trade_session.resolve_symbol(order_info['symbol_name']) 
+            await ExecutePayload(live_order=LiveOrderCQG(trade_session)).unload(PL)
 
-    async def _send_order_loop(self):
+    async def _send_order_loop(self, trade_session: TradeSessionCQG):
         while True:
             # Continuous listening to the latest order instruction from redis stream
             msg = await self.channel.listen('order_info:WTI') 
@@ -331,13 +335,13 @@ class TradeEngine:
                 continue
             # package and send (fire and forget)
             order_type, order_info = msg
-            await self._package_and_send(order_type, order_info)
+            await self._package_and_send(trade_session, order_type, order_info)
                 
     async def run(self):
-        self.conn.start()
-        self._engine_task = asyncio.create_task(self._send_order_loop())
-
-        await self._engine_task
+        async with self.trade_session as TS:
+            self._engine_task = asyncio.create_task(self._send_order_loop(TS))
+    
+            await self._engine_task
             
 ```
 Note that this engine is made for the purpose of demonstration. In a production
