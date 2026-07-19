@@ -111,6 +111,7 @@ pip install git+https://github.com/EulerCapitalAU/EC_API
 | `ordering` | It handles `LiveOrder` type objects and how we send order requests <br>to the exchanges. |
 | `payload` | It contains the `Payload` class where parameter validation and<br>safety check for client message is done before sending it to the<br>server. It is recommended to conduct all trading via<br>`ExecutePayload` types of method. |
 | `protocol`  | Vendor specific protocol are stored here. RPC style request-<br>response pairing and external-internal enums mappings are in this<br>module. |
+| `recorders` | Logging related functions live here. Specifically, it handle<br> on-disk writes.|
 | `transport` | The transport module control message routing and thread-<br>handling. Synchronous codes from vendors transition into async through<br>the `Transport` objects by separate working threads<br>for sending and receiving messages. |
 | `utility` | It contains utility functions for the package. |
 
@@ -262,7 +263,8 @@ async with TradeSessionCQG(conn) as TS:
     await ExecutePayload(live_order=LiveOrderCQG(TS)).unload(PL1)
     
 ```
-### **2. Inter-Process Communications**
+### **2.Communications
+#### **2.1 Inter-Process Communications**
 Since data ingestion via `MonitorData` and trading via `TradeSession` often
 rely on separate account ids and connections, it is advisable to setup your 
 operations in separate processes to minimise congestion or interference.
@@ -290,17 +292,27 @@ in_streams = ["mkt_data:WTI", "mkt_data:Brent"]
 out_streams = ["order_info:WTI"]
 
 ```
+####**2.2 
+| #  | DB Name | Object Name | Descriptions | Status | Docs |
+|:---|:----:|:------------:|:--------:|:------:| ----:|
+| 1. | None | `NullRecorder` | Null option. Use when recording is not needed. | ![Status](https://img.shields.io/badge/Done-2BB33D) | Docs |
+| 2. | SQLite (async) | `SqliteRecorder` | Light-weight file-based relational DB. | ![Status](https://img.shields.io/badge/Done-2BB33D) | Docs |
+| 3. | Postgres (async) | `PostgresRecorder` |  | ![Status](https://img.shields.io/badge/WIP-F54927) | Docs |
+
+
 In a trade system, you can expect a setup similar to the followig example. We
 assume the trading decision is made elsewhere in a strategy processing unit, 
 and order_info is sent through the `RedisChannel` and the `TradeEninge` will
 package it and send it through to the broker.
 ```python
 from EC_API.channel.redis import RedisChannel
+from EC_API.recorders.sqlite_recorder import SqliteRecorder
 
 class TradeEngine:
     def __init__(self):
         # ---- IPC Channel setting ----
         self.channel = RedisChannel("channel_config.toml")
+        self.recorder = None
         
         # ---- Sessions setting ----
         self.conn = ConnectCQG(HOST_NAME, USR_NAME, PASSWORD, ACCOUNT_ID)
