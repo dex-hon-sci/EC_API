@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
-from EC_API.recorder.base import SQLSchemaTable
+from EC_API.recorders.base import SQLSchemaTable
 
 def test_sql_schema_init_valid() -> None:
     ST = SQLSchemaTable(

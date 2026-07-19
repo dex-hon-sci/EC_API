@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 import aiosqlite
-from EC_API.recorder.base import SQLSchemaTable
-from EC_API.recorder.sqlite_recorder import SQLiteRecorder
+from EC_API.recorders.base import SQLSchemaTable
+from EC_API.recorders.sqlite_recorder import SQLiteRecorder
 
 @pytest.fixture
 def schema() -> SQLSchemaTable:
@@ -25,17 +25,7 @@ def test_sqlite_recorder_init_valid(schema, db_path) -> None:
         )
 
     assert recorder.schema is schema
-    
-@pytest.mark.asyncio
-async def test_sqlite_recorder_start_valid(schema, db_path) -> None:
-    recorder = SQLiteRecorder(
-        schema, 
-        db_address = db_path,
-        batch_size = 2, 
-        flush_interval = 0.5
-        )
-    assert recorder.schema is schema
-    
+
 @pytest.mark.asyncio
 async def test_flush_triggers_at_batch_size(schema, db_path) -> None:
     recorder = SQLiteRecorder(schema, db_address=db_path, batch_size=3)
@@ -43,7 +33,8 @@ async def test_flush_triggers_at_batch_size(schema, db_path) -> None:
 
     async def count_rows():
         async with aiosqlite.connect(db_path) as db:
-            return (await (await db.execute("SELECT COUNT(*) FROM test_table")).fetchone())[0]
+            res = await db.execute("SELECT COUNT(*) FROM test_table")
+            return (await res.fetchone())[0]
 
     await recorder.record({"field_0": 1, "field_1": "a"})
     await recorder.record({"field_0": 2, "field_1": "b"})
@@ -52,3 +43,8 @@ async def test_flush_triggers_at_batch_size(schema, db_path) -> None:
     await recorder.record({"field_0": 3, "field_1": "c"})
     assert await count_rows() == 3  # threshold crossed and flushed
     await recorder.stop()
+   
+@pytest.mark.asyncio
+async def test_flush_triggers_at_time_interval() -> None:
+    recorder = SQLiteRecorder(schema, db_address=db_path, batch_size=3)
+    await recorder.start()
