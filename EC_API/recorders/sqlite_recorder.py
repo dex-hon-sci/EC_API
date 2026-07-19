@@ -8,7 +8,7 @@ Created on Fri Jul 17 03:11:13 2026
 import time
 from typing import Optional, Any, Callable
 import aiosqlite
-from EC_API.recorder.base import SQLSchemaTable, Recorder
+from EC_API.recorders.base import SQLSchemaTable, Recorder
 
 def _from_dict_to_row(msg: dict[str, Any], schema: SQLSchemaTable) -> tuple[Any,...]:
     # This assume the schema colums name are exactly the same 
@@ -56,6 +56,8 @@ class SQLiteRecorder(Recorder):
         self._last_flush = time.monotonic()
 
     async def stop(self) -> None:
+        if self._db is None:
+            return
         await self._flush()
         await self._db.close()
     
