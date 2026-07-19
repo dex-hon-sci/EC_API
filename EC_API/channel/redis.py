@@ -47,7 +47,6 @@ class RedisChannel(Channel):
             self.load(path)
 
     def load(self, path: str) -> None:
-        # add a load error handler here
         with toml_loader_error_handler(ConfigInputError, ConfigFormatError):
             with open(path, mode="rb") as f:
                 para = tomllib.load(f)
@@ -114,6 +113,8 @@ class RedisChannel(Channel):
         self._active_listeners.add(stream_name)
 
         try:
+            #!!! Fix the design of count = 1 and [-1] read. I should change this
+            # to allow batch read and loop through the batch to return to caller
             # [stream_name, [(id, fields_dict),...]]
             l = await self.r.xread(count=1, block=self.xread_block, streams = {stream_name: self.last_ids[stream_name]})
             if not l:
