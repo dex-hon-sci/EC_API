@@ -27,6 +27,8 @@ trades, real-time data monitoring, open positions tracking, etc.
   - [3.3 Action Tree](#action-tree)
   - [3.4 OpSignal](#op-signal)
   - [3.5 OpStrategy](#op-strategy)
+- [4. Engine Example](#engine-example)
+- [Tests]
     
 ## **Project Description**
 `EC_API` is a trading API that handles message relays 
