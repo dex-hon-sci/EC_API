@@ -240,24 +240,31 @@ class LiveOrderCQG(LiveOrder):
     async def send(
         self, request_type: RequestType, request_details: dict, **kwargs
     ) -> Optional[list[dict]]:
-        # Get the Inputs
-        if not request_details.get("symbol_name"):
-            raise KeyError('"symbol_name" is missing in the request_details.')
-        symbol = request_details["symbol_name"]
+        
+        # --- Symbol checks
+        if request_type not in (
+            RequestType.CANCELALL_ORDER,
+            RequestType.GOFLAT_ORDER,
+            ):
+            # Get the Inputs
+            if not request_details.get("symbol_name"):
+                raise KeyError('"symbol_name" is missing in the request_details.')
+            symbol = request_details["symbol_name"]
+    
+            # Check Symbol resolution
+            if not self._trade_session._symbol_registry.has_symbol(symbol):
+                raise MissingSymbolResolutionError(f"Symbol: {symbol} is not in the registry.")
+    
+            contract_id = self._trade_session._symbol_registry.get_contract_ids(symbol)
+            request_details.pop("symbol_name")
 
-        # Check Symbol resolution
-        if not self._trade_session._symbol_registry.has_symbol(symbol):
-            raise MissingSymbolResolutionError(f"Symbol: {symbol} is not in the registry.")
-
-        contract_id = self._trade_session._symbol_registry.get_contract_ids(symbol)
-        request_details.pop("symbol_name")
-
-        # Check Trade ID
+        # --- Check Trade ID
         if not self._trade_session.has_orders_scope():
             raise TradeSubscriptionMissingError(
                 "Trade subscription has to be done before sending order."
             )
 
+        # --- OrderID checks
         if request_type not in (
             RequestType.NEW_ORDER,
             RequestType.CANCELALL_ORDER,
@@ -271,6 +278,7 @@ class LiveOrderCQG(LiveOrder):
                 raise MissingOrderIDError(
                     f"Order ID: {request_details['order_id']} is not in active orders."
                 )
+        # --- message building
         details = {
             "account_id": self._trade_session._conn._account_id,
             "request_id": self.rid(),
