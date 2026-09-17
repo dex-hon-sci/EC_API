@@ -29,6 +29,7 @@ _TYPE_MAP_SQL_PY = {
 def _from_dict_to_row(msg: dict[str, Any], schema: SQLSchemaTable) -> tuple[Any,...]:
     # This assume the schema colums name are exactly the same 
     # as the field names in a parsed message.    
+    # default output only, in production please use another function.
     res = []
     for col_name, col_typ, col_extra in schema.columns:
         row = msg.get(col_name)

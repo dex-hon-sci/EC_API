@@ -59,7 +59,10 @@ class TradeSessionCQG:
     def __init__(
         self,
         conn: ConnectCQG,
-        recorder: Recorder = NullRecorder()
+        ord_sts_recorder: Recorder = NullRecorder(),
+        pos_sts_recorder: Recorder = NullRecorder(),
+        acc_summ_recorder: Recorder = NullRecorder(),
+        auto_log: bool = False
     ):
         # --- Connect ---
         self._conn = conn
@@ -70,7 +73,11 @@ class TradeSessionCQG:
         self._stop_evt: asyncio.Event = self._conn._stop_evt
         
         # --- Logging/Recorder (Audit Log) ---
-        self._recorder: Recorder = recorder
+        self._ord_sts_recorder: Recorder = ord_sts_recorder
+        self._pos_sts_recorder: Recorder = pos_sts_recorder
+        self._acc_summ_recorder: Recorder = acc_summ_recorder
+        
+        self._auto_log: bool = auto_log
         
         # --- Routers ---
         self._exec_stream_router = self._conn._exec_stream_router
@@ -195,6 +202,9 @@ class TradeSessionCQG:
                                 p_ord_sts["order_id"],
                                 p_ord_sts["status_utc_timestamp"].ToMilliseconds(),
                             )
+                            
+                            if self._auto_log:
+                                await self._ord_sts_recorder.record(p_ord_sts)
 
                             if p_ord_sts.get("status") in TERMINAL_STATES:
                                 done_ord.add(chain_order_id)
@@ -216,6 +226,9 @@ class TradeSessionCQG:
                                 all_done = all(
                                     op_pos["qty"] == 0 for op_pos in p_pos_sts["open_positions"]
                                 )
+                                
+                            if self._auto_log:
+                                await self._pos_sts_recorder.record(p_pos_sts)
 
                             if all_done and all_done is not None:
                                 done_pos.add(contract_id)
@@ -227,7 +240,9 @@ class TradeSessionCQG:
                         acc_summary = parse_server_msg(acc_summary_q.get_nowait(), ordering_parsers)
                         for p_acc_summ in acc_summary:
                             self.latest_account_summaries[account_id] = p_acc_summ
-
+                            if self._auto_log:
+                                await self._acc_summ_recorder.record(acc_summary)
+                            
                 # ---- Cleanup ----
                 for chain_order_id in done_ord:
                     q = self._active_order_q.pop(chain_order_id)
@@ -358,7 +373,9 @@ class TradeSessionCQG:
         
         if not start_success:
             try:
-                await self._recorder.stop()
+                await self._ord_sts_recorder.stop()
+                await self._pos_sts_recorder.stop()
+                await self._acc_summ_recorder.stop()
             except RecorderCriticalError as e:
                 logger.error(str(e))
             return False
@@ -366,7 +383,10 @@ class TradeSessionCQG:
         self._tracker_task = asyncio.create_task(self._tracker_loop())
         if start_success:
             try:
-                await self._recorder.start()
+                await self._ord_sts_recorder.start()
+                await self._pos_sts_recorder.start()
+                await self._acc_summ_recorder.start()
+
             except RecorderCriticalError as e:
                 logger.error(str(e))
                 self._tracker_task.cancel()   
@@ -389,7 +409,10 @@ class TradeSessionCQG:
             
         recorder_done = True
         try:
-            await self._recorder.stop()
+            await self._ord_sts_recorder.stop()
+            await self._pos_sts_recorder.stop()
+            await self._acc_summ_recorder.stop()
+
         except RecorderCriticalError as e:
             logger.error(str(e))
             recorder_done = False
