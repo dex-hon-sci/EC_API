@@ -64,17 +64,33 @@ class DataEngineController(Controller):
         symbol_name = out_stream_name.split(":")[1]
         
         # Add in_stream, add symbols
-        self._channel.in_streams.add(out_stream_name)
+        self._channel.out_streams.add(out_stream_name)
 
         if callback:
             callback(out_stream_name)
-
 
     async def remove_out_stream(
             self, 
             out_stream_name: str,
             callback: Optional[Callable[[Any], Any]] = None
-        ) -> Optional[Any]:...
+        ) -> Optional[Any]:
+    
+        if out_stream_name not in self._channel.out_streams:
+            raise ControllerInputError(
+                f"stream_name: {out_stream_name} is not in the channel."
+                )
+            
+        if len(out_stream_name.split(":")) !=2:
+            raise ControllerInputError("Incorrect format for stream_name input.")
+            
+        self._channel.out_stream.discard(out_stream_name)
+        self.channel.last_ids.pop(out_stream_name, None)   
+
+        if callback:
+            return callback(out_stream_name)
+        else:
+            return
+
     
     async def bootstrap_out_stream(self):...
     

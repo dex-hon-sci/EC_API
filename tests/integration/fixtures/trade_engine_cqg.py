@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Protocol, Optional, Callable, Any
 
 from EC_API.channel.base import Channel
@@ -122,7 +123,7 @@ class TradeEngineController(Controller):
 
         # Check if it can be legally removed.
         # !!! Add TTL lock on the strategy side, periodically renew it
-        # CHeck it here
+        # Check it here
         
         if auto_unsub:
             try:
@@ -130,9 +131,8 @@ class TradeEngineController(Controller):
             except TradeSessionRequestError as e:
                 raise ControllerInputError(str(e))
                 
-        self.channel.in_streams.discard(in_stream_name)
-        self.channel.last_ids.pop(in_stream_name, None)   
-
+        self._channel.in_streams.discard(in_stream_name)
+        self._channel.last_ids.pop(in_stream_name, None)   
             
         if callback:
             return callback(in_stream_name)
@@ -265,6 +265,41 @@ class TradeEngineCQG:
                 logger.error("[Trade Engine] %s", e)
             
     # ------- Controls
+    async def command_response(self, cmd: str) -> None:
+        match cmd[0]: # ("CMD:add_stream", "order_info:WTI")
+            case "CMD:add_stream":
+                await self.controller.add_in_stream(
+                    cmd[1], callback = self._add_send_task_to_map
+                    )
+            case "CMD:remove_stream":
+                task = await self.controller.remove_in_stream(
+                    cmd[1], callback = self._remove_task)
+                try:
+                    await task          # await ONLY here — to let CancelledError settle
+                except asyncio.CancelledError:
+                    pass
+            case "CMD:freeze_engine":
+                await self.request_freeze()
+            case "CMD:unfreeze_engine":
+                await self.request_wake()
+            case "CMD:shutdown_engine":
+                await self.request_stop()
+            case "CMD:cancel_all_request":
+                await LiveOrderCQG(self.trade_session).send(
+                    request_type = RequestType.CANCELALL_ORDER, 
+                    request_details = {
+                        "cl_order_id": "cancel_all_req",
+                        "when_utc_timestamp": datetime.now(timezone.utc),
+                        })
+            case "CMD:goflat_request":
+                await LiveOrderCQG(self.trade_session).send(
+                    request_type = RequestType.GOFLAT_ORDER, 
+                    request_details = {
+                        "when_utc_timestamp": datetime.now(timezone.utc),
+                        })
+            case _:
+                logger.warning("[Trade Engine] Unknown Command: %s", cmd[0])
+                        
     async def _control_loop(self):
         while not self._stop_evt.is_set():
             try:
@@ -273,30 +308,8 @@ class TradeEngineCQG:
                 if cmd is None:
                     continue
                 
-                match cmd[0]: # ("CMD:add_stream", "order_info:WTI")
-                    case "CMD:add_stream":
-                        await self.controller.add_in_stream(
-                            cmd[1], callback = self._add_send_task_to_map
-                            )
-                    case "CMD:remove_stream":
-                        task = await self.controller.remove_in_stream(
-                            cmd[1], callback = self._remove_task)
-                        try:
-                            await task          # await ONLY here — to let CancelledError settle
-                        except asyncio.CancelledError:
-                            pass
-                    case "CMD:freeze_engine":
-                        await self.request_freeze()
-                    case "CMD:unfreeze_engine":
-                        await self.request_wake()
-                    case "CMD:shutdown_engine":
-                        await self.request_stop()
-                    #!!!case "CMD:cancel_all_request":
-                    #    await self._package_and_send()
-                    #!!!case "CMD:goflat_request":
-                    #    await self._package_and_send()
-                    case _:
-                        logger.warning("[Trade Engine] Unknown Command: %s", cmd[0])
+                await self.command_response(cmd)
+                
             except ControllerInputError as e:
                 logger.error("[Trade Engine] Control_loop error: %s", e)
             except(ChannelMissingSettingError, ChannelListenError) as e:
