@@ -219,7 +219,7 @@ async def test_cancelall_order_request_send_valid(conn) -> None:
 
     # --- Send
     request_details = {
-        "symbol_name": "CLE",
+        #"symbol_name": "CLE",
         'cl_order_id': "1313",
         'when_utc_timestamp': datetime.now(tz=timezone.utc)
         }
@@ -291,7 +291,7 @@ async def test_goflat_order_request_send_valid(conn) -> None:
 
     # --- Send
     request_details = {
-        "symbol_name": "CLE",
+        #"symbol_name": "CLE",
         'when_utc_timestamp': datetime.now(tz=timezone.utc),
         }
     metadata = {'CLE': "something", "contract_id": 0}
