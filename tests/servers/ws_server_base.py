@@ -1,10 +1,10 @@
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, Awaitable
 import asyncio
 import websockets
 from websockets.asyncio.server import serve, ServerConnection
 
 class WSserver:
-    def __int__(
+    def __init__(
             self, 
             host: str, 
             port:int = 1000,
@@ -13,7 +13,7 @@ class WSserver:
         self.host: str = host
         self.port: int = port
         self._server: websockets.asyncio.server.Server | None = None
-        self.handler: Callable[Any] | None = handler
+        self.handler: Callable[[ServerConnection], Awaitable[None]] = handler
         
     @property
     def url(self) -> Optional[str]:
@@ -30,7 +30,7 @@ class WSserver:
         self._server.close()
         await self._server.wait_closed()
         
- # =============================================================================
+# =============================================================================
 #     - socket() — create the socket
 # - bind() — claim an address/port
 # - listen() — mark it passive, set the backlog queue size
