@@ -35,7 +35,9 @@ jobs:
         run: pip install -e .
       
       - name: Install Redis
-        run: sudo apt-get install -y redis-server
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y redis-server
 
       - name: Run unit tests
         run: pytest --cov --cov-branch --cov-report=xml
@@ -45,3 +47,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
+
