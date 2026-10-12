@@ -1,5 +1,6 @@
 import asyncio
-from typing import Optional
+from asyncio import AsyncIterator
+from typing import Optional, Literal
 import websockets
 from websockets.asyncio.server import serve, ServerConnection
 from EC_API.ext.WebAPI.webapi_2_pb2 import ServerMsg, ClientMsg
@@ -10,6 +11,9 @@ from tests.servers.cqg.data_server_brain import FakeDataServerBrainCQG
 
 class MsgFormatterCQG:
     def __init__(self):...
+RpcAction = tuple[Literal["rpc"], ServerMsg]
+StreamAction = tuple[Literal["stream"], AsyncIterator[ServerMsg]]
+BrainAction = RpcAction | StreamAction
 
 class FakeExchangeDataServerCQG:
     def __init__(
@@ -37,7 +41,11 @@ class FakeExchangeDataServerCQG:
                
             except websockets.exceptions.ConnectionClosed:
                 break
-            
+    # --- Streaming
+    async def spawn_stream(self): ...
+    async def stream_task(self, tape):...
+        
+    # --- Lifecycle
     async def start(self):
         # initialise WS server layer
         await self.ws_server.start()
