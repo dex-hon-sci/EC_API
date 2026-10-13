@@ -2,4 +2,5 @@
 gtest/1.15.0
 
 [generators]
-PkgConfigDeps
+CMakeDeps
+CMakeToolchain
