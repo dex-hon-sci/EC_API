@@ -1,11 +1,3 @@
-#include <stats.h>
-#include <ticks.h>
-#include <algorithm>
-#include <deque>
-#include <cmath>
-#include <pybind11/pybind11.h>
-namespace py = pybind11;
-
 // OHLCVStat: O(1) for update, O(N) at worst in evict
 template <typename ContainerT>
 OHLCVStat<ContainerT>::OHLCVStat(ContainerT& container, double tick_size):
@@ -155,7 +147,6 @@ py::object VWAPStat<ContainerT>::to_py_tuple() const {
     );
 }
 /* Stat setup */
-
 /* SlidingWindowBuffer */
 template <typename C>
 void init_stats(
@@ -190,11 +181,3 @@ void init_stats(
         active_.push_back(std::move(p_));
         }*/
     }
-
-
-template void init_stats<std::deque<TradeTick>>(
-    StatConfig&,
-    std::deque<TradeTick>&,
-    std::array<StatBase*, kStatTypeCount>&,
-    std::vector<std::unique_ptr<StatBase>>&,
-    double);

@@ -1,4 +1,4 @@
-from typing import Protocol, Iterator, Any
+from typing import Protocol, Iterator
 import math
 import random
 

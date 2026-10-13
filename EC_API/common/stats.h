@@ -126,3 +126,6 @@ void init_stats(
     std::vector<std::unique_ptr<StatBase>>& active_stats,
     double tick_size_
     );
+
+
+#include <stats.tpp>
