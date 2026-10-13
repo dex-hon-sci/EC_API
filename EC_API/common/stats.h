@@ -50,7 +50,6 @@ struct MedianSnapshot {
 struct GreeksSnapshot {};
 
 
-
 /* Stat classes for Stat in DataFeed*/
 class StatBase {
 public:
