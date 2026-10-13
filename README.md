@@ -1,6 +1,6 @@
 # *EC_API*: A vendor-agnostic Execution Framework for Algo Trading 
-![Python](https://img.shields.io/badge/python-%3E%3D3.12-blue.svg)
-![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=flat&logo=c%2B%2B&logoColor=white-%3E%3D20)
+![Python](https://img.shields.io/badge/Python-%3E%3D3.12-blue.svg)
+![C++](https://img.shields.io/badge/C%2B%2B_%3E%3D20-00599C?style=flat&logo=cplusplus&logoColor=white)
 ![CI](https://github.com/EulerCapitalAU/EC_API/actions/workflows/unittest.yml/badge.svg)
 [![Coverage](https://codecov.io/gh/EulerCapitalAU/EC_API/branch/main/graph/badge.svg)](https://codecov.io/gh/EulerCapitalAU/EC_API)
 

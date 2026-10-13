@@ -37,13 +37,16 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Install C++ test dependencies
-        run: |
-          conan install ./conanfile.txt --output-folder=build --build=missing
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
-          cmake --build build
-
-      - name: Install package
+      - name: Conan Install C++ test Dependencies
+        run: conan install ./conanfile.txt --output-folder=build --build=missing
+          
+      - name: CMake Config
+        run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+          
+      - name: CMake build 
+        run: cmake --build build
+    
+      - name: Pip Install EC_API Package
         run: pip install -e .
       
       - name: Install Redis
