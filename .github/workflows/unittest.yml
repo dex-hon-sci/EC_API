@@ -25,6 +25,15 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
+      - name: Install Conan
+        run: pip install conan
+
+      - name: Set up Conan profile
+        run: conan profile detect --force
+
+      - name: Install C++ test dependencies
+        run: conan install ./conanfile.txt --build=missing
             
       - name: Install dependencies
         run: |
