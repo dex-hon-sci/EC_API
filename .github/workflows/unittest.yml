@@ -32,13 +32,16 @@ jobs:
       - name: Set up Conan profile
         run: conan profile detect --force
 
-      - name: Install C++ test dependencies
-        run: conan install ./conanfile.txt --build=missing
-            
-      - name: Install dependencies
+      - name: Install Python Dependencies
         run: |
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+
+      - name: Install C++ test dependencies
+        run: |
+          conan install ./conanfile.txt --output-folder=build --build=missing
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
 
       - name: Install package
         run: pip install -e .
@@ -48,9 +51,12 @@ jobs:
           sudo apt-get update 
           sudo apt-get install -y redis-server
 
-      - name: Run unit tests
+      - name: Run Python unit tests
         run: pytest --cov --cov-branch --cov-report=xml
-        
+
+      - name: Run C++ unit tests        
+        run: ctest --test-dir build
+
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
