@@ -69,7 +69,7 @@ TEST(MomentStat, InitSuccess) {
     std::deque<TradeTick> window;
     MomentStat<std::deque<TradeTick>> stat_obj(window);
     
-    MomentStat snap = stat_obj.get_snapshot();
+    MomentSnapshot snap = stat_obj.get_snapshot();
     EXPECT_DOUBLE_EQ(snap.mean,0);
     EXPECT_DOUBLE_EQ(snap.variance,0);
     EXPECT_DOUBLE_EQ(snap.skewness,0);
@@ -96,7 +96,7 @@ TEST(VWAPStat, InitSuccess) {
     std::deque<TradeTick> window;
     VWAPStat<std::deque<TradeTick>> stat_obj(window);
     
-    VWAPStat snap = stat_obj.get_snapshot();
+    VWAPSnapshot snap = stat_obj.get_snapshot();
     EXPECT_DOUBLE_EQ(snap.vwap,0);
 }
 
