@@ -7,7 +7,7 @@
 #include <vector>
 #include <queue>
 #include <pybind11/pybind11.h>
-#include <ticks.h>
+#include "ticks.h"
 namespace py = pybind11;
 
 enum class StatType { 
@@ -138,4 +138,4 @@ void init_stats(
     );
 
 
-#include <stats.tpp>
+#include "stats.tpp"

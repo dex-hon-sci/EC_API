@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <deque>
-#include <stats.h>
-#include <ticks.h>
+#include "EC_API/common/stats.h"
+#include "EC_API/common/ticks.h"
 
 
 //Happy Paths -- Deque init
@@ -112,7 +112,7 @@ TEST(MomentStat, EvictSuccess) {
     TradeTick evicted = window.front();
     window.pop_front();
     
-    stat_obj.evict(evicted);
+    stat_obj.evict(evicted); //evict the front and check new stat
         
     MomentSnapshot snap = stat_obj.get_snapshot();
 
@@ -138,6 +138,9 @@ TEST(VWAPStat, UpdateSuccess) {}
 //test VWAPStat evict
 TEST(VWAPStat, EvictSuccess) {}
 
+
+//Test init_stats
+TEST(init_stas, UpdateSuccess) {}
 
 //Sad Paths -- Deque init
 
