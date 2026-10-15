@@ -5,8 +5,9 @@
 #include <array>
 #include <limits>
 #include <vector>
-#include <ticks.h>
+#include <queue>
 #include <pybind11/pybind11.h>
+#include <ticks.h>
 namespace py = pybind11;
 
 enum class StatType { 
@@ -36,15 +37,15 @@ struct OHLCVSnapshot {
 };
 
 struct MomentSnapshot {
-    double mean, variance, skewness, kurtosis;
+    double mean = 0, variance = 0, skewness=0, kurtosis=0;
 };
 
 struct VWAPSnapshot {
-    double vwap;
+    double vwap = 0;
 };
 
 struct MedianSnapshot {
-    double median;
+    double median = 0;
 };
 /* CrossFeed SnapShots */
 struct GreeksSnapshot {};
@@ -92,7 +93,6 @@ public:
     void evict(const TradeTick& t) override;
     MomentSnapshot get_snapshot() const;
     py::object to_py_tuple() const override;
-
 };
 
 // 
@@ -112,7 +112,18 @@ public:
 };
 
 template <typename ContainerT>
-class MedianStat : public StatBase {};
+class MedianStat : public StatBase {
+private: 
+    ContainerT container_;
+    priority_queue<double> maxHeap;
+    priority_queue<double> minHeap;
+    double median
+public:
+    MedianStat(ContainerT& buf);
+    void update(const TradeTick& t) override;
+    void evict(const TradeTick& t) override;
+
+};
 
 /* Stat classes for Stat in CrossFeed*/
 

@@ -65,17 +65,26 @@ TEST(OHLCVStat, EvictSuccess) {
 }
 
 //test MomentStat init 
+TEST(MomentStat, InitSuccess) {
+    std::deque<TradeTick> window;
+    MomentStat<std::deque<TradeTick>> stat_obj(window);
+    
+    MomentStat snap = stat_obj.get_snapshot();
+    EXPECT_DOUBLE_EQ(snap.mean,0);
+    EXPECT_DOUBLE_EQ(snap.variance,0);
+    EXPECT_DOUBLE_EQ(snap.skewness,0);
+    EXPECT_DOUBLE_EQ(snap.kurtosis,0);
+}
 
 //test MomentStat get_snapshots
 TEST(MomentStat, GetSnapshotSuccess) {
-    std::deque<TradeTick> window;
-    MomentStat<std::deque<TradeTick>> stat_obj(window, 0.01);
-    //ingest data and update stat
-    window.push_back({0.0,100.0,10});
+
 }
 
 //test MomentStat update
-TEST(MomentStat, UpdateSuccess) {}
+TEST(MomentStat, UpdateSuccess) {
+
+}
 
 //test MomentStat evict
 TEST(MomentStat, EvictSuccess) {}
@@ -83,7 +92,13 @@ TEST(MomentStat, EvictSuccess) {}
 
 //test VWAPStat init 
 //test VWAPStat get_snapshots
-TEST(VWAPStat, GetSnapshotSuccess) {}
+TEST(VWAPStat, InitSuccess) {
+    std::deque<TradeTick> window;
+    VWAPStat<std::deque<TradeTick>> stat_obj(window);
+    
+    MomentStat snap = stat_obj.get_snapshot();
+    EXPECT_DOUBLE_EQ(snap.vwap,0);
+}
 
 //test VWAPStat update
 TEST(VWAPStat, UpdateSuccess) {}
@@ -92,4 +107,5 @@ TEST(VWAPStat, UpdateSuccess) {}
 TEST(VWAPStat, EvictSuccess) {}
 
 
+//Sad Paths -- Deque init
 
