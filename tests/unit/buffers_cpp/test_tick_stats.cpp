@@ -96,7 +96,7 @@ TEST(VWAPStat, InitSuccess) {
     std::deque<TradeTick> window;
     VWAPStat<std::deque<TradeTick>> stat_obj(window);
     
-    MomentStat snap = stat_obj.get_snapshot();
+    VWAPStat snap = stat_obj.get_snapshot();
     EXPECT_DOUBLE_EQ(snap.vwap,0);
 }
 
