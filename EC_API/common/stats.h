@@ -115,9 +115,9 @@ template <typename ContainerT>
 class MedianStat : public StatBase {
 private: 
     ContainerT container_;
-    priority_queue<double> maxHeap;
-    priority_queue<double> minHeap;
-    double median
+    std::priority_queue<double> maxHeap;
+    std::priority_queue<double> minHeap;
+    double median;
 public:
     MedianStat(ContainerT& buf);
     void update(const TradeTick& t) override;
