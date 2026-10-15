@@ -68,7 +68,7 @@ TEST(OHLCVStat, EvictSuccess) {
 TEST(MomentStat, InitSuccess) {
     std::deque<TradeTick> window;
     MomentStat<std::deque<TradeTick>> stat_obj(window);
-    
+            
     MomentSnapshot snap = stat_obj.get_snapshot();
     EXPECT_DOUBLE_EQ(snap.mean,0);
     EXPECT_DOUBLE_EQ(snap.variance,0);
@@ -76,22 +76,54 @@ TEST(MomentStat, InitSuccess) {
     EXPECT_DOUBLE_EQ(snap.kurtosis,0);
 }
 
-//test MomentStat get_snapshots
-TEST(MomentStat, GetSnapshotSuccess) {
-
-}
-
 //test MomentStat update
 TEST(MomentStat, UpdateSuccess) {
-
+    std::deque<TradeTick> window;
+    MomentStat<std::deque<TradeTick>> stat_obj(window);
+    
+    double price_arr[7] = {100,200,105,114,20,50,32};
+    double vols_arr[7] = {10,46,4,81,5,42,23};
+    
+    for (int i=0; i<7; i++) {
+        window.push_back({static_cast<double>(i), price_arr[i], vols_arr[i]});
+        stat_obj.update(window.back());
+    } 
+    
+    MomentSnapshot snap = stat_obj.get_snapshot();
+    EXPECT_NEAR(snap.mean, 88.7143, 1e-4);
+    EXPECT_NEAR(snap.variance, 3264.7755, 1e-4);
+    EXPECT_NEAR(snap.skewness,0.63964, 1e-4);
+    EXPECT_NEAR(snap.kurtosis, 2.5299, 1e-4);
 }
 
 //test MomentStat evict
-TEST(MomentStat, EvictSuccess) {}
+TEST(MomentStat, EvictSuccess) {
+    std::deque<TradeTick> window;
+    MomentStat<std::deque<TradeTick>> stat_obj(window);
+    
+    double price_arr[7] = {100,200,105,114,20,50,32};
+    double vols_arr[7] = {10,46,4,81,5,42,23};
+    
+    for (int i=0; i<7; i++) {
+        window.push_back({static_cast<double>(i), price_arr[i], vols_arr[i]});
+        stat_obj.update(window.back());
+    } 
+
+    TradeTick evicted = window.front();
+    window.pop_front();
+    
+    stat_obj.evict(evicted);
+        
+    MomentSnapshot snap = stat_obj.get_snapshot();
+
+    EXPECT_NEAR(snap.mean, 86.8334, 1e-4);
+    EXPECT_NEAR(snap.variance, 3784.1389, 1e-4);
+    EXPECT_NEAR(snap.skewness,0.6887, 1e-4);
+    EXPECT_NEAR(snap.kurtosis, 2.2754, 1e-4);
+}
 
 
 //test VWAPStat init 
-//test VWAPStat get_snapshots
 TEST(VWAPStat, InitSuccess) {
     std::deque<TradeTick> window;
     VWAPStat<std::deque<TradeTick>> stat_obj(window);
